@@ -14,31 +14,27 @@
  * limitations under the License.
  */
 
-package unit.uk.gov.hmrc.bindingtarifffilestore.controllers
+package uk.gov.hmrc.bindingtarifffilestore.service
 
 import org.mockito.BDDMockito.given
-import org.scalatest.Matchers
 import org.scalatest.mockito.MockitoSugar
-import org.scalatestplus.play.guice.GuiceOneAppPerSuite
-import play.api.http.Status
-import play.api.test.FakeRequest
-import uk.gov.hmrc.bindingtarifffilestore.controllers.FileStoreController
+import uk.gov.hmrc.bindingtarifffilestore.connector.AmazonS3Connector
 import uk.gov.hmrc.bindingtarifffilestore.service.FileStoreService
+import uk.gov.hmrc.bindingtarifffilestore.connector.AmazonS3Connector
 import uk.gov.hmrc.play.test.UnitSpec
 
-class FileStoreControllerSpec extends UnitSpec with Matchers with GuiceOneAppPerSuite with MockitoSugar {
+class FileStoreServiceTest extends UnitSpec with MockitoSugar {
 
-  private val service = mock[FileStoreService]
+  private val connector = mock[AmazonS3Connector]
 
-  private val fakeRequest = FakeRequest("GET", "/")
+  val service = new FileStoreService(connector)
 
-  "GET /" should {
-    "return 200" in {
-      given(service.getAll).willReturn(Seq("val"))
+  "Service" should {
+    "Delegate to Connector" in {
+      val response = Seq("Val")
+      given(connector.getAll).willReturn(response)
 
-      val result = new FileStoreController(service).listAllFiles()(fakeRequest)
-
-      status(result) shouldBe Status.OK
+      service.getAll shouldBe response
     }
   }
 
