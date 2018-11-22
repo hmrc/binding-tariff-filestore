@@ -3,7 +3,6 @@
 
 A microservice providing read, write and delete access to Amazon S3.
 
-
 ### Running
 
 ##### To run this Service you will need:
