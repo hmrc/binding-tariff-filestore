@@ -5,7 +5,7 @@ object AppDependencies {
   val compile = Seq(
     "uk.gov.hmrc"             %% "play-reactivemongo"       % "6.2.0",
     "uk.gov.hmrc"             %% "bootstrap-play-25"        % "3.15.0",
-    "com.amazonaws"           %  "aws-java-sdk-s3"          % "1.11.290"
+    "com.amazonaws"           %  "aws-java-sdk-s3"          % "1.11.454"
   )
 
   lazy val scope: String = "test,it"
