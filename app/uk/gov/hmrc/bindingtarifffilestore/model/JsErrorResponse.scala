@@ -16,20 +16,22 @@
 
 package uk.gov.hmrc.bindingtarifffilestore.model
 
-import java.util.UUID
+import play.api.libs.json.Json.JsValueWrapper
+import play.api.libs.json.{JsObject, Json}
 
-import play.api.libs.json.{Json, OFormat}
-import uk.gov.hmrc.bindingtarifffilestore.model.ScanStatus._
+object JsErrorResponse {
+  def apply(errorCode: ErrorCode.Value, message: JsValueWrapper): JsObject =
+    Json.obj(
+      "code" -> errorCode.toString,
+      "message" -> message
+    )
+}
 
-case class TemporaryAttachment
-(
-  id: String = UUID.randomUUID().toString,
-  fileName: String,
-  url: String,
-  mimeType: String,
-  scanStatus: Option[ScanStatus] = None
-)
+object ErrorCode extends Enumeration {
+  type ErrorCode = Value
 
-object TemporaryAttachment {
-  implicit val format: OFormat[TemporaryAttachment] = Json.format[TemporaryAttachment]
+  val FORBIDDEN = Value("FORBIDDEN")
+  val NOT_FOUND = Value("NOT_FOUND")
+  val UNKNOWN_ERROR = Value("UNKNOWN_ERROR")
+  val INVALID_REQUEST_PAYLOAD = Value("INVALID_REQUEST_PAYLOAD")
 }

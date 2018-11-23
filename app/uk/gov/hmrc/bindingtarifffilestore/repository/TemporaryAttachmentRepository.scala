@@ -41,7 +41,7 @@ class TemporaryAttachmentMongoRepository @Inject()(mongoDbProvider: MongoDbProvi
   extends ReactiveRepository[TemporaryAttachment, BSONObjectID](
     collectionName = "temporaryAttachment",
     mongo = mongoDbProvider.mongo,
-    domainFormat = TemporaryAttachment.formatTemporaryAttachment,
+    domainFormat = TemporaryAttachment.format,
     idFormat = ReactiveMongoFormats.objectIdFormats) with TemporaryAttachmentRepository {
 
   lazy private val uniqueSingleFieldIndexes = Seq("id, url")

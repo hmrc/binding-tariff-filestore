@@ -17,11 +17,11 @@
 package uk.gov.hmrc.bindingtarifffilestore.controllers
 
 import javax.inject.{Inject, Singleton}
-import play.api.libs.json.Json
+import play.api.libs.json.{JsValue, Json}
 import play.api.mvc._
-import uk.gov.hmrc.bindingtarifffilestore.model.TemporaryAttachment.formatTemporaryAttachment
-import uk.gov.hmrc.bindingtarifffilestore.model.TemporaryAttachment
+import uk.gov.hmrc.bindingtarifffilestore.model.TemporaryAttachment.format
 import uk.gov.hmrc.bindingtarifffilestore.model.upscan.ScanResult
+import uk.gov.hmrc.bindingtarifffilestore.model.{ErrorCode, JsErrorResponse, TemporaryAttachment}
 import uk.gov.hmrc.bindingtarifffilestore.service.FileStoreService
 import uk.gov.hmrc.play.bootstrap.controller.BaseController
 
@@ -56,17 +56,16 @@ class FileStoreController @Inject()(service: FileStoreService) extends BaseContr
 //    }
   }
 
-  def notification(id: String): Action[AnyContent] = Action.async { implicit request =>
-    throw new IllegalArgumentException
-//    withJsonBody[ScanResult] { scanResult =>
-//      service.getById(id).flatMap {
-//        case Some(att: TemporaryAttachment) =>
-//          service
-//            .notify(att, scanResult) // TODO pull this from the request
-//            .map(attachment => Ok(Json.toJson(attachment)))
-//        case _ => Future.successful(NotFound())
-//      }
-//    }
+  def notification(id: String): Action[JsValue] = Action.async(parse.json) { implicit request =>
+    withJsonBody[ScanResult] { scanResult =>
+      service.getById(id).flatMap {
+        case Some(att: TemporaryAttachment) =>
+          service
+            .notify(att, scanResult) // TODO pull this from the request
+            .map(attachment => Ok(Json.toJson(attachment)))
+        case _ => Future.successful(NotFound(JsErrorResponse(ErrorCode.NOT_FOUND, "File Not Found")))
+      }
+    }
   }
 
 }
