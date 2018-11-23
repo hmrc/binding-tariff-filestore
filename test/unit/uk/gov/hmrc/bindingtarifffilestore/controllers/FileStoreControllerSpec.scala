@@ -16,12 +16,15 @@
 
 package uk.gov.hmrc.bindingtarifffilestore.controllers
 
+import akka.stream.Materializer
 import org.mockito.Mockito.when
 import org.scalatest.Matchers
 import org.scalatest.mockito.MockitoSugar
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.http.Status
+import play.api.libs.json.Json
 import play.api.test.FakeRequest
+import uk.gov.hmrc.bindingtarifffilestore.model.TemporaryAttachment
 import uk.gov.hmrc.bindingtarifffilestore.service.FileStoreService
 import uk.gov.hmrc.play.test.UnitSpec
 
@@ -29,20 +32,30 @@ import scala.concurrent.Future.successful
 
 class FileStoreControllerSpec extends UnitSpec with Matchers with GuiceOneAppPerSuite with MockitoSugar {
 
+  private implicit val mat: Materializer = fakeApplication.materializer
+
   private val service = mock[FileStoreService]
   private val controller = new FileStoreController(service)
 
   private val fakeRequest = FakeRequest()
 
-  "GET /" should {
-    "return 200" in {
+  "GET /id" should {
+    "return 200 when found" in {
+      val attachment = TemporaryAttachment(id="id", fileName = "file", mimeType = "type")
+      when(service.getById("id")).thenReturn(successful(Some(attachment)))
 
-      when(service.getAll).thenReturn(successful(Seq.empty))
-
-      val result = await(controller.listAllFiles()(fakeRequest))
+      val result = await(controller.get("id")(fakeRequest))
 
       status(result) shouldBe Status.OK
+      bodyOf(result) shouldEqual Json.toJson(attachment).toString()
+    }
 
+    "return 404 when not found" in {
+      when(service.getById("id")).thenReturn(successful(None))
+
+      val result = await(controller.get("id")(fakeRequest))
+
+      status(result) shouldBe Status.NOT_FOUND
     }
   }
 
