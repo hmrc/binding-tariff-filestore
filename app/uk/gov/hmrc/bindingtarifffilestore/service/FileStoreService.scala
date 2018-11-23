@@ -34,8 +34,8 @@ class FileStoreService @Inject()(connector: AmazonS3Connector) {
     Future.successful(None)
   }
 
-  def upload: Future[Attachment] = {
-    Future.successful(Attachment(name = "name"))
+  def upload(attachment: Attachment): Future[Attachment] = {
+    Future.successful(attachment)
   }
 
   def notify(attachment: Attachment, scanResult: ScanResult): Future[Attachment]  = {

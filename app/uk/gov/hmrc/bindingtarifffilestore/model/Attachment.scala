@@ -9,6 +9,7 @@ case class Attachment
 (
   id: String = UUID.randomUUID().toString,
   name: String,
+  mimeType: String,
   scanStatus: Option[ScanStatus] = None
 )
 
