@@ -35,36 +35,38 @@ class FileStoreController @Inject()(service: FileStoreService) extends BaseContr
     service.getAll.map(attachments => Ok(Json.toJson(attachments)))
   }
 
-  def upload: Action[AnyContent] = Action.async(parse.multipartFormData) { implicit request =>
-
-    val attachment = request.body.file("file").map { file =>
-      TemporaryAttachment(
-        url = "",
-        fileName = file.filename,
-        mimeType = file.contentType.getOrElse(throw new RuntimeException("Unknown file type"))
-      )
-    }.getOrElse(throw new RuntimeException("Invalid upload"))
-
-    service.upload(attachment).map(att => Ok(Json.toJson(att)))
+  def upload: Action[AnyContent] = Action.async { implicit request =>
+    throw new IllegalArgumentException
+//    val attachment = request.body.file("file").map { file =>
+//      TemporaryAttachment(
+//        url = "",
+//        fileName = file.filename,
+//        mimeType = file.contentType.getOrElse(throw new RuntimeException("Unknown file type"))
+//      )
+//    }.getOrElse(throw new RuntimeException("Invalid upload"))
+//
+//    service.upload(attachment).map(att => Ok(Json.toJson(att)))
   }
 
   def get(id: String): Action[AnyContent] = Action.async { implicit request =>
-    service.getById(id).map {
-      case Some(att: TemporaryAttachment) => Ok(Json.toJson(att))
-      case _ => NotFound()
-    }
+    throw new IllegalArgumentException
+//    service.getById(id).map {
+//      case Some(att: TemporaryAttachment) => Ok(Json.toJson(att))
+//      case _ => NotFound()
+//    }
   }
 
-  def notify(id: String): Action[AnyContent] = Action.async(parse.json) { implicit request =>
-    withJsonBody[ScanResult] { scanResult =>
-      service.getById(id).flatMap {
-        case Some(att: TemporaryAttachment) =>
-          service
-            .notify(att, scanResult) // TODO pull this from the request
-            .map(attachment => Ok(Json.toJson(attachment)))
-        case _ => Future.successful(NotFound())
-      }
-    }
+  def notification(id: String): Action[AnyContent] = Action.async { implicit request =>
+    throw new IllegalArgumentException
+//    withJsonBody[ScanResult] { scanResult =>
+//      service.getById(id).flatMap {
+//        case Some(att: TemporaryAttachment) =>
+//          service
+//            .notify(att, scanResult) // TODO pull this from the request
+//            .map(attachment => Ok(Json.toJson(attachment)))
+//        case _ => Future.successful(NotFound())
+//      }
+//    }
   }
 
 }

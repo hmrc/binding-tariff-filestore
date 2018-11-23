@@ -19,7 +19,7 @@ package uk.gov.hmrc.bindingtarifffilestore.model
 import java.util.UUID
 
 import play.api.libs.json.{Json, OFormat}
-import uk.gov.hmrc.bindingtarifffilestore.model.ScanStatus.ScanStatus
+import uk.gov.hmrc.bindingtarifffilestore.model.ScanStatus._
 
 case class TemporaryAttachment
 (

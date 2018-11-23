@@ -16,10 +16,9 @@
 
 package uk.gov.hmrc.bindingtarifffilestore.model
 
-import play.api.libs.json.{Json, OFormat}
-
 object ScanStatus extends Enumeration {
   type ScanStatus = Value
-  implicit val scanStatusFormat: OFormat[ScanStatus] = Json.format[ScanStatus]
   val READY, FAILED = Value
+
+  implicit val format = EnumJson.format(ScanStatus)
 }

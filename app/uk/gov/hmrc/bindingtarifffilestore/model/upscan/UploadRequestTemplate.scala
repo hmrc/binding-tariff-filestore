@@ -20,6 +20,6 @@ import play.api.libs.json.{Json, OFormat}
 
 case class UploadRequestTemplate(href: String, fields: Map[String, String])
 
-object UploadFormTemplate {
+object UploadRequestTemplate {
   implicit val format: OFormat[UploadRequestTemplate] = Json.format
 }
