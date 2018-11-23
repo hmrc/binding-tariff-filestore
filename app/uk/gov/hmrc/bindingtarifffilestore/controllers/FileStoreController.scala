@@ -19,9 +19,10 @@ package uk.gov.hmrc.bindingtarifffilestore.controllers
 import javax.inject.{Inject, Singleton}
 import play.api.libs.json.Json
 import play.api.mvc._
+import uk.gov.hmrc.bindingtarifffilestore.model.Attachment
 import uk.gov.hmrc.bindingtarifffilestore.model.Attachment.attachmentFormat
-import uk.gov.hmrc.bindingtarifffilestore.model.ScanResult.format
-import uk.gov.hmrc.bindingtarifffilestore.model.{Attachment, ScanResult}
+import uk.gov.hmrc.bindingtarifffilestore.model.upscan.ScanResult
+import uk.gov.hmrc.bindingtarifffilestore.model.upscan.ScanResult.format
 import uk.gov.hmrc.bindingtarifffilestore.service.FileStoreService
 import uk.gov.hmrc.play.bootstrap.controller.BaseController
 
@@ -35,8 +36,8 @@ class FileStoreController @Inject()(service: FileStoreService) extends BaseContr
     service.getAll.map(attachments => Ok(Json.toJson(attachments)))
   }
 
-  def upload: Action[AnyContent] = Action.async { implicit request =>
-    Future.successful(Ok())
+  def upload: Action[AnyContent] = Action.async(parse.json) { implicit request =>
+    withJsonBody[]
   }
 
   def get(id: String): Action[AnyContent] = Action.async { implicit request =>

@@ -1,4 +1,4 @@
-package uk.gov.hmrc.bindingtarifffilestore.model
+package uk.gov.hmrc.bindingtarifffilestore.model.upscan
 
 import play.api.libs.json.{Json, OFormat}
 

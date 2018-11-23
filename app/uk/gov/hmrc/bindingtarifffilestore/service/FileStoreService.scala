@@ -18,7 +18,8 @@ package uk.gov.hmrc.bindingtarifffilestore.service
 
 import javax.inject.{Inject, Singleton}
 import uk.gov.hmrc.bindingtarifffilestore.connector.AmazonS3Connector
-import uk.gov.hmrc.bindingtarifffilestore.model.{Attachment, ScanResult}
+import uk.gov.hmrc.bindingtarifffilestore.model.Attachment
+import uk.gov.hmrc.bindingtarifffilestore.model.upscan.ScanResult
 
 import scala.concurrent.Future
 

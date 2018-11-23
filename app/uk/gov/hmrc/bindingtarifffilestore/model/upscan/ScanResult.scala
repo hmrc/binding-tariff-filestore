@@ -1,10 +1,11 @@
-package uk.gov.hmrc.bindingtarifffilestore.model
+package uk.gov.hmrc.bindingtarifffilestore.model.upscan
 
 import java.time.Instant
 
 import play.api.libs.json._
 import uk.gov.hmrc.bindingtarifffilestore.model
 import uk.gov.hmrc.bindingtarifffilestore.model.FailureReason.FailureReason
+import uk.gov.hmrc.bindingtarifffilestore.model.ScanStatus
 import uk.gov.hmrc.bindingtarifffilestore.model.ScanStatus.ScanStatus
 import uk.gov.hmrc.play.json.Union
 
