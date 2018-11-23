@@ -30,11 +30,10 @@ import scala.concurrent.Future
 @ImplementedBy(classOf[TemporaryAttachmentMongoRepository])
 trait TemporaryAttachmentRepository {
 
+  def get(id: String): Future[Option[TemporaryAttachment]]
   def insert(att: TemporaryAttachment): Future[TemporaryAttachment]
-
-  def get(id: String): Future[TemporaryAttachment]
-
-  def update(att: TemporaryAttachment): Future[Unit]
+  def update(att: TemporaryAttachment): Future[TemporaryAttachment]
+  // TODO: delete not needed - we will use 7 days TTL on mongo config
 }
 
 @Singleton
@@ -51,9 +50,7 @@ class TemporaryAttachmentMongoRepository @Inject()(mongoDbProvider: MongoDbProvi
     uniqueSingleFieldIndexes.map(createSingleFieldAscendingIndex(_, isUnique = true))
   }
 
+  override def get(id: String): Future[Option[TemporaryAttachment]] = ???
   override def insert(att: TemporaryAttachment): Future[TemporaryAttachment] = ???
-
-  override def get(id: String): Future[TemporaryAttachment] = ???
-
-  override def update(att: TemporaryAttachment): Future[Unit] = ???
+  override def update(att: TemporaryAttachment): Future[TemporaryAttachment] = ???
 }
