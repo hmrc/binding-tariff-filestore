@@ -17,7 +17,7 @@
 package uk.gov.hmrc.bindingtarifffilestore.service
 
 import javax.inject.{Inject, Singleton}
-import uk.gov.hmrc.bindingtarifffilestore.connector.{AmazonS3Connector, UpscanInitiateConnector}
+import uk.gov.hmrc.bindingtarifffilestore.connector.{AmazonS3Connector, UpscanConnector}
 import uk.gov.hmrc.bindingtarifffilestore.controllers.routes
 import uk.gov.hmrc.bindingtarifffilestore.model.upscan.{ScanResult, SuccessfulScanResult, UploadSettings}
 import uk.gov.hmrc.bindingtarifffilestore.model.{FileMetadata, FileWithMetadata, ScanStatus}
@@ -30,7 +30,7 @@ import scala.concurrent.Future
 @Singleton()
 class FileStoreService @Inject()(connector: AmazonS3Connector,
                                  repository: FileMetadataRepository,
-                                 upscanInitiateConnector: UpscanInitiateConnector) {
+                                 upscanConnector: UpscanConnector) {
 
   //  def getAll: Future[Seq[TemporaryAttachment]] = {
   //    Future.successful(connector.getAll)
@@ -43,8 +43,8 @@ class FileStoreService @Inject()(connector: AmazonS3Connector,
   def upload(attachment: FileWithMetadata)(implicit headerCarrier: HeaderCarrier): Future[FileMetadata] = {
     Future {
       val settings = UploadSettings(routes.FileStoreController.notification(attachment.metadata.id).url)
-      upscanInitiateConnector.initiateAttachmentUpload(settings).map { response =>
-        // TODO use attachment.file to upload to Upscans S3 Bucket
+      upscanConnector.initiate(settings).flatMap { response =>
+        upscanConnector.upload(response.uploadRequest, attachment.file)
       }
     }
     repository.insert(attachment.metadata)

@@ -17,18 +17,30 @@
 package uk.gov.hmrc.bindingtarifffilestore.connector
 
 import javax.inject.{Inject, Singleton}
+import play.api.libs.Files
+import play.api.mvc.MultipartFormData
 import uk.gov.hmrc.bindingtarifffilestore.config.AppConfig
-import uk.gov.hmrc.bindingtarifffilestore.model.upscan.{UploadSettings, UpscanInitiateResponse}
-import uk.gov.hmrc.http.{HeaderCarrier, HttpPost}
+import uk.gov.hmrc.bindingtarifffilestore.model.upscan.{UploadRequestTemplate, UploadSettings, UpscanInitiateResponse}
+import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.play.bootstrap.http.HttpClient
 
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class UpscanInitiateConnector @Inject()(appConfig: AppConfig, http: HttpPost)(
+class UpscanConnector @Inject()(appConfig: AppConfig, http: HttpClient)(
   implicit executionContext: ExecutionContext) {
 
-  def initiateAttachmentUpload(uploadSettings: UploadSettings)
-                              (implicit headerCarrier: HeaderCarrier): Future[UpscanInitiateResponse] =
+  def initiate(uploadSettings: UploadSettings)
+              (implicit headerCarrier: HeaderCarrier): Future[UpscanInitiateResponse] = {
     http.POST[UploadSettings, UpscanInitiateResponse](s"${appConfig.upscanInitiateUrl}/upscan/initiate", uploadSettings)
+  }
+
+  def upload(template: UploadRequestTemplate, file: MultipartFormData.Part[Files.TemporaryFile])
+            (implicit headerCarrier: HeaderCarrier): Future[Boolean] = {
+    val form: Map[String, Seq[String]] = template.fields.map {
+      case (key, value) => (key, Seq(value))
+    }
+    http.POSTForm[String](template.href, form).map(_ => true)
+  }
 
 }

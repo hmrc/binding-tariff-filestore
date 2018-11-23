@@ -20,7 +20,7 @@ import org.mockito.BDDMockito.given
 import org.scalatest.mockito.MockitoSugar
 import play.api.libs.Files
 import play.api.mvc.MultipartFormData
-import uk.gov.hmrc.bindingtarifffilestore.connector.{AmazonS3Connector, UpscanInitiateConnector}
+import uk.gov.hmrc.bindingtarifffilestore.connector.{AmazonS3Connector, UpscanConnector}
 import uk.gov.hmrc.bindingtarifffilestore.model.upscan._
 import uk.gov.hmrc.bindingtarifffilestore.model.{FileMetadata, FileWithMetadata, ScanStatus}
 import uk.gov.hmrc.bindingtarifffilestore.repository.FileMetadataRepository
@@ -33,7 +33,7 @@ class FileStoreServiceTest extends UnitSpec with MockitoSugar {
 
   private val s3Connector = mock[AmazonS3Connector]
   private val repository = mock[FileMetadataRepository]
-  private val upscanConnector = mock[UpscanInitiateConnector]
+  private val upscanConnector = mock[UpscanConnector]
   private implicit val headerCarrier: HeaderCarrier = HeaderCarrier()
 
   val service = new FileStoreService(s3Connector, repository, upscanConnector)
