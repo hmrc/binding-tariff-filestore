@@ -16,8 +16,4 @@ object Attachment {
   implicit val attachmentFormat = Json.format[Attachment]
 }
 
-object ScanStatus extends Enumeration {
-  type ScanStatus = Value
-  implicit val scanStatusFormat = Json.format[ScanStatus]
-  val READY, FAILED = Value
-}
+
