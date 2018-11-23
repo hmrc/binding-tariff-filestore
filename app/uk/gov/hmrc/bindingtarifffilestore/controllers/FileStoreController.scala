@@ -46,8 +46,7 @@ class FileStoreController @Inject()(service: FileStoreService) extends BaseContr
     }
   }
 
-  def notify(id: String): Action[AnyContent] = Action.async { implicit request =>
-
+  def notify(id: String): Action[AnyContent] = Action.async(parse.json) { implicit request =>
     withJsonBody[ScanResult] { scanResult =>
       service.getById(id).flatMap {
         case Some(att: Attachment) =>
