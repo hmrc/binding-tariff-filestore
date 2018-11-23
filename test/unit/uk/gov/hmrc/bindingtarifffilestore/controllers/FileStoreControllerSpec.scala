@@ -24,7 +24,7 @@ import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.http.Status
 import play.api.libs.json.Json
 import play.api.test.FakeRequest
-import uk.gov.hmrc.bindingtarifffilestore.model.TemporaryAttachment
+import uk.gov.hmrc.bindingtarifffilestore.model.FileMetadata
 import uk.gov.hmrc.bindingtarifffilestore.service.FileStoreService
 import uk.gov.hmrc.play.test.UnitSpec
 
@@ -41,7 +41,7 @@ class FileStoreControllerSpec extends UnitSpec with Matchers with GuiceOneAppPer
 
   "GET /id" should {
     "return 200 when found" in {
-      val attachment = TemporaryAttachment(id="id", fileName = "file", mimeType = "type")
+      val attachment = FileMetadata(id="id", fileName = "file", mimeType = "type")
       when(service.getById("id")).thenReturn(successful(Some(attachment)))
 
       val result = await(controller.get("id")(fakeRequest))

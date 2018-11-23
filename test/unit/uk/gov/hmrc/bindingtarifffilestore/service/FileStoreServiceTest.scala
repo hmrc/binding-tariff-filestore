@@ -20,8 +20,8 @@ import org.mockito.BDDMockito.given
 import org.scalatest.mockito.MockitoSugar
 import uk.gov.hmrc.bindingtarifffilestore.connector.AmazonS3Connector
 import uk.gov.hmrc.bindingtarifffilestore.model.upscan._
-import uk.gov.hmrc.bindingtarifffilestore.model.{ScanStatus, TemporaryAttachment}
-import uk.gov.hmrc.bindingtarifffilestore.repository.TemporaryAttachmentRepository
+import uk.gov.hmrc.bindingtarifffilestore.model.{FileMetadata, ScanStatus}
+import uk.gov.hmrc.bindingtarifffilestore.repository.FileMetadataRepository
 import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.Future
@@ -29,14 +29,14 @@ import scala.concurrent.Future
 class FileStoreServiceTest extends UnitSpec with MockitoSugar {
 
   private val connector = mock[AmazonS3Connector]
-  private val repository = mock[TemporaryAttachmentRepository]
+  private val repository = mock[FileMetadataRepository]
 
   val service = new FileStoreService(connector, repository)
 
   "Service 'get by id'" should {
 
     "Delegate to Connector" in {
-      val attachment = mock[TemporaryAttachment]
+      val attachment = mock[FileMetadata]
       given(repository.get("id")).willReturn(Future.successful(Some(attachment)))
 
       await(service.getById("id")) shouldBe Some(attachment)
@@ -46,8 +46,8 @@ class FileStoreServiceTest extends UnitSpec with MockitoSugar {
   "Service 'upload'" should {
 
     "Delegate to Connector" in {
-      val attachment = mock[TemporaryAttachment]
-      val attachmentCreated = mock[TemporaryAttachment]
+      val attachment = mock[FileMetadata]
+      val attachmentCreated = mock[FileMetadata]
       given(repository.insert(attachment)).willReturn(Future.successful(attachmentCreated))
 
       await(service.upload(attachment)) shouldBe attachmentCreated
@@ -55,8 +55,8 @@ class FileStoreServiceTest extends UnitSpec with MockitoSugar {
   }
 
   "Service 'notify'" should {
-    val attachment = TemporaryAttachment(fileName = "file", mimeType = "type")
-    val attachmentUpdated = mock[TemporaryAttachment]
+    val attachment = FileMetadata(fileName = "file", mimeType = "type")
+    val attachmentUpdated = mock[FileMetadata]
 
     "Update the attachment for Successful Scan and Delegate to Connector" in {
       val scanResult = SuccessfulScanResult("ref", "url", mock[UploadDetails])

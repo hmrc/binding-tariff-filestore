@@ -22,7 +22,7 @@ import play.api.libs.json.Json
 import reactivemongo.api.indexes.Index
 import reactivemongo.bson.BSONObjectID
 import reactivemongo.play.json.ImplicitBSONHandlers._
-import uk.gov.hmrc.bindingtarifffilestore.model.TemporaryAttachment
+import uk.gov.hmrc.bindingtarifffilestore.model.FileMetadata
 import uk.gov.hmrc.bindingtarifffilestore.repository.MongoIndexCreator.createSingleFieldAscendingIndex
 import uk.gov.hmrc.mongo.ReactiveRepository
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
@@ -30,22 +30,22 @@ import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-@ImplementedBy(classOf[TemporaryAttachmentMongoRepository])
-trait TemporaryAttachmentRepository {
+@ImplementedBy(classOf[FileMetadataMongoRepository])
+trait FileMetadataRepository {
 
-  def get(id: String): Future[Option[TemporaryAttachment]]
-  def insert(att: TemporaryAttachment): Future[TemporaryAttachment]
-  def update(att: TemporaryAttachment): Future[Option[TemporaryAttachment]]
+  def get(id: String): Future[Option[FileMetadata]]
+  def insert(att: FileMetadata): Future[FileMetadata]
+  def update(att: FileMetadata): Future[Option[FileMetadata]]
   // TODO: delete not needed - we will use 7 days TTL on mongo config
 }
 
 @Singleton
-class TemporaryAttachmentMongoRepository @Inject()(mongoDbProvider: MongoDbProvider)
-  extends ReactiveRepository[TemporaryAttachment, BSONObjectID](
-    collectionName = "temporaryAttachment",
+class FileMetadataMongoRepository @Inject()(mongoDbProvider: MongoDbProvider)
+  extends ReactiveRepository[FileMetadata, BSONObjectID](
+    collectionName = "fileMetadata",
     mongo = mongoDbProvider.mongo,
-    domainFormat = TemporaryAttachment.format,
-    idFormat = ReactiveMongoFormats.objectIdFormats) with TemporaryAttachmentRepository {
+    domainFormat = FileMetadata.format,
+    idFormat = ReactiveMongoFormats.objectIdFormats) with FileMetadataRepository {
 
   lazy private val uniqueSingleFieldIndexes = Seq("id")
 
@@ -53,21 +53,21 @@ class TemporaryAttachmentMongoRepository @Inject()(mongoDbProvider: MongoDbProvi
     uniqueSingleFieldIndexes.map(createSingleFieldAscendingIndex(_, isUnique = true))
   }
 
-  override def get(id: String): Future[Option[TemporaryAttachment]] = {
-    collection.find(byId(id)).one[TemporaryAttachment]
+  override def get(id: String): Future[Option[FileMetadata]] = {
+    collection.find(byId(id)).one[FileMetadata]
   }
 
-  override def insert(att: TemporaryAttachment): Future[TemporaryAttachment] = {
+  override def insert(att: FileMetadata): Future[FileMetadata] = {
     collection.insert(att).map(_ => att)
   }
 
-  override def update(att: TemporaryAttachment): Future[Option[TemporaryAttachment]] = {
+  override def update(att: FileMetadata): Future[Option[FileMetadata]] = {
     collection.findAndUpdate(
       selector = byId(att.id),
       update = att,
       fetchNewObject = true,
       upsert = false
-    ).map(_.value.map(_.as[TemporaryAttachment]))
+    ).map(_.value.map(_.as[FileMetadata]))
   }
 
   private def byId(id: String) = {

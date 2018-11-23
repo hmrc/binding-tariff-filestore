@@ -24,7 +24,7 @@ import com.amazonaws.services.s3.{AmazonS3, AmazonS3ClientBuilder}
 import com.google.inject.Inject
 import javax.inject.Singleton
 import uk.gov.hmrc.bindingtarifffilestore.config.AppConfig
-import uk.gov.hmrc.bindingtarifffilestore.model.TemporaryAttachment
+import uk.gov.hmrc.bindingtarifffilestore.model.FileMetadata
 
 import scala.collection.JavaConverters
 
@@ -50,11 +50,11 @@ class AmazonS3Connector @Inject()(config: AppConfig) {
     builder.build()
   }
 
-  def getAll: Seq[TemporaryAttachment] = {
+  def getAll: Seq[FileMetadata] = {
     sequenceOf(s3client
       .listObjects(bucket)
       .getObjectSummaries)
-      .map(obj => TemporaryAttachment(fileName = obj.getKey, mimeType = ""))
+      .map(obj => FileMetadata(fileName = obj.getKey, mimeType = ""))
   }
 
 

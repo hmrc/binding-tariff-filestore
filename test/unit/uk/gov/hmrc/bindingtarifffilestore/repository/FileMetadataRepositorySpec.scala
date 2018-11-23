@@ -26,12 +26,12 @@ import reactivemongo.api.indexes.IndexType.Ascending
 import reactivemongo.bson._
 import reactivemongo.core.errors.DatabaseException
 import reactivemongo.play.json.ImplicitBSONHandlers._
-import uk.gov.hmrc.bindingtarifffilestore.model.TemporaryAttachment
+import uk.gov.hmrc.bindingtarifffilestore.model.FileMetadata
 import uk.gov.hmrc.mongo.MongoSpecSupport
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class TemporaryAttachmentRepositorySpec extends BaseMongoIndexSpec
+class FileMetadataRepositorySpec extends BaseMongoIndexSpec
   with BeforeAndAfterAll
   with BeforeAndAfterEach
   with MongoSpecSupport
@@ -42,12 +42,12 @@ class TemporaryAttachmentRepositorySpec extends BaseMongoIndexSpec
     override val mongo: () => DB = self.mongo
   }
 
-  private def getIndexes(repo: TemporaryAttachmentMongoRepository): List[Index] = {
+  private def getIndexes(repo: FileMetadataMongoRepository): List[Index] = {
     val indexesFuture = repo.collection.indexesManager.list()
     await(indexesFuture)
   }
 
-  private val repository = new TemporaryAttachmentMongoRepository(mongoDbProvider)
+  private val repository = new FileMetadataMongoRepository(mongoDbProvider)
 
   private val att1 = generateAttachment
   private val att2 = generateAttachment
@@ -74,7 +74,7 @@ class TemporaryAttachmentRepositorySpec extends BaseMongoIndexSpec
 
       await(repository.insert(att1)) shouldBe att1
       collectionSize shouldBe 1 + size
-      await(repository.collection.find(selectorById(att1)).one[TemporaryAttachment]) shouldBe Some(att1)
+      await(repository.collection.find(selectorById(att1)).one[FileMetadata]) shouldBe Some(att1)
     }
 
     "fail to insert an existing document in the collection" in {
@@ -101,7 +101,7 @@ class TemporaryAttachmentRepositorySpec extends BaseMongoIndexSpec
       await(repository.update(updated)) shouldBe Some(updated)
       collectionSize shouldBe size
 
-      await(repository.collection.find(selectorById(updated)).one[TemporaryAttachment]) shouldBe Some(updated)
+      await(repository.collection.find(selectorById(updated)).one[FileMetadata]) shouldBe Some(updated)
     }
 
     "do nothing when trying to update a non existing document in the collection" in {
@@ -153,7 +153,7 @@ class TemporaryAttachmentRepositorySpec extends BaseMongoIndexSpec
         Index(key = Seq("_id" -> Ascending), name = Some("_id_"))
       )
 
-      val repo = new TemporaryAttachmentMongoRepository(mongoDbProvider)
+      val repo = new FileMetadataMongoRepository(mongoDbProvider)
 
       eventually(timeout(5.seconds), interval(100.milliseconds)) {
         assertIndexes(expectedIndexes.sorted, getIndexes(repo).sorted)
@@ -161,12 +161,12 @@ class TemporaryAttachmentRepositorySpec extends BaseMongoIndexSpec
     }
   }
 
-  private def generateAttachment = TemporaryAttachment(
+  private def generateAttachment = FileMetadata(
     fileName = generateString,
     mimeType = generateString
   )
   private def generateString = UUID.randomUUID().toString
-  private def selectorById(att: TemporaryAttachment) = {
+  private def selectorById(att: FileMetadata) = {
     BSONDocument("id" -> att.id)
   }
 

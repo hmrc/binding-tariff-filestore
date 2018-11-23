@@ -19,9 +19,9 @@ package uk.gov.hmrc.bindingtarifffilestore.controllers
 import javax.inject.{Inject, Singleton}
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc._
-import uk.gov.hmrc.bindingtarifffilestore.model.TemporaryAttachment.format
+import uk.gov.hmrc.bindingtarifffilestore.model.FileMetadata.format
 import uk.gov.hmrc.bindingtarifffilestore.model.upscan.ScanResult
-import uk.gov.hmrc.bindingtarifffilestore.model.{ErrorCode, JsErrorResponse, TemporaryAttachment}
+import uk.gov.hmrc.bindingtarifffilestore.model.{ErrorCode, FileMetadata, JsErrorResponse}
 import uk.gov.hmrc.bindingtarifffilestore.service.FileStoreService
 import uk.gov.hmrc.play.bootstrap.controller.BaseController
 
@@ -36,8 +36,8 @@ class FileStoreController @Inject()(service: FileStoreService) extends BaseContr
 //  }
 
   def upload = Action.async(parse.multipartFormData) { implicit request =>
-    val attachment: Option[TemporaryAttachment] = request.body.file("file").map { file =>
-      TemporaryAttachment(
+    val attachment: Option[FileMetadata] = request.body.file("file").map { file =>
+      FileMetadata(
         fileName = file.filename,
         mimeType = file.contentType.getOrElse(throw new RuntimeException("Unknown file type"))
       )
@@ -49,7 +49,7 @@ class FileStoreController @Inject()(service: FileStoreService) extends BaseContr
 
   def get(id: String): Action[AnyContent] = Action.async { implicit request =>
     service.getById(id).map {
-      case Some(att: TemporaryAttachment) => Ok(Json.toJson(att))
+      case Some(att: FileMetadata) => Ok(Json.toJson(att))
       case _ => NotFound(JsErrorResponse(ErrorCode.NOT_FOUND, "File Not Found"))
     }
   }
@@ -57,7 +57,7 @@ class FileStoreController @Inject()(service: FileStoreService) extends BaseContr
   def notification(id: String): Action[JsValue] = Action.async(parse.json) { implicit request =>
     withJsonBody[ScanResult] { scanResult =>
       service.getById(id).flatMap {
-        case Some(att: TemporaryAttachment) =>
+        case Some(att: FileMetadata) =>
           service
             .notify(att, scanResult) // TODO pull this from the request
             .map(attachment => Ok(Json.toJson(attachment)))

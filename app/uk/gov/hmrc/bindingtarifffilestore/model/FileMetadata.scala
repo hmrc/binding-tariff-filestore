@@ -21,7 +21,7 @@ import java.util.UUID
 import play.api.libs.json.{Json, OFormat}
 import uk.gov.hmrc.bindingtarifffilestore.model.ScanStatus._
 
-case class TemporaryAttachment
+case class FileMetadata
 (
   id: String = UUID.randomUUID().toString,
   fileName: String,
@@ -30,6 +30,6 @@ case class TemporaryAttachment
   scanStatus: Option[ScanStatus] = None
 )
 
-object TemporaryAttachment {
-  implicit val format: OFormat[TemporaryAttachment] = Json.format[TemporaryAttachment]
+object FileMetadata {
+  implicit val format: OFormat[FileMetadata] = Json.format[FileMetadata]
 }
