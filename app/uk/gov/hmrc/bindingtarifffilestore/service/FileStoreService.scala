@@ -19,7 +19,7 @@ package uk.gov.hmrc.bindingtarifffilestore.service
 import javax.inject.{Inject, Singleton}
 import uk.gov.hmrc.bindingtarifffilestore.connector.AmazonS3Connector
 import uk.gov.hmrc.bindingtarifffilestore.model.upscan.{ScanResult, SuccessfulScanResult}
-import uk.gov.hmrc.bindingtarifffilestore.model.{FileMetadata, ScanStatus}
+import uk.gov.hmrc.bindingtarifffilestore.model.{FileMetadata, FileWithMetadata, ScanStatus}
 import uk.gov.hmrc.bindingtarifffilestore.repository.FileMetadataRepository
 
 import scala.concurrent.Future
@@ -35,8 +35,9 @@ class FileStoreService @Inject()(connector: AmazonS3Connector, repository: FileM
     repository.get(id)
   }
 
-  def upload(attachment: FileMetadata): Future[FileMetadata] = {
-    repository.insert(attachment)
+  def upload(attachment: FileWithMetadata): Future[FileMetadata] = {
+    repository.insert(attachment.metadata)
+    // TODO use attachment.file to upload call Upscan (maybe in a separate thread?)
   }
 
   def notify(attachment: FileMetadata, scanResult: ScanResult): Future[Option[FileMetadata]] = {

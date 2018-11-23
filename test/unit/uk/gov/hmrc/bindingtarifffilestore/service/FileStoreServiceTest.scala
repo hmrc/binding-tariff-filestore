@@ -18,9 +18,11 @@ package uk.gov.hmrc.bindingtarifffilestore.service
 
 import org.mockito.BDDMockito.given
 import org.scalatest.mockito.MockitoSugar
+import play.api.libs.Files
+import play.api.mvc.MultipartFormData
 import uk.gov.hmrc.bindingtarifffilestore.connector.AmazonS3Connector
 import uk.gov.hmrc.bindingtarifffilestore.model.upscan._
-import uk.gov.hmrc.bindingtarifffilestore.model.{FileMetadata, ScanStatus}
+import uk.gov.hmrc.bindingtarifffilestore.model.{FileMetadata, FileWithMetadata, ScanStatus}
 import uk.gov.hmrc.bindingtarifffilestore.repository.FileMetadataRepository
 import uk.gov.hmrc.play.test.UnitSpec
 
@@ -46,11 +48,13 @@ class FileStoreServiceTest extends UnitSpec with MockitoSugar {
   "Service 'upload'" should {
 
     "Delegate to Connector" in {
-      val attachment = mock[FileMetadata]
-      val attachmentCreated = mock[FileMetadata]
-      given(repository.insert(attachment)).willReturn(Future.successful(attachmentCreated))
+      val file = mock[MultipartFormData.Part[Files.TemporaryFile]]
+      val fileMetadata = mock[FileMetadata]
+      val fileWithMetadata = FileWithMetadata(file, fileMetadata)
+      val fileMetaDataCreated = mock[FileMetadata]
+      given(repository.insert(fileMetadata)).willReturn(Future.successful(fileMetaDataCreated))
 
-      await(service.upload(attachment)) shouldBe attachmentCreated
+      await(service.upload(fileWithMetadata)) shouldBe fileMetaDataCreated
     }
   }
 

@@ -21,7 +21,7 @@ import play.api.libs.json.{JsValue, Json}
 import play.api.mvc._
 import uk.gov.hmrc.bindingtarifffilestore.model.FileMetadata.format
 import uk.gov.hmrc.bindingtarifffilestore.model.upscan.ScanResult
-import uk.gov.hmrc.bindingtarifffilestore.model.{ErrorCode, FileMetadata, JsErrorResponse}
+import uk.gov.hmrc.bindingtarifffilestore.model.{ErrorCode, FileMetadata, FileWithMetadata, JsErrorResponse}
 import uk.gov.hmrc.bindingtarifffilestore.service.FileStoreService
 import uk.gov.hmrc.play.bootstrap.controller.BaseController
 
@@ -31,15 +31,18 @@ import scala.concurrent.Future
 @Singleton()
 class FileStoreController @Inject()(service: FileStoreService) extends BaseController {
 
-//  def listAllFiles: Action[AnyContent] = Action.async { implicit request =>
-//    service.getAll.map(attachments => Ok(Json.toJson(attachments)))
-//  }
+  //  def listAllFiles: Action[AnyContent] = Action.async { implicit request =>
+  //    service.getAll.map(attachments => Ok(Json.toJson(attachments)))
+  //  }
 
   def upload = Action.async(parse.multipartFormData) { implicit request =>
-    val attachment: Option[FileMetadata] = request.body.file("file").map { file =>
-      FileMetadata(
-        fileName = file.filename,
-        mimeType = file.contentType.getOrElse(throw new RuntimeException("Unknown file type"))
+    val attachment: Option[FileWithMetadata] = request.body.file("file").map { file =>
+      FileWithMetadata(
+        file,
+        FileMetadata(
+          fileName = file.filename,
+          mimeType = file.contentType.getOrElse(throw new RuntimeException("Unknown file type"))
+        )
       )
     }
     attachment
