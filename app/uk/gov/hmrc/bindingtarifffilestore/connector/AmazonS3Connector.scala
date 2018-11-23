@@ -23,20 +23,20 @@ import com.amazonaws.client.builder.AwsClientBuilder.EndpointConfiguration
 import com.amazonaws.services.s3.{AmazonS3, AmazonS3ClientBuilder}
 import com.google.inject.Inject
 import javax.inject.Singleton
-import uk.gov.hmrc.bindingtarifffilestore.config.AppConfig
+import uk.gov.hmrc.bindingtarifffilestore.config.S3Configuration
 import uk.gov.hmrc.bindingtarifffilestore.model.Attachment
 
 import scala.collection.JavaConverters
 
 @Singleton
-class AmazonS3Connector @Inject()(appConfig: AppConfig) {
+class AmazonS3Connector @Inject()(config: S3Configuration) {
 
-  private val credentials = new BasicAWSCredentials(appConfig.awsKey, appConfig.awsSecret)
+  private val credentials = new BasicAWSCredentials(config.key, config.secret)
 
-  private val bucket = appConfig.awsBucket
+  private val bucket = config.bucket
 
   def getAll: Seq[Attachment] = {
-    sequenceOf(client().listObjects(bucket).getObjectSummaries).map(obj => Attachment(obj.getKey))
+    sequenceOf(client().listObjects(bucket).getObjectSummaries).map(obj => Attachment(name = obj.getKey))
   }
 
   private def client(): AmazonS3 = {
@@ -45,11 +45,11 @@ class AmazonS3Connector @Inject()(appConfig: AppConfig) {
       .withCredentials(new AWSStaticCredentialsProvider(credentials))
       .withPathStyleAccessEnabled(true)
 
-    appConfig.awsEndpoint match {
+    config.endpoint match {
       case Some(endpoint) =>
-        builder.withEndpointConfiguration(new EndpointConfiguration(endpoint, appConfig.awsRegion))
+        builder.withEndpointConfiguration(new EndpointConfiguration(endpoint, config.region))
       case _ =>
-        builder.withRegion(appConfig.awsRegion)
+        builder.withRegion(config.region)
     }
     builder.build()
   }
