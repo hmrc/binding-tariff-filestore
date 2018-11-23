@@ -18,28 +18,36 @@ package uk.gov.hmrc.bindingtarifffilestore.service
 
 import javax.inject.{Inject, Singleton}
 import uk.gov.hmrc.bindingtarifffilestore.connector.AmazonS3Connector
-import uk.gov.hmrc.bindingtarifffilestore.model.TemporaryAttachment
-import uk.gov.hmrc.bindingtarifffilestore.model.upscan.ScanResult
+import uk.gov.hmrc.bindingtarifffilestore.model.upscan.{ScanResult, SuccessfulScanResult}
+import uk.gov.hmrc.bindingtarifffilestore.model.{ScanStatus, TemporaryAttachment}
+import uk.gov.hmrc.bindingtarifffilestore.repository.TemporaryAttachmentRepository
 
 import scala.concurrent.Future
 
 @Singleton()
-class FileStoreService @Inject()(connector: AmazonS3Connector) {
+class FileStoreService @Inject()(connector: AmazonS3Connector, repository: TemporaryAttachmentRepository) {
 
-  def getAll: Future[Seq[TemporaryAttachment]] = {
-    Future.successful(connector.getAll)
-  }
+  //  def getAll: Future[Seq[TemporaryAttachment]] = {
+  //    Future.successful(connector.getAll)
+  //  }
 
   def getById(id: String): Future[Option[TemporaryAttachment]] = {
-    Future.successful(None)
+    repository.get(id)
   }
 
   def upload(attachment: TemporaryAttachment): Future[TemporaryAttachment] = {
-    Future.successful(attachment)
+    repository.insert(attachment)
   }
 
-  def notify(attachment: TemporaryAttachment, scanResult: ScanResult): Future[TemporaryAttachment]  = {
-    Future.successful(attachment)
+  def notify(attachment: TemporaryAttachment, scanResult: ScanResult): Future[Option[TemporaryAttachment]] = {
+    val updated: TemporaryAttachment = scanResult.fileStatus match {
+      case ScanStatus.READY =>
+        val result = scanResult.asInstanceOf[SuccessfulScanResult]
+        attachment.copy(url = Some(result.downloadUrl), scanStatus = Some(ScanStatus.READY))
+      case ScanStatus.FAILED =>
+        attachment.copy(scanStatus = Some(ScanStatus.FAILED))
+    }
+    repository.update(updated)
   }
 
 }

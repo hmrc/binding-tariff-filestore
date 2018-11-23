@@ -31,9 +31,9 @@ import scala.concurrent.Future
 @Singleton()
 class FileStoreController @Inject()(service: FileStoreService) extends BaseController {
 
-  def listAllFiles: Action[AnyContent] = Action.async { implicit request =>
-    service.getAll.map(attachments => Ok(Json.toJson(attachments)))
-  }
+//  def listAllFiles: Action[AnyContent] = Action.async { implicit request =>
+//    service.getAll.map(attachments => Ok(Json.toJson(attachments)))
+//  }
 
   def upload = Action.async(parse.multipartFormData) { implicit request =>
     val attachment: Option[TemporaryAttachment] = request.body.file("file").map { file =>
