@@ -40,14 +40,14 @@ class FileStoreService @Inject()(connector: AmazonS3Connector,
     repository.get(id)
   }
 
-  def upload(attachment: FileWithMetadata)(implicit headerCarrier: HeaderCarrier): Future[FileMetadata] = {
+  def upload(fileWithMetadata: FileWithMetadata)(implicit headerCarrier: HeaderCarrier): Future[FileMetadata] = {
     Future {
-      val settings = UploadSettings(routes.FileStoreController.notification(attachment.metadata.id).absoluteURL(true, "localhost:9583"))
+      val settings = UploadSettings(routes.FileStoreController.notification(fileWithMetadata.metadata.id).absoluteURL(true, "localhost:9583"))
       upscanConnector.initiate(settings).flatMap { response =>
-        upscanConnector.upload(response.uploadRequest, attachment.file)
+        upscanConnector.upload(response.uploadRequest, fileWithMetadata)
       }
     }
-    repository.insert(attachment.metadata)
+    repository.insert(fileWithMetadata.metadata)
   }
 
   def notify(attachment: FileMetadata, scanResult: ScanResult): Future[Option[FileMetadata]] = {

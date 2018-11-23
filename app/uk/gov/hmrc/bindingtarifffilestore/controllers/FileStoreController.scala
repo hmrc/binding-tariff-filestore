@@ -38,7 +38,7 @@ class FileStoreController @Inject()(service: FileStoreService) extends BaseContr
   def upload = Action.async(parse.multipartFormData) { implicit request =>
     val attachment: Option[FileWithMetadata] = request.body.file("file").map { file =>
       FileWithMetadata(
-        file,
+        file.ref,
         FileMetadata(
           fileName = file.filename,
           mimeType = file.contentType.getOrElse(throw new RuntimeException("Unknown file type"))

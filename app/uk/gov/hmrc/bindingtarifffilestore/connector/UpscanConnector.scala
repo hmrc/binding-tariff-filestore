@@ -17,9 +17,11 @@
 package uk.gov.hmrc.bindingtarifffilestore.connector
 
 import javax.inject.{Inject, Singleton}
-import play.api.libs.Files
+import play.api
+import play.api.libs.Files.TemporaryFile
 import play.api.mvc.MultipartFormData
 import uk.gov.hmrc.bindingtarifffilestore.config.AppConfig
+import uk.gov.hmrc.bindingtarifffilestore.model.FileWithMetadata
 import uk.gov.hmrc.bindingtarifffilestore.model.upscan.{UploadRequestTemplate, UploadSettings, UpscanInitiateResponse}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.bootstrap.http.HttpClient
@@ -35,12 +37,18 @@ class UpscanConnector @Inject()(appConfig: AppConfig, http: HttpClient)(
     http.POST[UploadSettings, UpscanInitiateResponse](s"${appConfig.upscanInitiateUrl}/upscan/initiate", uploadSettings)
   }
 
-  def upload(template: UploadRequestTemplate, file: MultipartFormData.Part[Files.TemporaryFile])
+  def upload(template: UploadRequestTemplate, file: FileWithMetadata)
             (implicit headerCarrier: HeaderCarrier): Future[Boolean] = {
-    val form: Map[String, Seq[String]] = template.fields.map {
+    val formFile = new api.mvc.MultipartFormData.FilePart[TemporaryFile]("file", file.metadata.fileName, Some(file.metadata.mimeType), file.file)
+    val params: Map[String, Seq[String]] = template.fields.map {
       case (key, value) => (key, Seq(value))
     }
-    http.POSTForm[String](template.href, form).map(_ => true)
+    val form = new MultipartFormData[TemporaryFile](
+      dataParts = params,
+      files = Seq(formFile),
+      badParts = Nil
+    )
+    http.POSTString[String](template.href, form).map(_ => true)
   }
 
 }

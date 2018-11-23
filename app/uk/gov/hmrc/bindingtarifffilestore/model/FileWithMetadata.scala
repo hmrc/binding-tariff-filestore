@@ -16,11 +16,10 @@
 
 package uk.gov.hmrc.bindingtarifffilestore.model
 
-import play.api.libs.Files
-import play.api.mvc.MultipartFormData
+import play.api.libs.Files.TemporaryFile
 
 case class FileWithMetadata
 (
-  file: MultipartFormData.Part[Files.TemporaryFile],
+  file: TemporaryFile,
   metadata: FileMetadata
 )
