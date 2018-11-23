@@ -1,3 +1,6 @@
 # microservice specific routes
 
-GET        /             @uk.gov.hmrc.bindingtarifffilestore.controllers.FileStoreController.listAllFiles
+GET        /                        @uk.gov.hmrc.bindingtarifffilestore.controllers.FileStoreController.listAllFiles
+POST       /file                    @uk.gov.hmrc.bindingtarifffilestore.controllers.FileStoreController.upload
+GET        /file/:id                @uk.gov.hmrc.bindingtarifffilestore.controllers.FileStoreController.get(id: id)
+POST       /file/:id/notify         @uk.gov.hmrc.bindingtarifffilestore.controllers.FileStoreController.notify(id: id)

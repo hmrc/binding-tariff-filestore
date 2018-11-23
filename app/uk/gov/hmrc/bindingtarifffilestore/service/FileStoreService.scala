@@ -18,13 +18,28 @@ package uk.gov.hmrc.bindingtarifffilestore.service
 
 import javax.inject.{Inject, Singleton}
 import uk.gov.hmrc.bindingtarifffilestore.connector.AmazonS3Connector
+import uk.gov.hmrc.bindingtarifffilestore.model.{Attachment, ScanResult}
+
+import scala.concurrent.Future
 
 @Singleton()
-class FileStoreService @Inject()(connector: AmazonS3Connector){
+class FileStoreService @Inject()(connector: AmazonS3Connector) {
 
-    def getAll: Seq[String] = {
-      connector.getAll
-    }
+  def getAll: Future[Seq[Attachment]] = {
+    Future.successful(connector.getAll)
+  }
+
+  def getById(id: String): Future[Option[Attachment]] = {
+    Future.successful(None)
+  }
+
+  def upload: Future[Attachment] = {
+    Future.successful(Attachment(name = "name"))
+  }
+
+  def notify(attachment: Attachment, scanResult: ScanResult): Future[Attachment]  = {
+    Future.successful(attachment)
+  }
 
 }
 

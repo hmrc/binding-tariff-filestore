@@ -24,6 +24,7 @@ import com.amazonaws.services.s3.{AmazonS3, AmazonS3ClientBuilder}
 import com.google.inject.Inject
 import javax.inject.Singleton
 import uk.gov.hmrc.bindingtarifffilestore.config.AppConfig
+import uk.gov.hmrc.bindingtarifffilestore.model.Attachment
 
 import scala.collection.JavaConverters
 
@@ -34,8 +35,8 @@ class AmazonS3Connector @Inject()(appConfig: AppConfig) {
 
   private val bucket = appConfig.awsBucket
 
-  def getAll: Seq[String] = {
-    sequenceOf(client().listObjects(bucket).getObjectSummaries).map(_.getKey)
+  def getAll: Seq[Attachment] = {
+    sequenceOf(client().listObjects(bucket).getObjectSummaries).map(obj => Attachment(obj.getKey))
   }
 
   private def client(): AmazonS3 = {
