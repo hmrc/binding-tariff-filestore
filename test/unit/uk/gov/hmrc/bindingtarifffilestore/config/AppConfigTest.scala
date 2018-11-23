@@ -23,7 +23,14 @@ import uk.gov.hmrc.play.test.UnitSpec
 class AppConfigTest extends UnitSpec with GuiceOneAppPerSuite {
 
   private def configWith(pair: (String, String)): S3Configuration = {
-    new AppConfig(Configuration.from(Map(pair)), Environment.simple()).s3Configuration
+    val config = Map(
+      "s3.secretKeyId" -> "",
+      "s3.accessKeyId" -> "",
+      "s3.region" -> "",
+      "s3.bucket" -> "",
+      "s3.endpoint" -> ""
+    )
+    new AppConfig(Configuration.from(config + pair), Environment.simple()).s3Configuration
   }
 
   "Config" should {
