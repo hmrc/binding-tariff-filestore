@@ -22,6 +22,9 @@ Run the LocalStack AWS Set Up Script `./initialize-localstack.sh`
 
 ###### From then on
 
+1) Start Mongo
+2) Start Upscan `sm --start UPSCAN_STUB -r`
+
 Run `sbt run`
 
 ##### Starting With Service Manager
