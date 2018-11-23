@@ -14,16 +14,7 @@ case class ScanResult(
       failureDetails: Option[FailureDetails])
 
 object ScanResult {
-  implicit val format: OFormat[ScanResult] = Json.format
-
-  object ScanFailed {
-    def unapply(scanResult: ScanResult): Option[FailureDetails] =
-      scanResult.failureDetails
-  }
-  object ScanSucceeded {
-    def unapply(scanResult: ScanResult): Option[String] =
-      scanResult.downloadUrl
-  }
+  implicit val format = Json.format[ScanResult]
 }
 
 case class UploadDetails(uploadTimestamp: Instant, checksum: String)
