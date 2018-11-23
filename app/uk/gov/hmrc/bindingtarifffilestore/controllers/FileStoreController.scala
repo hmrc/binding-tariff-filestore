@@ -17,11 +17,11 @@
 package uk.gov.hmrc.bindingtarifffilestore.controllers
 
 import javax.inject.{Inject, Singleton}
-import play.api.libs.json.Json
+import play.api.libs.json.{JsValue, Json}
 import play.api.mvc._
-import uk.gov.hmrc.bindingtarifffilestore.model.TemporaryAttachment.formatTemporaryAttachment
-import uk.gov.hmrc.bindingtarifffilestore.model.TemporaryAttachment
+import uk.gov.hmrc.bindingtarifffilestore.model.TemporaryAttachment.format
 import uk.gov.hmrc.bindingtarifffilestore.model.upscan.ScanResult
+import uk.gov.hmrc.bindingtarifffilestore.model.{ErrorCode, JsErrorResponse, TemporaryAttachment}
 import uk.gov.hmrc.bindingtarifffilestore.service.FileStoreService
 import uk.gov.hmrc.play.bootstrap.controller.BaseController
 
@@ -35,38 +35,35 @@ class FileStoreController @Inject()(service: FileStoreService) extends BaseContr
     service.getAll.map(attachments => Ok(Json.toJson(attachments)))
   }
 
-  def upload: Action[AnyContent] = Action.async { implicit request =>
-    throw new IllegalArgumentException
-//    val attachment = request.body.file("file").map { file =>
-//      TemporaryAttachment(
-//        url = "",
-//        fileName = file.filename,
-//        mimeType = file.contentType.getOrElse(throw new RuntimeException("Unknown file type"))
-//      )
-//    }.getOrElse(throw new RuntimeException("Invalid upload"))
-//
-//    service.upload(attachment).map(att => Ok(Json.toJson(att)))
+  def upload = Action.async(parse.multipartFormData) { implicit request =>
+    val attachment: Option[TemporaryAttachment] = request.body.file("file").map { file =>
+      TemporaryAttachment(
+        fileName = file.filename,
+        mimeType = file.contentType.getOrElse(throw new RuntimeException("Unknown file type"))
+      )
+    }
+    attachment
+      .map(a => service.upload(a).map(att => Ok(Json.toJson(att))))
+      .getOrElse(Future.successful(BadRequest(JsErrorResponse(ErrorCode.INVALID_REQUEST_PAYLOAD, "Invalid File"))))
   }
 
   def get(id: String): Action[AnyContent] = Action.async { implicit request =>
-    throw new IllegalArgumentException
-//    service.getById(id).map {
-//      case Some(att: TemporaryAttachment) => Ok(Json.toJson(att))
-//      case _ => NotFound()
-//    }
+    service.getById(id).map {
+      case Some(att: TemporaryAttachment) => Ok(Json.toJson(att))
+      case _ => NotFound(JsErrorResponse(ErrorCode.NOT_FOUND, "File Not Found"))
+    }
   }
 
-  def notification(id: String): Action[AnyContent] = Action.async { implicit request =>
-    throw new IllegalArgumentException
-//    withJsonBody[ScanResult] { scanResult =>
-//      service.getById(id).flatMap {
-//        case Some(att: TemporaryAttachment) =>
-//          service
-//            .notify(att, scanResult) // TODO pull this from the request
-//            .map(attachment => Ok(Json.toJson(attachment)))
-//        case _ => Future.successful(NotFound())
-//      }
-//    }
+  def notification(id: String): Action[JsValue] = Action.async(parse.json) { implicit request =>
+    withJsonBody[ScanResult] { scanResult =>
+      service.getById(id).flatMap {
+        case Some(att: TemporaryAttachment) =>
+          service
+            .notify(att, scanResult) // TODO pull this from the request
+            .map(attachment => Ok(Json.toJson(attachment)))
+        case _ => Future.successful(NotFound(JsErrorResponse(ErrorCode.NOT_FOUND, "File Not Found")))
+      }
+    }
   }
 
 }
