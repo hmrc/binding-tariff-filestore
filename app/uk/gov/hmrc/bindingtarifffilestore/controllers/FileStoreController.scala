@@ -35,17 +35,16 @@ class FileStoreController @Inject()(service: FileStoreService) extends BaseContr
     service.getAll.map(attachments => Ok(Json.toJson(attachments)))
   }
 
-  def upload: Action[AnyContent] = Action.async { implicit request =>
-    throw new IllegalArgumentException
-//    val attachment = request.body.file("file").map { file =>
-//      TemporaryAttachment(
-//        url = "",
-//        fileName = file.filename,
-//        mimeType = file.contentType.getOrElse(throw new RuntimeException("Unknown file type"))
-//      )
-//    }.getOrElse(throw new RuntimeException("Invalid upload"))
-//
-//    service.upload(attachment).map(att => Ok(Json.toJson(att)))
+  def upload = Action.async(parse.multipartFormData) { implicit request =>
+    val attachment: Option[TemporaryAttachment] = request.body.file("file").map { file =>
+      TemporaryAttachment(
+        fileName = file.filename,
+        mimeType = file.contentType.getOrElse(throw new RuntimeException("Unknown file type"))
+      )
+    }
+    attachment
+      .map(a => service.upload(a).map(att => Ok(Json.toJson(att))))
+      .getOrElse(Future.successful(BadRequest(JsErrorResponse(ErrorCode.INVALID_REQUEST_PAYLOAD, "Invalid File"))))
   }
 
   def get(id: String): Action[AnyContent] = Action.async { implicit request =>

@@ -54,7 +54,7 @@ class AmazonS3Connector @Inject()(config: AppConfig) {
     sequenceOf(s3client
       .listObjects(bucket)
       .getObjectSummaries)
-      .map(obj => TemporaryAttachment(fileName = obj.getKey, url = "", mimeType = ""))
+      .map(obj => TemporaryAttachment(fileName = obj.getKey, mimeType = ""))
   }
 
 

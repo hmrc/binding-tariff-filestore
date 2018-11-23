@@ -25,8 +25,8 @@ case class TemporaryAttachment
 (
   id: String = UUID.randomUUID().toString,
   fileName: String,
-  url: String,
   mimeType: String,
+  url: Option[String] = None,
   scanStatus: Option[ScanStatus] = None
 )
 
