@@ -51,7 +51,7 @@ class FileStoreController @Inject()(service: FileStoreService) extends BaseContr
   def get(id: String): Action[AnyContent] = Action.async { implicit request =>
     service.getById(id).map {
       case Some(att: TemporaryAttachment) => Ok(Json.toJson(att))
-      case _ => NotFound()
+      case _ => NotFound(JsErrorResponse(ErrorCode.NOT_FOUND, "File Not Found"))
     }
   }
 
