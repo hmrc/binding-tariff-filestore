@@ -14,12 +14,19 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.bindingtarifffilestore.model.upscan
+package uk.gov.hmrc.bindingtarifffilestore.repository
 
-import play.api.libs.json.{Json, OFormat}
+import com.google.inject.ImplementedBy
+import javax.inject.Singleton
+import play.modules.reactivemongo.MongoDbConnection
+import reactivemongo.api.DB
 
-case class UploadFileResponse(reference: UploadReference, uploadRequest: UploadRequestTemplate)
+@ImplementedBy(classOf[MongoDb])
+trait MongoDbProvider {
+  def mongo: () => DB
+}
 
-object UploadFileResponse {
-  implicit val uploadFormat: OFormat[UploadFileResponse] = Json.format
+@Singleton
+class MongoDb extends MongoDbConnection with MongoDbProvider {
+  override val mongo: () => DB = db
 }

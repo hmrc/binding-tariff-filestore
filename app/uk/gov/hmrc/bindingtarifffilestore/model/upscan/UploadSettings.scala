@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.bindingtarifffilestore.model
+package uk.gov.hmrc.bindingtarifffilestore.model.upscan
 
 import play.api.libs.json.{Format, Json}
 

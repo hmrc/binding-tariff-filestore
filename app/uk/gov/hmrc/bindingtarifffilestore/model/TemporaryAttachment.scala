@@ -18,15 +18,8 @@ package uk.gov.hmrc.bindingtarifffilestore.model
 
 import java.util.UUID
 
-import play.api.libs.json.Json
+import play.api.libs.json.{Json, OFormat}
 import uk.gov.hmrc.bindingtarifffilestore.model.ScanStatus.ScanStatus
-
-object ScanStatus extends Enumeration {
-  type ScanStatus = Value
-  val READY, FAILED = Value
-
-  implicit val scanStatusFormat = Json.format[ScanStatus]
-}
 
 case class TemporaryAttachment
 (
@@ -38,5 +31,5 @@ case class TemporaryAttachment
 )
 
 object TemporaryAttachment {
-  implicit val formatTemporaryAttachment = Json.format[TemporaryAttachment]
+  implicit val formatTemporaryAttachment: OFormat[TemporaryAttachment] = Json.format[TemporaryAttachment]
 }
