@@ -19,9 +19,8 @@ package uk.gov.hmrc.bindingtarifffilestore.controllers
 import javax.inject.{Inject, Singleton}
 import play.api.libs.json.Json
 import play.api.mvc._
-import uk.gov.hmrc.bindingtarifffilestore.model.Attachment.attachmentFormat
-import uk.gov.hmrc.bindingtarifffilestore.model.ScanResult.format
-import uk.gov.hmrc.bindingtarifffilestore.model.{Attachment, ScanResult}
+import uk.gov.hmrc.bindingtarifffilestore.model.TemporaryAttachment.formatTemporaryAttachment
+import uk.gov.hmrc.bindingtarifffilestore.model.{TemporaryAttachment, ScanResult}
 import uk.gov.hmrc.bindingtarifffilestore.service.FileStoreService
 import uk.gov.hmrc.play.bootstrap.controller.BaseController
 
@@ -41,7 +40,7 @@ class FileStoreController @Inject()(service: FileStoreService) extends BaseContr
 
   def get(id: String): Action[AnyContent] = Action.async { implicit request =>
     service.getById(id).map {
-      case Some(att: Attachment) => Ok(Json.toJson(att))
+      case Some(att: TemporaryAttachment) => Ok(Json.toJson(att))
       case _ => NotFound()
     }
   }
@@ -49,7 +48,7 @@ class FileStoreController @Inject()(service: FileStoreService) extends BaseContr
   def notify(id: String): Action[AnyContent] = Action.async(parse.json) { implicit request =>
     withJsonBody[ScanResult] { scanResult =>
       service.getById(id).flatMap {
-        case Some(att: Attachment) =>
+        case Some(att: TemporaryAttachment) =>
           service
             .notify(att, scanResult) // TODO pull this from the request
             .map(attachment => Ok(Json.toJson(attachment)))

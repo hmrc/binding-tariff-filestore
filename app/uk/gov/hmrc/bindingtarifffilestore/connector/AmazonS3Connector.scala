@@ -24,35 +24,39 @@ import com.amazonaws.services.s3.{AmazonS3, AmazonS3ClientBuilder}
 import com.google.inject.Inject
 import javax.inject.Singleton
 import uk.gov.hmrc.bindingtarifffilestore.config.S3Configuration
-import uk.gov.hmrc.bindingtarifffilestore.model.Attachment
+import uk.gov.hmrc.bindingtarifffilestore.model.TemporaryAttachment
 
 import scala.collection.JavaConverters
 
 @Singleton
 class AmazonS3Connector @Inject()(config: S3Configuration) {
 
-  private val credentials = new BasicAWSCredentials(config.key, config.secret)
-
   private val bucket = config.bucket
 
-  def getAll: Seq[Attachment] = {
-    sequenceOf(client().listObjects(bucket).getObjectSummaries).map(obj => Attachment(name = obj.getKey))
-  }
+  private lazy val credentials = new BasicAWSCredentials(config.key, config.secret)
+  private lazy val provider = new AWSStaticCredentialsProvider(credentials)
 
-  private def client(): AmazonS3 = {
+  private lazy val s3client: AmazonS3 = {
     val builder = AmazonS3ClientBuilder
       .standard()
-      .withCredentials(new AWSStaticCredentialsProvider(credentials))
+      .withCredentials(provider)
       .withPathStyleAccessEnabled(true)
 
     config.endpoint match {
-      case Some(endpoint) =>
-        builder.withEndpointConfiguration(new EndpointConfiguration(endpoint, config.region))
-      case _ =>
-        builder.withRegion(config.region)
+      case Some(endpoint) => builder.withEndpointConfiguration(new EndpointConfiguration(endpoint, config.region))
+      case _ => builder.withRegion(config.region)
     }
+
     builder.build()
   }
+
+  def getAll: Seq[TemporaryAttachment] = {
+    sequenceOf(s3client
+      .listObjects(bucket)
+      .getObjectSummaries)
+      .map(obj => TemporaryAttachment(fileName = obj.getKey, url = "", mimeType = ""))
+  }
+
 
   private def sequenceOf[T](list: util.List[T]): Seq[T] = {
     JavaConverters.asScalaIteratorConverter(list.iterator).asScala.toSeq
