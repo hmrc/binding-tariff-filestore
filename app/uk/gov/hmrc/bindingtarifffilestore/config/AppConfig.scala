@@ -35,6 +35,8 @@ class AppConfig @Inject()(val runModeConfiguration: Configuration, environment: 
 
   lazy val awsEndpoint: Option[String] = Option(getString("s3.endpoint")).filter(_.nonEmpty)
 
+  lazy val upscanInitiateUrl: String = baseUrl("upscan-initiate")
+
   private def base64Decode(text: String) = new String(java.util.Base64.getDecoder.decode(text))
 
 }
