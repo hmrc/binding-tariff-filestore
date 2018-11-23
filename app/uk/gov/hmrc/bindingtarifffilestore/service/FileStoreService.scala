@@ -17,15 +17,20 @@
 package uk.gov.hmrc.bindingtarifffilestore.service
 
 import javax.inject.{Inject, Singleton}
-import uk.gov.hmrc.bindingtarifffilestore.connector.AmazonS3Connector
-import uk.gov.hmrc.bindingtarifffilestore.model.upscan.{ScanResult, SuccessfulScanResult}
+import uk.gov.hmrc.bindingtarifffilestore.connector.{AmazonS3Connector, UpscanInitiateConnector}
+import uk.gov.hmrc.bindingtarifffilestore.controllers.routes
+import uk.gov.hmrc.bindingtarifffilestore.model.upscan.{ScanResult, SuccessfulScanResult, UploadSettings}
 import uk.gov.hmrc.bindingtarifffilestore.model.{FileMetadata, FileWithMetadata, ScanStatus}
 import uk.gov.hmrc.bindingtarifffilestore.repository.FileMetadataRepository
+import uk.gov.hmrc.http.HeaderCarrier
 
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 @Singleton()
-class FileStoreService @Inject()(connector: AmazonS3Connector, repository: FileMetadataRepository) {
+class FileStoreService @Inject()(connector: AmazonS3Connector,
+                                 repository: FileMetadataRepository,
+                                 upscanInitiateConnector: UpscanInitiateConnector) {
 
   //  def getAll: Future[Seq[TemporaryAttachment]] = {
   //    Future.successful(connector.getAll)
@@ -35,9 +40,14 @@ class FileStoreService @Inject()(connector: AmazonS3Connector, repository: FileM
     repository.get(id)
   }
 
-  def upload(attachment: FileWithMetadata): Future[FileMetadata] = {
+  def upload(attachment: FileWithMetadata)(implicit headerCarrier: HeaderCarrier): Future[FileMetadata] = {
+    Future {
+      val settings = UploadSettings(routes.FileStoreController.notification(attachment.metadata.id).url)
+      upscanInitiateConnector.initiateAttachmentUpload(settings).map { response =>
+        // TODO use attachment.file to upload to Upscans S3 Bucket
+      }
+    }
     repository.insert(attachment.metadata)
-    // TODO use attachment.file to upload call Upscan (maybe in a separate thread?)
   }
 
   def notify(attachment: FileMetadata, scanResult: ScanResult): Future[Option[FileMetadata]] = {

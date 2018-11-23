@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.bindingtarifffilestore.model.upscan
 
-import uk.gov.hmrc.bindingtarifffilestore.model.EnumJson
+import uk.gov.hmrc.bindingtarifffilestore.util.EnumJson
 
 object FailureReason extends Enumeration {
   type FailureReason = Value

@@ -20,23 +20,25 @@ import org.mockito.BDDMockito.given
 import org.scalatest.mockito.MockitoSugar
 import play.api.libs.Files
 import play.api.mvc.MultipartFormData
-import uk.gov.hmrc.bindingtarifffilestore.connector.AmazonS3Connector
+import uk.gov.hmrc.bindingtarifffilestore.connector.{AmazonS3Connector, UpscanInitiateConnector}
 import uk.gov.hmrc.bindingtarifffilestore.model.upscan._
 import uk.gov.hmrc.bindingtarifffilestore.model.{FileMetadata, FileWithMetadata, ScanStatus}
 import uk.gov.hmrc.bindingtarifffilestore.repository.FileMetadataRepository
+import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.Future
 
 class FileStoreServiceTest extends UnitSpec with MockitoSugar {
 
-  private val connector = mock[AmazonS3Connector]
+  private val s3Connector = mock[AmazonS3Connector]
   private val repository = mock[FileMetadataRepository]
+  private val upscanConnector = mock[UpscanInitiateConnector]
+  private implicit val headerCarrier: HeaderCarrier = HeaderCarrier()
 
-  val service = new FileStoreService(connector, repository)
+  val service = new FileStoreService(s3Connector, repository, upscanConnector)
 
   "Service 'get by id'" should {
-
     "Delegate to Connector" in {
       val attachment = mock[FileMetadata]
       given(repository.get("id")).willReturn(Future.successful(Some(attachment)))
@@ -46,7 +48,6 @@ class FileStoreServiceTest extends UnitSpec with MockitoSugar {
   }
 
   "Service 'upload'" should {
-
     "Delegate to Connector" in {
       val file = mock[MultipartFormData.Part[Files.TemporaryFile]]
       val fileMetadata = mock[FileMetadata]
