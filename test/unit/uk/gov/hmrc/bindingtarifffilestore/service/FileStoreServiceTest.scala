@@ -68,7 +68,7 @@ class FileStoreServiceTest extends UnitSpec with MockitoSugar {
 
       given(repository.update(expectedAttachment)).willReturn(Future.successful(Some(attachmentUpdated)))
 
-      await(service.notify(attachment, scanResult)) shouldBe attachmentUpdated
+      await(service.notify(attachment, scanResult)) shouldBe Some(attachmentUpdated)
     }
 
     "Update the attachment for Failed Scan and Delegate to Connector" in {
@@ -77,7 +77,7 @@ class FileStoreServiceTest extends UnitSpec with MockitoSugar {
 
       given(repository.update(expectedAttachment)).willReturn(Future.successful(Some(attachmentUpdated)))
 
-      await(service.notify(attachment, scanResult)) shouldBe attachmentUpdated
+      await(service.notify(attachment, scanResult)) shouldBe Some(attachmentUpdated)
     }
 
   }
