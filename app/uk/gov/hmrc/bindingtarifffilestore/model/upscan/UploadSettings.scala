@@ -22,7 +22,8 @@ case class UploadSettings
 (
   callbackUrl: String,
   minimumFileSize: Option[Int] = None,
-  maximumFileSize: Option[Int] = None
+  maximumFileSize: Option[Int] = None,
+  expectedContentType: Option[String]
 )
 
 object UploadSettings {
