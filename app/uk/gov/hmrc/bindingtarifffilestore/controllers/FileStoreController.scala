@@ -49,11 +49,10 @@ class FileStoreController @Inject()(service: FileStoreService) extends BaseContr
   }
 
   def get(id: String): Action[AnyContent] = Action.async { implicit request =>
-    throw new IllegalArgumentException
-//    service.getById(id).map {
-//      case Some(att: TemporaryAttachment) => Ok(Json.toJson(att))
-//      case _ => NotFound()
-//    }
+    service.getById(id).map {
+      case Some(att: TemporaryAttachment) => Ok(Json.toJson(att))
+      case _ => NotFound()
+    }
   }
 
   def notification(id: String): Action[JsValue] = Action.async(parse.json) { implicit request =>
