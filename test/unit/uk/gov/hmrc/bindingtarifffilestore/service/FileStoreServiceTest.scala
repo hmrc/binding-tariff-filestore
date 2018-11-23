@@ -19,7 +19,9 @@ package uk.gov.hmrc.bindingtarifffilestore.service
 import org.mockito.BDDMockito.given
 import org.scalatest.mockito.MockitoSugar
 import uk.gov.hmrc.bindingtarifffilestore.connector.AmazonS3Connector
-import uk.gov.hmrc.bindingtarifffilestore.model.TemporaryAttachment
+import uk.gov.hmrc.bindingtarifffilestore.model.upscan._
+import uk.gov.hmrc.bindingtarifffilestore.model.{ScanStatus, TemporaryAttachment}
+import uk.gov.hmrc.bindingtarifffilestore.repository.TemporaryAttachmentRepository
 import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.Future
@@ -27,16 +29,51 @@ import scala.concurrent.Future
 class FileStoreServiceTest extends UnitSpec with MockitoSugar {
 
   private val connector = mock[AmazonS3Connector]
+  private val repository = mock[TemporaryAttachmentRepository]
 
-  val service = new FileStoreService(connector)
+  val service = new FileStoreService(connector, repository)
 
-  "Service" should {
+  "Service 'get by id'" should {
 
     "Delegate to Connector" in {
-      val response = Seq.empty[TemporaryAttachment]
-      given(connector.getAll).willReturn(Future.successful(response))
+      val attachment = mock[TemporaryAttachment]
+      given(repository.get("id")).willReturn(Future.successful(Some(attachment)))
 
-      await(service.getAll) shouldBe response
+      await(service.getById("id")) shouldBe Some(attachment)
+    }
+  }
+
+  "Service 'upload'" should {
+
+    "Delegate to Connector" in {
+      val attachment = mock[TemporaryAttachment]
+      val attachmentCreated = mock[TemporaryAttachment]
+      given(repository.insert(attachment)).willReturn(Future.successful(attachmentCreated))
+
+      await(service.upload(attachment)) shouldBe attachmentCreated
+    }
+  }
+
+  "Service 'notify'" should {
+    val attachment = TemporaryAttachment(fileName = "file", mimeType = "type")
+    val attachmentUpdated = mock[TemporaryAttachment]
+
+    "Update the attachment for Successful Scan and Delegate to Connector" in {
+      val scanResult = SuccessfulScanResult("ref", "url", mock[UploadDetails])
+      val expectedAttachment = attachment.copy(url = Some("url"), scanStatus = Some(ScanStatus.READY))
+
+      given(repository.update(expectedAttachment)).willReturn(Future.successful(Some(attachmentUpdated)))
+
+      await(service.notify(attachment, scanResult)) shouldBe attachmentUpdated
+    }
+
+    "Update the attachment for Failed Scan and Delegate to Connector" in {
+      val scanResult = FailedScanResult("ref", mock[FailureDetails])
+      val expectedAttachment = attachment.copy(scanStatus = Some(ScanStatus.FAILED))
+
+      given(repository.update(expectedAttachment)).willReturn(Future.successful(Some(attachmentUpdated)))
+
+      await(service.notify(attachment, scanResult)) shouldBe attachmentUpdated
     }
 
   }
