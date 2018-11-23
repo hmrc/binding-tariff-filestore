@@ -17,6 +17,7 @@
 package uk.gov.hmrc.bindingtarifffilestore.repository
 
 import reactivemongo.api.indexes.Index
+import reactivemongo.play.json.collection.JSONCollection
 import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -24,6 +25,10 @@ import scala.concurrent.ExecutionContext.Implicits.global
 trait BaseMongoIndexSpec extends UnitSpec {
 
   protected implicit val ordering: Ordering[Index] = Ordering.by { i: Index => i.name }
+
+  protected def getIndexes(collection: JSONCollection): List[Index] = {
+    await(collection.indexesManager.list())
+  }
 
   protected def assertIndexes(expectedIndexes: List[Index], actualIndexes: List[Index]): Unit = {
     actualIndexes.size shouldBe expectedIndexes.size

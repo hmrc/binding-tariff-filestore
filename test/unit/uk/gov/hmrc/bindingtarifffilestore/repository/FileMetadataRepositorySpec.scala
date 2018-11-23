@@ -42,12 +42,11 @@ class FileMetadataRepositorySpec extends BaseMongoIndexSpec
     override val mongo: () => DB = self.mongo
   }
 
-  private def getIndexes(repo: FileMetadataMongoRepository): List[Index] = {
-    val indexesFuture = repo.collection.indexesManager.list()
-    await(indexesFuture)
+  private def createMongoRepo={
+    new FileMetadataMongoRepository(mongoDbProvider)
   }
 
-  private val repository = new FileMetadataMongoRepository(mongoDbProvider)
+  private val repository = createMongoRepo
 
   private val att1 = generateAttachment
   private val att2 = generateAttachment
@@ -153,11 +152,14 @@ class FileMetadataRepositorySpec extends BaseMongoIndexSpec
         Index(key = Seq("_id" -> Ascending), name = Some("_id_"))
       )
 
-      val repo = new FileMetadataMongoRepository(mongoDbProvider)
+      val repo = createMongoRepo
+      await(repo.ensureIndexes)
 
       eventually(timeout(5.seconds), interval(100.milliseconds)) {
-        assertIndexes(expectedIndexes.sorted, getIndexes(repo).sorted)
+        assertIndexes(expectedIndexes.sorted, getIndexes(repo.collection).sorted)
       }
+
+      await(repo.drop)
     }
   }
 
