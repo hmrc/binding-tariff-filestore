@@ -16,29 +16,33 @@
 
 package uk.gov.hmrc.bindingtarifffilestore.controllers
 
-import org.mockito.BDDMockito.given
+import org.mockito.Mockito.when
 import org.scalatest.Matchers
 import org.scalatest.mockito.MockitoSugar
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.http.Status
 import play.api.test.FakeRequest
-import uk.gov.hmrc.bindingtarifffilestore.controllers.FileStoreController
 import uk.gov.hmrc.bindingtarifffilestore.service.FileStoreService
 import uk.gov.hmrc.play.test.UnitSpec
+
+import scala.concurrent.Future.successful
 
 class FileStoreControllerSpec extends UnitSpec with Matchers with GuiceOneAppPerSuite with MockitoSugar {
 
   private val service = mock[FileStoreService]
+  private val controller = new FileStoreController(service)
 
-  private val fakeRequest = FakeRequest("GET", "/")
+  private val fakeRequest = FakeRequest()
 
   "GET /" should {
     "return 200" in {
-      given(service.getAll).willReturn(Seq("val"))
 
-      val result = new FileStoreController(service).listAllFiles()(fakeRequest)
+      when(service.getAll).thenReturn(successful(Seq.empty))
+
+      val result = await(controller.listAllFiles()(fakeRequest))
 
       status(result) shouldBe Status.OK
+
     }
   }
 

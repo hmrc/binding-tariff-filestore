@@ -19,9 +19,10 @@ package uk.gov.hmrc.bindingtarifffilestore.service
 import org.mockito.BDDMockito.given
 import org.scalatest.mockito.MockitoSugar
 import uk.gov.hmrc.bindingtarifffilestore.connector.AmazonS3Connector
-import uk.gov.hmrc.bindingtarifffilestore.service.FileStoreService
-import uk.gov.hmrc.bindingtarifffilestore.connector.AmazonS3Connector
+import uk.gov.hmrc.bindingtarifffilestore.model.TemporaryAttachment
 import uk.gov.hmrc.play.test.UnitSpec
+
+import scala.concurrent.Future
 
 class FileStoreServiceTest extends UnitSpec with MockitoSugar {
 
@@ -30,12 +31,14 @@ class FileStoreServiceTest extends UnitSpec with MockitoSugar {
   val service = new FileStoreService(connector)
 
   "Service" should {
-    "Delegate to Connector" in {
-      val response = Seq("Val")
-      given(connector.getAll).willReturn(response)
 
-      service.getAll shouldBe response
+    "Delegate to Connector" in {
+      val response = Seq.empty[TemporaryAttachment]
+      given(connector.getAll).willReturn(Future.successful(response))
+
+      await(service.getAll) shouldBe response
     }
+
   }
 
 }
