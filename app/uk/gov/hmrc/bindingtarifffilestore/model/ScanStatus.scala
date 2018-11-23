@@ -16,6 +16,8 @@
 
 package uk.gov.hmrc.bindingtarifffilestore.model
 
+import uk.gov.hmrc.bindingtarifffilestore.util.EnumJson
+
 object ScanStatus extends Enumeration {
   type ScanStatus = Value
   val READY, FAILED = Value

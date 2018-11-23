@@ -14,7 +14,9 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.bindingtarifffilestore.model
+package uk.gov.hmrc.bindingtarifffilestore.model.upscan
+
+import uk.gov.hmrc.bindingtarifffilestore.model.EnumJson
 
 object FailureReason extends Enumeration {
   type FailureReason = Value
