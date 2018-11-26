@@ -42,10 +42,6 @@ class FileStoreService @Inject()(appConfig: AppConfig,
     Future.successful(fileStoreConnector.upload(fileWithMetadata).metadata)
   }
 
-  //  def getAll: Future[Seq[TemporaryAttachment]] = {
-  //    Future.successful(connector.getAll)
-  //  }
-
   def getById(id: String): Future[Option[FileMetadata]] = {
     repository.get(id)
   }

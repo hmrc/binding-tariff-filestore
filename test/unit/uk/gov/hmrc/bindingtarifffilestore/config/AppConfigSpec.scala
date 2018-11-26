@@ -63,11 +63,11 @@ class AppConfigSpec extends UnitSpec with GuiceOneAppPerSuite {
     }
 
     "return application Host" in {
-      configWith("filestoreURL" -> "url").filestoreUrl shouldBe "url"
+      configWith("filestore.url" -> "url").filestoreUrl shouldBe "url"
     }
 
     "return application SSL" in {
-      configWith("filestoreSSL" -> "true").filestoreSSL shouldBe true
+      configWith("filestore.ssl" -> "true").filestoreSSL shouldBe true
     }
   }
 
