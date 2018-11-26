@@ -32,6 +32,8 @@ class FileStoreService @Inject()(fileStoreConnector: AmazonS3Connector,
                                  repository: FileMetadataRepository,
                                  upscanConnector: UpscanConnector) {
   def publish(att: FileMetadata): Future[FileMetadata] = {
+    //TODO GET the file from Upscans 'Success' S3 bucket (att.url)
+    //TODO Upload the file to our S3 Bucket (fileStoreConnector.upload)
     Future.successful(att)
   }
 
