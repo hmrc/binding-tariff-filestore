@@ -16,10 +16,13 @@
 
 package uk.gov.hmrc.bindingtarifffilestore.connector
 
+import akka.stream.IOResult
+import akka.stream.scaladsl.{FileIO, Source}
+import akka.util.ByteString
 import javax.inject.{Inject, Singleton}
-import play.api
-import play.api.libs.Files.TemporaryFile
+import play.api.libs.ws.WSClient
 import play.api.mvc.MultipartFormData
+import play.api.mvc.MultipartFormData.{DataPart, FilePart}
 import uk.gov.hmrc.bindingtarifffilestore.config.AppConfig
 import uk.gov.hmrc.bindingtarifffilestore.model.FileWithMetadata
 import uk.gov.hmrc.bindingtarifffilestore.model.upscan.{UploadRequestTemplate, UploadSettings, UpscanInitiateResponse}
@@ -29,7 +32,7 @@ import uk.gov.hmrc.play.bootstrap.http.HttpClient
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class UpscanConnector @Inject()(appConfig: AppConfig, http: HttpClient)(
+class UpscanConnector @Inject()(appConfig: AppConfig, http: HttpClient, ws: WSClient)(
   implicit executionContext: ExecutionContext) {
 
   def initiate(uploadSettings: UploadSettings)
@@ -37,18 +40,19 @@ class UpscanConnector @Inject()(appConfig: AppConfig, http: HttpClient)(
     http.POST[UploadSettings, UpscanInitiateResponse](s"${appConfig.upscanInitiateUrl}/upscan/initiate", uploadSettings)
   }
 
-  def upload(template: UploadRequestTemplate, file: FileWithMetadata)
+  def upload(template: UploadRequestTemplate, fileWithMetaData: FileWithMetadata)
             (implicit headerCarrier: HeaderCarrier): Future[Boolean] = {
-    val formFile = new api.mvc.MultipartFormData.FilePart[TemporaryFile]("file", file.metadata.fileName, Some(file.metadata.mimeType), file.file)
-    val params: Map[String, Seq[String]] = template.fields.map {
-      case (key, value) => (key, Seq(value))
-    }
-    val form = new MultipartFormData[TemporaryFile](
-      dataParts = params,
-      files = Seq(formFile),
-      badParts = Nil
+    val dataParts: List[DataPart] = template.fields.map {
+      case (key, value) => DataPart(key, value)
+    } toList
+
+    val filePart: MultipartFormData.Part[Source[ByteString, Future[IOResult]]] = FilePart(
+      "file",
+      fileWithMetaData.metadata.fileName,
+      Some(fileWithMetaData.metadata.mimeType),
+      FileIO.fromFile(fileWithMetaData.file.file)
     )
-    http.POSTString[String](template.href, form).map(_ => true)
+    ws.url(template.href).post(Source(filePart :: dataParts)).map(_ => true)
   }
 
 }
