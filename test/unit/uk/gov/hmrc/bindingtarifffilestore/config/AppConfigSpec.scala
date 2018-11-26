@@ -20,9 +20,9 @@ import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.{Configuration, Environment}
 import uk.gov.hmrc.play.test.UnitSpec
 
-class AppConfigTest extends UnitSpec with GuiceOneAppPerSuite {
+class AppConfigSpec extends UnitSpec with GuiceOneAppPerSuite {
 
-  private def configWith(pair: (String, String)): S3Configuration = {
+  private def s3ConfigWith(pair: (String, String)): S3Configuration = {
     val config = Map(
       "s3.secretKeyId" -> "",
       "s3.accessKeyId" -> "",
@@ -33,29 +33,41 @@ class AppConfigTest extends UnitSpec with GuiceOneAppPerSuite {
     new AppConfig(Configuration.from(config + pair), Environment.simple()).s3Configuration
   }
 
+  private def configWith(pair: (String, String)): AppConfig = {
+    new AppConfig(Configuration.from(Map(pair)), Environment.simple())
+  }
+
   "Config" should {
     "decode AWS S3 Secret" in {
-      configWith("s3.secretKeyId" -> "dGVzdA==").secret shouldBe "test"
+      s3ConfigWith("s3.secretKeyId" -> "dGVzdA==").secret shouldBe "test"
     }
 
     "return AWS S3 Access Key" in {
-      configWith("s3.accessKeyId" -> "key").key shouldBe "key"
+      s3ConfigWith("s3.accessKeyId" -> "key").key shouldBe "key"
     }
 
     "return AWS S3 region" in {
-      configWith("s3.region" -> "region").region shouldBe "region"
+      s3ConfigWith("s3.region" -> "region").region shouldBe "region"
     }
 
     "return AWS S3 bucket" in {
-      configWith("s3.bucket" -> "bucket").bucket shouldBe "bucket"
+      s3ConfigWith("s3.bucket" -> "bucket").bucket shouldBe "bucket"
     }
 
     "return AWS S3 endpoint" in {
-      configWith("s3.endpoint" -> "endpoint").endpoint shouldBe Some("endpoint")
+      s3ConfigWith("s3.endpoint" -> "endpoint").endpoint shouldBe Some("endpoint")
     }
 
     "return AWS S3 blank endpoint as None" in {
-      configWith("s3.endpoint" -> "").endpoint shouldBe None
+      s3ConfigWith("s3.endpoint" -> "").endpoint shouldBe None
+    }
+
+    "return application Host" in {
+      configWith("filestoreURL" -> "url").filestoreUrl shouldBe "url"
+    }
+
+    "return application SSL" in {
+      configWith("filestoreSSL" -> "true").filestoreSSL shouldBe true
     }
   }
 

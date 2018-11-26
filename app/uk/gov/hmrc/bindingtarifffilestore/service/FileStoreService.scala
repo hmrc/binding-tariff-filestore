@@ -20,6 +20,7 @@ import java.nio.file.Paths
 
 import javax.inject.{Inject, Singleton}
 import play.api.libs.Files.TemporaryFile
+import uk.gov.hmrc.bindingtarifffilestore.config.AppConfig
 import uk.gov.hmrc.bindingtarifffilestore.connector.{AmazonS3Connector, UpscanConnector}
 import uk.gov.hmrc.bindingtarifffilestore.controllers.routes
 import uk.gov.hmrc.bindingtarifffilestore.model.upscan.{ScanResult, SuccessfulScanResult, UploadSettings}
@@ -31,7 +32,8 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 @Singleton()
-class FileStoreService @Inject()(fileStoreConnector: AmazonS3Connector,
+class FileStoreService @Inject()(appConfig: AppConfig,
+                                 fileStoreConnector: AmazonS3Connector,
                                  repository: FileMetadataRepository,
                                  upscanConnector: UpscanConnector) {
   def publish(att: FileMetadata): Future[FileMetadata] = {
@@ -50,7 +52,11 @@ class FileStoreService @Inject()(fileStoreConnector: AmazonS3Connector,
 
   def upload(fileWithMetadata: FileWithMetadata)(implicit headerCarrier: HeaderCarrier): Future[FileMetadata] = {
     Future {
-      val settings = UploadSettings(routes.FileStoreController.notification(fileWithMetadata.metadata.id).absoluteURL(true, "localhost:9583"))
+      val settings = UploadSettings(
+        routes.FileStoreController
+          .notification(fileWithMetadata.metadata.id)
+          .absoluteURL(appConfig.filestoreSSL, appConfig.filestoreUrl)
+      )
       upscanConnector.initiate(settings).flatMap { response =>
         upscanConnector.upload(response.uploadRequest, fileWithMetadata)
       }

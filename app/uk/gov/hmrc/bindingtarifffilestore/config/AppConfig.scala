@@ -35,6 +35,8 @@ class AppConfig @Inject()(val runModeConfiguration: Configuration, environment: 
 
   lazy val upscanInitiateUrl: String = baseUrl("upscan-initiate")
 
+  lazy val filestoreUrl: String = getString("filestoreURL")
+  lazy val filestoreSSL: Boolean = getBoolean("filestoreSSL")
 
   private def base64Decode(text: String) = new String(java.util.Base64.getDecoder.decode(text))
 

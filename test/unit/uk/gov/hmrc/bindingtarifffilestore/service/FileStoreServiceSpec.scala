@@ -22,6 +22,7 @@ import org.mockito.BDDMockito.given
 import org.mockito.Mockito.verify
 import org.scalatest.mockito.MockitoSugar
 import play.api.libs.Files.TemporaryFile
+import uk.gov.hmrc.bindingtarifffilestore.config.AppConfig
 import uk.gov.hmrc.bindingtarifffilestore.connector.{AmazonS3Connector, UpscanConnector}
 import uk.gov.hmrc.bindingtarifffilestore.model.upscan._
 import uk.gov.hmrc.bindingtarifffilestore.model.{FileMetadata, FileWithMetadata, ScanStatus}
@@ -31,14 +32,15 @@ import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.Future
 
-class FileStoreServiceTest extends UnitSpec with MockitoSugar {
+class FileStoreServiceSpec extends UnitSpec with MockitoSugar {
 
+  private val config = mock[AppConfig]
   private val s3Connector = mock[AmazonS3Connector]
   private val repository = mock[FileMetadataRepository]
   private val upscanConnector = mock[UpscanConnector]
   private implicit val headerCarrier: HeaderCarrier = HeaderCarrier()
 
-  val service = new FileStoreService(s3Connector, repository, upscanConnector)
+  val service = new FileStoreService(config, s3Connector, repository, upscanConnector)
 
   "Service 'get by id'" should {
     "Delegate to Connector" in {
