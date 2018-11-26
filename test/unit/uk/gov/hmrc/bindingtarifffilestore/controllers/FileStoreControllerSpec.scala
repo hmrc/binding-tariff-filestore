@@ -39,7 +39,7 @@ class FileStoreControllerSpec extends UnitSpec with Matchers with GuiceOneAppPer
 
   private val fakeRequest = FakeRequest()
 
-  "GET /id" should {
+  "Get By ID" should {
     "return 200 when found" in {
       val attachment = FileMetadata(id="id", fileName = "file", mimeType = "type")
       when(service.getById("id")).thenReturn(successful(Some(attachment)))
