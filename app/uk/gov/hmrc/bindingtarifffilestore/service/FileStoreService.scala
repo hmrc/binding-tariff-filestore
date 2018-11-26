@@ -28,9 +28,12 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 @Singleton()
-class FileStoreService @Inject()(connector: AmazonS3Connector,
+class FileStoreService @Inject()(fileStoreConnector: AmazonS3Connector,
                                  repository: FileMetadataRepository,
                                  upscanConnector: UpscanConnector) {
+  def publish(att: FileMetadata): Future[FileMetadata] = {
+    Future.successful(att)
+  }
 
   //  def getAll: Future[Seq[TemporaryAttachment]] = {
   //    Future.successful(connector.getAll)

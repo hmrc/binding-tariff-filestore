@@ -20,8 +20,9 @@ import javax.inject.{Inject, Singleton}
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc._
 import uk.gov.hmrc.bindingtarifffilestore.model.FileMetadata.format
+import uk.gov.hmrc.bindingtarifffilestore.model.ScanStatus.ScanStatus
+import uk.gov.hmrc.bindingtarifffilestore.model._
 import uk.gov.hmrc.bindingtarifffilestore.model.upscan.ScanResult
-import uk.gov.hmrc.bindingtarifffilestore.model.{ErrorCode, FileMetadata, FileWithMetadata, JsErrorResponse}
 import uk.gov.hmrc.bindingtarifffilestore.service.FileStoreService
 import uk.gov.hmrc.play.bootstrap.controller.BaseController
 
@@ -54,6 +55,18 @@ class FileStoreController @Inject()(service: FileStoreService) extends BaseContr
     service.getById(id).map {
       case Some(att: FileMetadata) => Ok(Json.toJson(att))
       case _ => NotFound(JsErrorResponse(ErrorCode.NOT_FOUND, "File Not Found"))
+    }
+  }
+
+  def publish(id: String): Action[AnyContent] = Action.async { implicit request =>
+    service.getById(id).flatMap {
+      case Some(att: FileMetadata) =>
+        att.scanStatus match {
+          case Some(ScanStatus.READY) => service.publish(att).map(att => Ok(Json.toJson(att));
+          case Some(s: ScanStatus) => Future.successful(Forbidden(JsErrorResponse(ErrorCode.FORBIDDEN, s"Can not publish file with status ${s.toString}")))
+          case _ => Future.successful(Forbidden(JsErrorResponse(ErrorCode.FORBIDDEN, "File has not been scanned")))
+        }
+      case _ => Future.successful(NotFound(JsErrorResponse(ErrorCode.NOT_FOUND, "File Not Found")))
     }
   }
 
