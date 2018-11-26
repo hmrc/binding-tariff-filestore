@@ -47,5 +47,7 @@ case class S3Configuration
   region: String,
   bucket: String,
   endpoint: Option[String]
-)
+) {
+  def baseUrl: String = endpoint.getOrElse(s"https://s3-$region.amazonaws.com/$bucket")
+}
 

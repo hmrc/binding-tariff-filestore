@@ -60,11 +60,14 @@ class AmazonS3Connector @Inject()(config: AppConfig) {
       .map(obj => FileMetadata(fileName = obj.getKey, mimeType = ""))
   }
 
-  def upload(fileWithMetadata: FileWithMetadata) = {
+  def upload(fileWithMetadata: FileWithMetadata): FileWithMetadata = {
     val metadata = new ObjectMetadata
     metadata.setContentType(fileWithMetadata.metadata.mimeType)
     metadata.setContentLength(fileWithMetadata.file.file.length())
-    put(fileWithMetadata.metadata.fileName, Files.readAllBytes(fileWithMetadata.file.file.toPath), metadata)
+    put(fileWithMetadata.metadata.id, Files.readAllBytes(fileWithMetadata.file.file.toPath), metadata)
+
+    val updatedMetadata = fileWithMetadata.metadata.copy(url = Some(s"${config.s3Configuration.baseUrl}/${fileWithMetadata.metadata.id}"))
+    fileWithMetadata.copy(metadata = updatedMetadata)
   }
 
   private def put(name: String, data: Array[Byte], metadata: ObjectMetadata): Unit = {

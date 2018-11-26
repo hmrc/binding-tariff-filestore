@@ -16,7 +16,10 @@
 
 package uk.gov.hmrc.bindingtarifffilestore.service
 
+import java.nio.file.Paths
+
 import javax.inject.{Inject, Singleton}
+import play.api.libs.Files.TemporaryFile
 import uk.gov.hmrc.bindingtarifffilestore.connector.{AmazonS3Connector, UpscanConnector}
 import uk.gov.hmrc.bindingtarifffilestore.controllers.routes
 import uk.gov.hmrc.bindingtarifffilestore.model.upscan.{ScanResult, SuccessfulScanResult, UploadSettings}
@@ -32,9 +35,9 @@ class FileStoreService @Inject()(fileStoreConnector: AmazonS3Connector,
                                  repository: FileMetadataRepository,
                                  upscanConnector: UpscanConnector) {
   def publish(att: FileMetadata): Future[FileMetadata] = {
-    //TODO GET the file from Upscans 'Success' S3 bucket (att.url)
-    //TODO Upload the file to our S3 Bucket (fileStoreConnector.upload)
-    Future.successful(att)
+    val file = Paths.get(att.url.getOrElse(throw new IllegalArgumentException("Missing URL"))).toFile
+    val fileWithMetadata = FileWithMetadata(TemporaryFile(file), att)
+    Future.successful(fileStoreConnector.upload(fileWithMetadata).metadata)
   }
 
   //  def getAll: Future[Seq[TemporaryAttachment]] = {
