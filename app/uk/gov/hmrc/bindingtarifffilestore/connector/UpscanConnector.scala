@@ -50,7 +50,7 @@ class UpscanConnector @Inject()(appConfig: AppConfig, http: HttpClient, ws: WSCl
       "file",
       fileWithMetaData.metadata.fileName,
       Some(fileWithMetaData.metadata.mimeType),
-      FileIO.fromFile(fileWithMetaData.file.file)
+      FileIO.fromPath(fileWithMetaData.file.file.toPath)
     )
     ws.url(template.href).post(Source(filePart :: dataParts)).map(_ => true)
   }

@@ -16,15 +16,18 @@
 
 package uk.gov.hmrc.bindingtarifffilestore.connector
 
+import java.io.ByteArrayInputStream
+import java.nio.file.Files
 import java.util
 
 import com.amazonaws.auth.{AWSStaticCredentialsProvider, BasicAWSCredentials}
 import com.amazonaws.client.builder.AwsClientBuilder.EndpointConfiguration
+import com.amazonaws.services.s3.model.{CannedAccessControlList, ObjectMetadata, PutObjectRequest}
 import com.amazonaws.services.s3.{AmazonS3, AmazonS3ClientBuilder}
 import com.google.inject.Inject
 import javax.inject.Singleton
 import uk.gov.hmrc.bindingtarifffilestore.config.AppConfig
-import uk.gov.hmrc.bindingtarifffilestore.model.FileMetadata
+import uk.gov.hmrc.bindingtarifffilestore.model.{FileMetadata, FileWithMetadata}
 
 import scala.collection.JavaConverters
 
@@ -57,8 +60,34 @@ class AmazonS3Connector @Inject()(config: AppConfig) {
       .map(obj => FileMetadata(fileName = obj.getKey, mimeType = ""))
   }
 
+  def upload(fileWithMetadata: FileWithMetadata) = {
+    val metadata = new ObjectMetadata
+    metadata.setContentType(fileWithMetadata.metadata.mimeType)
+    metadata.setContentLength(fileWithMetadata.file.file.length())
+    put(fileWithMetadata.metadata.fileName, Files.readAllBytes(fileWithMetadata.file.file.toPath), metadata)
+  }
 
-  private def sequenceOf[T](list: util.List[T]): Seq[T] = {
+  private def put(name: String, data: Array[Byte], metadata: ObjectMetadata): Unit = {
+    val request = new PutObjectRequest(bucket, name, new ByteArrayInputStream(data), metadata)
+    request.withCannedAcl(CannedAccessControlList.Private) // TODO Review what ACL this should be public/private?
+    s3client.putObject(request)
+    // Handle Exceptions
+    //    case ase: AmazonServiceException =>
+    //      log.warn("S3 Bad Request", ase)
+    //      log.warn("Error Message:    " + ase.getMessage)
+    //      log.warn("HTTP Status Code: " + ase.getStatusCode)
+    //      log.warn("AWS Error Code:   " + ase.getErrorCode)
+    //      log.warn("Error Type:       " + ase.getErrorType)
+    //      log.warn("Request ID:       " + ase.getRequestId)
+    //      throw new RuntimeException("Amazon Service Exception", ase)
+    //    case ace: AmazonClientException =>
+    //      log.warn("S3 Connection error", ace)
+    //      throw new RuntimeException("Amazon Client Exception", ace)
+    //    case e: IOException =>
+    //      throw new RuntimeException("S3 IO Error", e)
+  }
+
+  private def sequenceOf[T](list: util.List[T]) = {
     JavaConverters.asScalaIteratorConverter(list.iterator).asScala.toSeq
   }
 
