@@ -35,7 +35,7 @@ class FileStoreService @Inject()(fileStoreConnector: AmazonS3Connector,
                                  repository: FileMetadataRepository,
                                  upscanConnector: UpscanConnector) {
   def publish(att: FileMetadata): Future[FileMetadata] = {
-    val file = Paths.get(att.url.getOrElse(throw new IllegalArgumentException("Missing URL"))).toFile
+    val file = Paths.get(att.url.getOrElse(throw new IllegalArgumentException("Cannot publish a file without a URL"))).toFile
     val fileWithMetadata = FileWithMetadata(TemporaryFile(file), att)
     Future.successful(fileStoreConnector.upload(fileWithMetadata).metadata)
   }

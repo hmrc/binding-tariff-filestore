@@ -16,10 +16,12 @@
 
 package uk.gov.hmrc.bindingtarifffilestore.service
 
+import org.mockito.ArgumentCaptor
+import org.mockito.ArgumentMatchers._
 import org.mockito.BDDMockito.given
+import org.mockito.Mockito.verify
 import org.scalatest.mockito.MockitoSugar
-import play.api.libs.Files
-import play.api.mvc.MultipartFormData
+import play.api.libs.Files.TemporaryFile
 import uk.gov.hmrc.bindingtarifffilestore.connector.{AmazonS3Connector, UpscanConnector}
 import uk.gov.hmrc.bindingtarifffilestore.model.upscan._
 import uk.gov.hmrc.bindingtarifffilestore.model.{FileMetadata, FileWithMetadata, ScanStatus}
@@ -49,7 +51,7 @@ class FileStoreServiceTest extends UnitSpec with MockitoSugar {
 
   "Service 'upload'" should {
     "Delegate to Connector" in {
-      val file = mock[MultipartFormData.Part[Files.TemporaryFile]]
+      val file = mock[TemporaryFile]
       val fileMetadata = mock[FileMetadata]
       val fileWithMetadata = FileWithMetadata(file, fileMetadata)
       val fileMetaDataCreated = mock[FileMetadata]
@@ -83,4 +85,32 @@ class FileStoreServiceTest extends UnitSpec with MockitoSugar {
 
   }
 
+  "Service 'publish'" should {
+
+    "Upload the attachment to the Filestore" in {
+      val file = mock[TemporaryFile]
+      val metadata = FileMetadata(fileName = "file", mimeType = "type", url = Some("url"))
+      val uploaded = FileWithMetadata(file, metadata)
+      given(s3Connector.upload(any[FileWithMetadata])).willReturn(uploaded)
+
+      await(service.publish(metadata)) shouldBe metadata
+      val upload = theFileUploaded
+      upload.file.file.getName shouldBe "url"
+      upload.metadata shouldBe metadata
+    }
+
+    "Throw exception for missing URL" in {
+      val exception = intercept[RuntimeException] {
+        service.publish(FileMetadata(fileName = "file", mimeType = "type", url = None))
+      }
+
+      exception.getMessage shouldBe "Cannot publish a file without a URL"
+    }
+  }
+
+  def theFileUploaded: FileWithMetadata = {
+    val captor: ArgumentCaptor[FileWithMetadata] = ArgumentCaptor.forClass(classOf[FileWithMetadata])
+    verify(s3Connector).upload(captor.capture())
+    captor.getValue
+  }
 }
