@@ -39,7 +39,6 @@ object SuccessfulScanResult {
 }
 
 
-
 case class FailedScanResult
 (
   override val reference: String,
@@ -51,7 +50,6 @@ case class FailedScanResult
 object FailedScanResult {
   implicit val format: OFormat[FailedScanResult] = Json.format[FailedScanResult]
 }
-
 
 
 sealed trait ScanResult {
@@ -68,17 +66,15 @@ object ScanResult {
 }
 
 
-
 case class UploadDetails
 (
-  uploadTimestamp:
-  Instant, checksum: String
+  uploadTimestamp: Instant,
+  checksum: String
 )
 
 object UploadDetails {
   implicit val format: OFormat[UploadDetails] = Json.format
 }
-
 
 
 case class FailureDetails

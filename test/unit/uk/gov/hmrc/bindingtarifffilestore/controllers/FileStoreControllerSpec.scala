@@ -16,6 +16,8 @@
 
 package uk.gov.hmrc.bindingtarifffilestore.controllers
 
+import java.time.Instant
+
 import akka.stream.Materializer
 import org.mockito.Mockito.when
 import org.scalatest.Matchers
@@ -23,8 +25,10 @@ import org.scalatest.mockito.MockitoSugar
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.http.Status
 import play.api.libs.json.Json
+import play.api.mvc.Result
 import play.api.test.FakeRequest
 import uk.gov.hmrc.bindingtarifffilestore.model.FileMetadata
+import uk.gov.hmrc.bindingtarifffilestore.model.upscan.{SuccessfulScanResult, UploadDetails}
 import uk.gov.hmrc.bindingtarifffilestore.service.FileStoreService
 import uk.gov.hmrc.play.test.UnitSpec
 
@@ -54,6 +58,30 @@ class FileStoreControllerSpec extends UnitSpec with Matchers with GuiceOneAppPer
       when(service.getById("id")).thenReturn(successful(None))
 
       val result = await(controller.get("id")(fakeRequest))
+
+      status(result) shouldBe Status.NOT_FOUND
+    }
+  }
+
+  "Notify" should {
+    "return 201 when found" in {
+      val scanResult = SuccessfulScanResult("ref", "url", UploadDetails(Instant.now(), "checksum"))
+      val attachment = FileMetadata(id="id", fileName = "file", mimeType = "type")
+      val attachmentUpdated = FileMetadata(id="id", fileName = "file", mimeType = "type", url = Some("url"))
+      when(service.getById("id")).thenReturn(successful(Some(attachment)))
+      when(service.notify(attachment, scanResult)).thenReturn(successful(Some(attachmentUpdated)))
+
+      val result: Result = await(controller.notification("id")(fakeRequest.withBody(Json.toJson(scanResult))))
+
+      status(result) shouldBe Status.CREATED
+      jsonBodyOf(result) shouldBe Json.toJson(attachmentUpdated)
+    }
+
+    "return 404 when not found" in {
+      val scanResult = SuccessfulScanResult("ref", "url", UploadDetails(Instant.now(), "checksum"))
+      when(service.getById("id")).thenReturn(successful(None))
+
+      val result: Result = await(controller.notification("id")(fakeRequest.withBody(Json.toJson(scanResult))))
 
       status(result) shouldBe Status.NOT_FOUND
     }

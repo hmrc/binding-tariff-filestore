@@ -75,7 +75,7 @@ class FileStoreController @Inject()(service: FileStoreService) extends BaseContr
       service.getById(id).flatMap {
         case Some(att: FileMetadata) =>
           service
-            .notify(att, scanResult) // TODO pull this from the request
+            .notify(att, scanResult)
             .map(attachment => Ok(Json.toJson(attachment)))
         case _ => Future.successful(NotFound(JsErrorResponse(ErrorCode.NOT_FOUND, "File Not Found")))
       }
