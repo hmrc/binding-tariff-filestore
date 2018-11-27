@@ -55,7 +55,7 @@ class FileMetadataMongoRepository @Inject()(config: AppConfig,
   lazy private val uniqueSingleFieldIndexes = Seq("id")
 
   override def indexes: Seq[Index] = {
-    val ttlIndex: Index = createTTLIndex(config.getInt("mongo.timeToLiveInSeconds"))
+    val ttlIndex: Index = createTTLIndex(config.getInt("mongodb.timeToLiveInSeconds"))
     uniqueSingleFieldIndexes.map(createSingleFieldAscendingIndex(_, isUnique = true)) :+ ttlIndex
   }
 

@@ -58,7 +58,7 @@ class FileMetadataRepositorySpec extends BaseMongoIndexSpec
 
   override def beforeEach(): Unit = {
     super.beforeEach()
-    given(config.getInt("mongo.timeToLiveInSeconds")).willReturn(10)
+    given(config.getInt("mongodb.timeToLiveInSeconds")).willReturn(10)
     await(repository.drop)
     await(repository.ensureIndexes)
   }
