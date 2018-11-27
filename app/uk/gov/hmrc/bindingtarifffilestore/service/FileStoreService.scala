@@ -36,15 +36,6 @@ class FileStoreService @Inject()(appConfig: AppConfig,
                                  fileStoreConnector: AmazonS3Connector,
                                  repository: FileMetadataRepository,
                                  upscanConnector: UpscanConnector) {
-  def publish(att: FileMetadata): Future[FileMetadata] = {
-    val file = Paths.get(att.url.getOrElse(throw new IllegalArgumentException("Cannot publish a file without a URL"))).toFile
-    val fileWithMetadata = FileWithMetadata(TemporaryFile(file), att)
-    Future.successful(fileStoreConnector.upload(fileWithMetadata).metadata)
-  }
-
-  def getById(id: String): Future[Option[FileMetadata]] = {
-    repository.get(id)
-  }
 
   def upload(fileWithMetadata: FileWithMetadata)(implicit headerCarrier: HeaderCarrier): Future[FileMetadata] = {
     Future {
@@ -60,6 +51,10 @@ class FileStoreService @Inject()(appConfig: AppConfig,
     repository.insert(fileWithMetadata.metadata)
   }
 
+  def getById(id: String): Future[Option[FileMetadata]] = {
+    repository.get(id)
+  }
+
   def notify(attachment: FileMetadata, scanResult: ScanResult): Future[Option[FileMetadata]] = {
     val updated: FileMetadata = scanResult.fileStatus match {
       case ScanStatus.READY =>
@@ -69,6 +64,12 @@ class FileStoreService @Inject()(appConfig: AppConfig,
         attachment.copy(scanStatus = Some(ScanStatus.FAILED))
     }
     repository.update(updated)
+  }
+
+  def publish(att: FileMetadata): Future[FileMetadata] = {
+    val file = Paths.get(att.url.getOrElse(throw new IllegalArgumentException("Cannot publish a file without a URL"))).toFile
+    val fileWithMetadata = FileWithMetadata(TemporaryFile(file), att)
+    Future.successful(fileStoreConnector.upload(fileWithMetadata).metadata)
   }
 
 }
