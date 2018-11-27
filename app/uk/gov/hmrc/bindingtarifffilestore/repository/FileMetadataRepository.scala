@@ -52,11 +52,8 @@ class FileMetadataMongoRepository @Inject()(config: AppConfig,
     domainFormat = FileMetadata.format,
     idFormat = ReactiveMongoFormats.objectIdFormats) with FileMetadataRepository {
 
-  lazy private val uniqueSingleFieldIndexes = Seq("id")
-
   override def indexes: Seq[Index] = {
-    val ttlIndex: Index = createTTLIndex(config.getInt("mongodb.timeToLiveInSeconds"))
-    uniqueSingleFieldIndexes.map(createSingleFieldAscendingIndex(_, isUnique = true)) :+ ttlIndex
+    createSingleFieldAscendingIndex("id", isUnique = true) :: createTTLIndex(config.mongoTTL) :: Nil
   }
 
   override def get(id: String): Future[Option[FileMetadata]] = {
