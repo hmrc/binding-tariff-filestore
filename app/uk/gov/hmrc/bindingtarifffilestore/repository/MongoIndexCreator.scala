@@ -19,34 +19,42 @@ package uk.gov.hmrc.bindingtarifffilestore.repository
 import reactivemongo.api.indexes.IndexType.Ascending
 import reactivemongo.api.indexes.{Index, IndexType}
 import reactivemongo.bson
+import reactivemongo.bson.BSONDocument
 
 object MongoIndexCreator {
 
   def createSingleFieldAscendingIndex(indexFieldKey: String,
-                                      isUnique: Boolean): Index = {
+                                      isUnique: Boolean = false,
+                                      options: BSONDocument = BSONDocument()): Index = {
 
     createCompoundIndex(
       indexFieldMappings = Seq(indexFieldKey -> Ascending),
-      isUnique = isUnique
+      isUnique = isUnique,
+      options = options
     )
   }
 
   def createCompoundIndex(indexFieldMappings: Seq[(String, IndexType)],
                           isUnique: Boolean,
-                          isBackground: Boolean = true): Index = {
+                          name: Option[String] = None,
+                          isBackground: Boolean = true,
+                          options: BSONDocument): Index = {
 
     Index(
       key = indexFieldMappings,
-      name = Some(s"${indexFieldMappings.toMap.keys.mkString("-")}_Index"),
+      name = Some(name.getOrElse(s"${indexFieldMappings.toMap.keys.mkString("-")}_Index")),
       unique = isUnique,
-      background = isBackground
+      background = isBackground,
+      options = options
     )
   }
 
   def createTTLIndex(ttl: Int): Index = {
-    Index(
-      Seq(("lastUpdated", IndexType.Ascending)),
-      Some("expiry"),
+    createCompoundIndex(
+      indexFieldMappings = Seq(("lastUpdated", IndexType.Ascending)),
+      isUnique = false,
+      name = Some("expiry"),
+      isBackground = false,
       options = bson.BSONDocument("expireAfterSeconds" -> ttl)
     )
   }
