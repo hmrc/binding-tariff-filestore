@@ -62,7 +62,7 @@ class FileStoreController @Inject()(service: FileStoreService) extends BaseContr
     service.getById(id).flatMap {
       case Some(att: FileMetadata) =>
         att.scanStatus match {
-          case Some(ScanStatus.READY) => service.publish(att).map(att => Ok(Json.toJson(att)))
+          case Some(ScanStatus.READY) => service.publish(att).map(att => Created(Json.toJson(att)))
           case Some(s: ScanStatus) => Future.successful(Forbidden(JsErrorResponse(ErrorCode.FORBIDDEN, s"Can not publish file with status ${s.toString}")))
           case _ => Future.successful(Forbidden(JsErrorResponse(ErrorCode.FORBIDDEN, "File has not been scanned")))
         }
