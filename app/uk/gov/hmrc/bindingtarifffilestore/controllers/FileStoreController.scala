@@ -42,7 +42,7 @@ class FileStoreController @Inject()(service: FileStoreService) extends BaseContr
         file.ref,
         FileMetadata(
           fileName = file.filename,
-          mimeType = file.contentType.getOrElse(throw new RuntimeException("Unknown file type"))
+          mimeType = file.contentType.getOrElse(throw new RuntimeException("Missing file type"))
         )
       )
     }

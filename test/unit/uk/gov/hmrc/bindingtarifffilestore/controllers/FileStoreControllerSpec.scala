@@ -161,17 +161,22 @@ class FileStoreControllerSpec extends UnitSpec with Matchers with GuiceOneAppPer
       status(result) shouldBe Status.ACCEPTED
     }
 
-    "return 400 on missing file" in {
-      // Given
-      val metadataUploaded = FileMetadata(id = "id", fileName = "name", mimeType = "text/plain")
-      when(service.upload(any[FileWithMetadata])(any[HeaderCarrier])).thenReturn(successful(metadataUploaded))
+    "Throw exception on missing mime type" in {
+      val file = new File("test/unit/resources/file.txt")
+      val filePart = FilePart[TemporaryFile](key = "file", "file.txt", contentType = None, ref = TemporaryFile(file))
+      val form = MultipartFormData[TemporaryFile](dataParts = Map(), files = Seq(filePart), badParts = Seq.empty)
 
-      // When
+      val exception = intercept[RuntimeException] {
+        controller.upload(fakeRequest.withBody(form))
+      }
+      exception.getMessage shouldBe "Missing file type"
+    }
+
+    "return 400 on missing file" in {
       val form = MultipartFormData[TemporaryFile](dataParts = Map(), files = Seq(), badParts = Seq.empty)
 
       val result: Result = await(controller.upload(fakeRequest.withBody(form)))
 
-      // Then
       status(result) shouldBe Status.BAD_REQUEST
     }
 

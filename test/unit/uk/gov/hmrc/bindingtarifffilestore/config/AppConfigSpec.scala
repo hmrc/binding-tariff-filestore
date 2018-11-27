@@ -22,19 +22,20 @@ import uk.gov.hmrc.play.test.UnitSpec
 
 class AppConfigSpec extends UnitSpec with GuiceOneAppPerSuite {
 
-  private def s3ConfigWith(pair: (String, String)): S3Configuration = {
-    val config = Map(
+  private def s3ConfigWith(pairs: (String, String)*): S3Configuration = {
+    var config = Map(
       "s3.secretKeyId" -> "",
       "s3.accessKeyId" -> "",
       "s3.region" -> "",
       "s3.bucket" -> "",
       "s3.endpoint" -> ""
     )
-    new AppConfig(Configuration.from(config + pair), Environment.simple()).s3Configuration
+    pairs.foreach(e => config = config + e)
+    new AppConfig(Configuration.from(config), Environment.simple()).s3Configuration
   }
 
-  private def configWith(pair: (String, String)): AppConfig = {
-    new AppConfig(Configuration.from(Map(pair)), Environment.simple())
+  private def configWith(pairs: (String, String)*): AppConfig = {
+    new AppConfig(Configuration.from(pairs.map(e => e._1 -> e._2).toMap), Environment.simple())
   }
 
   "Config" should {
@@ -62,12 +63,30 @@ class AppConfigSpec extends UnitSpec with GuiceOneAppPerSuite {
       s3ConfigWith("s3.endpoint" -> "").endpoint shouldBe None
     }
 
+    "return AWS S3 base URL" in {
+      s3ConfigWith("s3.endpoint" -> "endpoint").baseUrl shouldBe "endpoint"
+    }
+
+    "return AWS S3 default base URL" in {
+      s3ConfigWith(
+        "s3.region" -> "region",
+        "s3.bucket" -> "bucket"
+      ).baseUrl shouldBe "https://s3-region.amazonaws.com/bucket"
+    }
+
     "return application Host" in {
       configWith("filestore.url" -> "url").filestoreUrl shouldBe "url"
     }
 
     "return application SSL" in {
       configWith("filestore.ssl" -> "true").filestoreSSL shouldBe true
+    }
+
+    "return upscan-initiate URL" in {
+      configWith(
+        "microservice.services.upscan-initiate.host" -> "host",
+        "microservice.services.upscan-initiate.port" -> "123"
+      ).upscanInitiateUrl shouldBe "http://host:123"
     }
   }
 
