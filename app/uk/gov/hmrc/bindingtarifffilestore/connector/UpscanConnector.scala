@@ -44,7 +44,7 @@ class UpscanConnector @Inject()(appConfig: AppConfig, http: HttpClient, ws: WSCl
             (implicit headerCarrier: HeaderCarrier): Future[Unit] = {
     val dataParts: List[DataPart] = template.fields.map {
       case (key, value) => DataPart(key, value)
-    } toList
+    }.toList
 
     val filePart: MultipartFormData.Part[Source[ByteString, Future[IOResult]]] = FilePart(
       "file",

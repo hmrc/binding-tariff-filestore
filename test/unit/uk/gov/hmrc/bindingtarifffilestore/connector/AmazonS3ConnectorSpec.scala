@@ -16,8 +16,6 @@
 
 package uk.gov.hmrc.bindingtarifffilestore.connector
 
-import java.io.File
-
 import com.github.tomakehurst.wiremock.client.WireMock._
 import com.github.tomakehurst.wiremock.matching.{EqualToPattern, RegexPattern}
 import org.mockito.BDDMockito.given
@@ -27,12 +25,10 @@ import play.api.http.Status
 import play.api.libs.Files.TemporaryFile
 import uk.gov.hmrc.bindingtarifffilestore.config.{AppConfig, S3Configuration}
 import uk.gov.hmrc.bindingtarifffilestore.model.{FileMetadata, FileWithMetadata}
-import uk.gov.hmrc.bindingtarifffilestore.util.WiremockTestServer
+import uk.gov.hmrc.bindingtarifffilestore.util.{ResourceFiles, WiremockTestServer}
 import uk.gov.hmrc.play.test.UnitSpec
 
-import scala.io.Source
-
-class AmazonS3ConnectorSpec extends UnitSpec with WiremockTestServer with MockitoSugar with BeforeAndAfterEach {
+class AmazonS3ConnectorSpec extends UnitSpec with WiremockTestServer with MockitoSugar with BeforeAndAfterEach with ResourceFiles {
 
   private val s3Config = S3Configuration("key", "secret", "region", "bucket", Some(s"http://localhost:$wirePort"))
   private val config = mock[AppConfig]
@@ -46,23 +42,27 @@ class AmazonS3ConnectorSpec extends UnitSpec with WiremockTestServer with Mockit
 
   "Connector" should {
     "Get All" in {
+      // Given
       stubFor(
         get("/bucket/?encoding-type=url")
           .withHeader("Authorization", new RegexPattern(s"AWS4-HMAC-SHA256 Credential=${s3Config.key}/\\d+/${s3Config.region}/s3/aws4_request, .*"))
           .willReturn(
             aResponse()
               .withStatus(Status.OK)
-              .withBody(fromFile("test/unit/resources/aws/list-objects.xml"))
+              .withBody(fromFile("test/unit/resources/aws/list-objects_response.xml"))
           )
       )
 
+      // When
       val all: Seq[FileMetadata] = connector.getAll
 
+      // Then
       all should have size 1
       all.head.fileName shouldBe "image.jpg"
     }
 
     "Upload" in {
+      // Given
       stubFor(
         put("/bucket/id")
           .withHeader("Authorization", new RegexPattern(s"AWS4-HMAC-SHA256 Credential=${s3Config.key}/\\d+/${s3Config.region}/s3/aws4_request, .*"))
@@ -73,23 +73,21 @@ class AmazonS3ConnectorSpec extends UnitSpec with WiremockTestServer with Mockit
           )
       )
 
+      val exampleFile = TemporaryFile("example-file.json")
       val fileUploading = FileWithMetadata(
-        TemporaryFile(new File("test/unit/resources/txt/text-file.txt")),
+        exampleFile,
         FileMetadata("id", "file.txt", "text/plain")
       )
       val fileUploaded = FileWithMetadata(
-        TemporaryFile(new File("test/unit/resources/txt/text-file.txt")),
+        exampleFile,
         FileMetadata("id", "file.txt", "text/plain", Some(s"$wireMockUrl/id"))
       )
 
-      val uploaded: FileWithMetadata = connector.upload(fileUploading)
-
-      uploaded shouldBe fileUploaded
+      // Then
+      connector.upload(fileUploading) shouldBe fileUploaded
     }
   }
 
-  private def fromFile(path: String): String = {
-    Source.fromFile(path).getLines().mkString
-  }
+
 
 }

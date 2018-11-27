@@ -18,6 +18,7 @@ object AppDependencies {
     "org.scalaj"                    %% "scalaj-http"            % "2.4.1"           % scope,
     "org.scalatestplus.play"        %% "scalatestplus-play"     % "2.0.1"           % scope,
     "uk.gov.hmrc"                   %% "hmrctest"               % "3.2.0"           % scope,
+    "uk.gov.hmrc"                   %% "http-verbs-test"        % "1.2.0"           % scope,
     "uk.gov.hmrc"                   %% "reactivemongo-test"     % "4.2.0-play-25"   % scope
   )
 
