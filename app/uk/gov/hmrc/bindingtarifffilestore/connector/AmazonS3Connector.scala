@@ -34,7 +34,7 @@ import scala.collection.JavaConverters
 @Singleton
 class AmazonS3Connector @Inject()(config: AppConfig) {
 
-  private val bucket = config.s3Configuration.bucket
+  private lazy val bucket = config.s3Configuration.bucket
 
   private lazy val credentials = new BasicAWSCredentials(config.s3Configuration.key, config.s3Configuration.secret)
   private lazy val provider = new AWSStaticCredentialsProvider(credentials)

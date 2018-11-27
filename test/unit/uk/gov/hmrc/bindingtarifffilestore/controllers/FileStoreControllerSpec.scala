@@ -150,19 +150,18 @@ class FileStoreControllerSpec extends UnitSpec with Matchers with GuiceOneAppPer
       when(service.upload(any[FileWithMetadata])(any[HeaderCarrier])).thenReturn(successful(metadataUploaded))
 
       // When
-      val file = new File("test/unit/resources/file.txt")
+      val file = new File("test/unit/resources/txt/text-file.txt")
       val filePart = FilePart[TemporaryFile](key = "file", "file.txt", contentType = Some("text/plain"), ref = TemporaryFile(file))
       val form = MultipartFormData[TemporaryFile](dataParts = Map(), files = Seq(filePart), badParts = Seq.empty)
 
       val result: Result = await(controller.upload(fakeRequest.withBody(form)))
 
       // Then
-      file exists() shouldBe true
       status(result) shouldBe Status.ACCEPTED
     }
 
     "Throw exception on missing mime type" in {
-      val file = new File("test/unit/resources/file.txt")
+      val file = new File("test/unit/resources/txt/text-file.txt")
       val filePart = FilePart[TemporaryFile](key = "file", "file.txt", contentType = None, ref = TemporaryFile(file))
       val form = MultipartFormData[TemporaryFile](dataParts = Map(), files = Seq(filePart), badParts = Seq.empty)
 
