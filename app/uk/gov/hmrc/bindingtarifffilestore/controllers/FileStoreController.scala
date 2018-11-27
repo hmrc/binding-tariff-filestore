@@ -47,8 +47,9 @@ class FileStoreController @Inject()(service: FileStoreService) extends BaseContr
         )
       )
     }
+
     attachment
-      .map(a => service.upload(a).map(att => Accepted(Json.toJson(att))))
+      .map(service.upload(_).map(f => Accepted(Json.toJson(f))))
       .getOrElse(successful(BadRequest(JsErrorResponse(ErrorCode.INVALID_REQUEST_PAYLOAD, "Invalid File"))))
   }
 

@@ -42,6 +42,7 @@ class UpscanConnector @Inject()(appConfig: AppConfig, http: HttpClient, ws: WSCl
 
   def upload(template: UploadRequestTemplate, fileWithMetaData: FileWithMetadata)
             (implicit headerCarrier: HeaderCarrier): Future[Unit] = {
+
     val dataParts: List[DataPart] = template.fields.map {
       case (key, value) => DataPart(key, value)
     }.toList
@@ -52,6 +53,7 @@ class UpscanConnector @Inject()(appConfig: AppConfig, http: HttpClient, ws: WSCl
       Some(fileWithMetaData.metadata.mimeType),
       FileIO.fromPath(fileWithMetaData.file.file.toPath)
     )
+
     ws.url(template.href).post(Source(filePart :: dataParts)).map(_ => ())
   }
 

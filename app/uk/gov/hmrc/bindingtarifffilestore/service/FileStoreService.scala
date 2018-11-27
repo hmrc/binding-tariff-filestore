@@ -48,6 +48,7 @@ class FileStoreService @Inject()(appConfig: AppConfig,
         upscanConnector.upload(response.uploadRequest, fileWithMetadata)
       }
     }
+
     repository.insert(fileWithMetadata.metadata)
   }
 
@@ -73,5 +74,3 @@ class FileStoreService @Inject()(appConfig: AppConfig,
   }
 
 }
-
-
