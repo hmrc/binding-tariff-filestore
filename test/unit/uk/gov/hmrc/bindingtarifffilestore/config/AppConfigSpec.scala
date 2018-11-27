@@ -18,10 +18,20 @@ package uk.gov.hmrc.bindingtarifffilestore.config
 
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.{Configuration, Environment}
-import uk.gov.hmrc.bindingtarifffilestore.config.AppConfig
 import uk.gov.hmrc.play.test.UnitSpec
 
-class AppConfigTest extends UnitSpec with GuiceOneAppPerSuite {
+class AppConfigSpec extends UnitSpec with GuiceOneAppPerSuite {
+
+  private def s3ConfigWith(pair: (String, String)): S3Configuration = {
+    val config = Map(
+      "s3.secretKeyId" -> "",
+      "s3.accessKeyId" -> "",
+      "s3.region" -> "",
+      "s3.bucket" -> "",
+      "s3.endpoint" -> ""
+    )
+    new AppConfig(Configuration.from(config + pair), Environment.simple()).s3Configuration
+  }
 
   private def configWith(pair: (String, String)): AppConfig = {
     new AppConfig(Configuration.from(Map(pair)), Environment.simple())
@@ -29,27 +39,35 @@ class AppConfigTest extends UnitSpec with GuiceOneAppPerSuite {
 
   "Config" should {
     "decode AWS S3 Secret" in {
-      configWith("s3.secretKeyId" -> "dGVzdA==").awsSecret shouldBe "test"
+      s3ConfigWith("s3.secretKeyId" -> "dGVzdA==").secret shouldBe "test"
     }
 
     "return AWS S3 Access Key" in {
-      configWith("s3.accessKeyId" -> "key").awsKey shouldBe "key"
+      s3ConfigWith("s3.accessKeyId" -> "key").key shouldBe "key"
     }
 
     "return AWS S3 region" in {
-      configWith("s3.region" -> "region").awsRegion shouldBe "region"
+      s3ConfigWith("s3.region" -> "region").region shouldBe "region"
     }
 
     "return AWS S3 bucket" in {
-      configWith("s3.bucket" -> "bucket").awsBucket shouldBe "bucket"
+      s3ConfigWith("s3.bucket" -> "bucket").bucket shouldBe "bucket"
     }
 
     "return AWS S3 endpoint" in {
-      configWith("s3.endpoint" -> "endpoint").awsEndpoint shouldBe Some("endpoint")
+      s3ConfigWith("s3.endpoint" -> "endpoint").endpoint shouldBe Some("endpoint")
     }
 
     "return AWS S3 blank endpoint as None" in {
-      configWith("s3.endpoint" -> "").awsEndpoint shouldBe None
+      s3ConfigWith("s3.endpoint" -> "").endpoint shouldBe None
+    }
+
+    "return application Host" in {
+      configWith("filestore.url" -> "url").filestoreUrl shouldBe "url"
+    }
+
+    "return application SSL" in {
+      configWith("filestore.ssl" -> "true").filestoreSSL shouldBe true
     }
   }
 

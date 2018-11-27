@@ -25,16 +25,31 @@ import uk.gov.hmrc.play.config.ServicesConfig
 class AppConfig @Inject()(val runModeConfiguration: Configuration, environment: Environment) extends ServicesConfig {
   override protected def mode: Mode = environment.mode
 
-  lazy val awsSecret: String = base64Decode(getString("s3.secretKeyId"))
+  lazy val s3Configuration = S3Configuration(
+    getString("s3.accessKeyId"),
+    base64Decode(getString("s3.secretKeyId")),
+    getString("s3.region"),
+    getString("s3.bucket"),
+    Option(getString("s3.endpoint")).filter(_.nonEmpty)
+  )
 
-  lazy val awsKey: String = getString("s3.accessKeyId")
+  lazy val upscanInitiateUrl: String = baseUrl("upscan-initiate")
 
-  lazy val awsRegion: String = getString("s3.region")
-
-  lazy val awsBucket: String = getString("s3.bucket")
-
-  lazy val awsEndpoint: Option[String] = Option(getString("s3.endpoint")).filter(_.nonEmpty)
+  lazy val filestoreUrl: String = getString("filestore.url")
+  lazy val filestoreSSL: Boolean = getBoolean("filestore.ssl")
 
   private def base64Decode(text: String) = new String(java.util.Base64.getDecoder.decode(text))
 
 }
+
+case class S3Configuration
+(
+  key: String,
+  secret: String,
+  region: String,
+  bucket: String,
+  endpoint: Option[String]
+) {
+  def baseUrl: String = endpoint.getOrElse(s"https://s3-$region.amazonaws.com/$bucket")
+}
+
