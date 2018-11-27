@@ -34,10 +34,6 @@ case class SuccessfulScanResult
   override val fileStatus: model.ScanStatus.Value = ScanStatus.READY
 }
 
-object SuccessfulScanResult {
-  implicit val format: OFormat[SuccessfulScanResult] = Json.format[SuccessfulScanResult]
-}
-
 
 case class FailedScanResult
 (
@@ -47,10 +43,6 @@ case class FailedScanResult
   override val fileStatus: model.ScanStatus.Value = ScanStatus.FAILED
 }
 
-object FailedScanResult {
-  implicit val format: OFormat[FailedScanResult] = Json.format[FailedScanResult]
-}
-
 
 sealed trait ScanResult {
   val reference: String
@@ -58,6 +50,8 @@ sealed trait ScanResult {
 }
 
 object ScanResult {
+  implicit val formatSuccess: OFormat[SuccessfulScanResult] = Json.format[SuccessfulScanResult]
+  implicit val formatFailed: OFormat[FailedScanResult] = Json.format[FailedScanResult]
   implicit val format: Format[ScanResult] = Union
     .from[ScanResult]("fileStatus")
     .and[SuccessfulScanResult](ScanStatus.READY.toString)

@@ -47,7 +47,7 @@ class FileStoreController @Inject()(service: FileStoreService) extends BaseContr
       )
     }
     attachment
-      .map(a => service.upload(a).map(att => Ok(Json.toJson(att))))
+      .map(a => service.upload(a).map(att => Accepted(Json.toJson(att))))
       .getOrElse(Future.successful(BadRequest(JsErrorResponse(ErrorCode.INVALID_REQUEST_PAYLOAD, "Invalid File"))))
   }
 
@@ -58,27 +58,27 @@ class FileStoreController @Inject()(service: FileStoreService) extends BaseContr
     }
   }
 
-  def publish(id: String): Action[AnyContent] = Action.async { implicit request =>
-    service.getById(id).flatMap {
-      case Some(att: FileMetadata) =>
-        att.scanStatus match {
-          case Some(ScanStatus.READY) => service.publish(att).map(att => Created(Json.toJson(att)))
-          case Some(s: ScanStatus) => Future.successful(Forbidden(JsErrorResponse(ErrorCode.FORBIDDEN, s"Can not publish file with status ${s.toString}")))
-          case _ => Future.successful(Forbidden(JsErrorResponse(ErrorCode.FORBIDDEN, "File has not been scanned")))
-        }
-      case _ => Future.successful(NotFound(JsErrorResponse(ErrorCode.NOT_FOUND, "File Not Found")))
-    }
-  }
-
   def notification(id: String): Action[JsValue] = Action.async(parse.json) { implicit request =>
     withJsonBody[ScanResult] { scanResult =>
       service.getById(id).flatMap {
         case Some(att: FileMetadata) =>
           service
             .notify(att, scanResult)
-            .map(attachment => Ok(Json.toJson(attachment)))
+            .map(attachment => Created(Json.toJson(attachment)))
         case _ => Future.successful(NotFound(JsErrorResponse(ErrorCode.NOT_FOUND, "File Not Found")))
       }
+    }
+  }
+
+  def publish(id: String): Action[AnyContent] = Action.async { implicit request =>
+    service.getById(id).flatMap {
+      case Some(att: FileMetadata) =>
+        att.scanStatus match {
+          case Some(ScanStatus.READY) => service.publish(att).map(att => Accepted(Json.toJson(att)))
+          case Some(s: ScanStatus) => Future.successful(Forbidden(JsErrorResponse(ErrorCode.FORBIDDEN, s"Can not publish file with status ${s.toString}")))
+          case _ => Future.successful(Forbidden(JsErrorResponse(ErrorCode.FORBIDDEN, "File has not been scanned")))
+        }
+      case _ => Future.successful(NotFound(JsErrorResponse(ErrorCode.NOT_FOUND, "File Not Found")))
     }
   }
 

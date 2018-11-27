@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.bindingtarifffilestore.controllers
 
+import java.io.File
 import java.time.Instant
 
 import akka.stream.Materializer
@@ -27,12 +28,15 @@ import org.scalatest.mockito.MockitoSugar
 import org.scalatest.{BeforeAndAfterEach, Matchers}
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.http.Status
-import play.api.libs.json.Json
-import play.api.mvc.Result
+import play.api.libs.Files.TemporaryFile
+import play.api.libs.json.{JsValue, Json}
+import play.api.mvc.MultipartFormData.FilePart
+import play.api.mvc.{MultipartFormData, Result}
 import play.api.test.FakeRequest
-import uk.gov.hmrc.bindingtarifffilestore.model.upscan.{SuccessfulScanResult, UploadDetails}
-import uk.gov.hmrc.bindingtarifffilestore.model.{FileMetadata, ScanStatus}
+import uk.gov.hmrc.bindingtarifffilestore.model.upscan.{ScanResult, SuccessfulScanResult, UploadDetails}
+import uk.gov.hmrc.bindingtarifffilestore.model.{FileMetadata, FileWithMetadata, ScanStatus}
 import uk.gov.hmrc.bindingtarifffilestore.service.FileStoreService
+import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.Future.successful
@@ -79,7 +83,8 @@ class FileStoreControllerSpec extends UnitSpec with Matchers with GuiceOneAppPer
       when(service.getById("id")).thenReturn(successful(Some(attachment)))
       when(service.notify(attachment, scanResult)).thenReturn(successful(Some(attachmentUpdated)))
 
-      val result: Result = await(controller.notification("id")(fakeRequest.withBody(Json.toJson(scanResult))))
+      val request: FakeRequest[JsValue] = fakeRequest.withBody(Json.toJson[ScanResult](scanResult))
+      val result: Result = await(controller.notification("id")(request))
 
       status(result) shouldBe Status.CREATED
       jsonBodyOf(result) shouldBe Json.toJson(attachmentUpdated)
@@ -89,7 +94,8 @@ class FileStoreControllerSpec extends UnitSpec with Matchers with GuiceOneAppPer
       val scanResult = SuccessfulScanResult("ref", "url", UploadDetails(Instant.now(), "checksum"))
       when(service.getById("id")).thenReturn(successful(None))
 
-      val result: Result = await(controller.notification("id")(fakeRequest.withBody(Json.toJson(scanResult))))
+      val request: FakeRequest[JsValue] = fakeRequest.withBody(Json.toJson[ScanResult](scanResult))
+      val result: Result = await(controller.notification("id")(request))
 
       status(result) shouldBe Status.NOT_FOUND
     }
@@ -104,7 +110,7 @@ class FileStoreControllerSpec extends UnitSpec with Matchers with GuiceOneAppPer
 
       val result: Result = await(controller.publish("id")(fakeRequest))
 
-      status(result) shouldBe Status.CREATED
+      status(result) shouldBe Status.ACCEPTED
       jsonBodyOf(result) shouldBe Json.toJson(attachmentUpdated)
     }
 
@@ -135,5 +141,39 @@ class FileStoreControllerSpec extends UnitSpec with Matchers with GuiceOneAppPer
 
       status(result) shouldBe Status.NOT_FOUND
     }
+  }
+
+  "Upload" should {
+    "return 202 on valid file" in {
+      // Given
+      val metadataUploaded = FileMetadata(id = "id", fileName = "name", mimeType = "text/plain")
+      when(service.upload(any[FileWithMetadata])(any[HeaderCarrier])).thenReturn(successful(metadataUploaded))
+
+      // When
+      val file = new File("test/unit/resources/file.txt")
+      val filePart = FilePart[TemporaryFile](key = "file", "file.txt", contentType = Some("text/plain"), ref = TemporaryFile(file))
+      val form = MultipartFormData[TemporaryFile](dataParts = Map(), files = Seq(filePart), badParts = Seq.empty)
+
+      val result: Result = await(controller.upload(fakeRequest.withBody(form)))
+
+      // Then
+      file exists() shouldBe true
+      status(result) shouldBe Status.ACCEPTED
+    }
+
+    "return 400 on missing file" in {
+      // Given
+      val metadataUploaded = FileMetadata(id = "id", fileName = "name", mimeType = "text/plain")
+      when(service.upload(any[FileWithMetadata])(any[HeaderCarrier])).thenReturn(successful(metadataUploaded))
+
+      // When
+      val form = MultipartFormData[TemporaryFile](dataParts = Map(), files = Seq(), badParts = Seq.empty)
+
+      val result: Result = await(controller.upload(fakeRequest.withBody(form)))
+
+      // Then
+      status(result) shouldBe Status.BAD_REQUEST
+    }
+
   }
 }

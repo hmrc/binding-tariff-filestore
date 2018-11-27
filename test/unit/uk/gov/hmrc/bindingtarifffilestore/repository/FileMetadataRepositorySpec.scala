@@ -18,14 +18,17 @@ package uk.gov.hmrc.bindingtarifffilestore.repository
 
 import java.util.UUID
 
+import org.mockito.BDDMockito.given
 import org.scalatest.concurrent.Eventually
+import org.scalatest.mockito.MockitoSugar
 import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
 import reactivemongo.api.DB
-import reactivemongo.api.indexes.Index
 import reactivemongo.api.indexes.IndexType.Ascending
+import reactivemongo.api.indexes.{Index, IndexType}
 import reactivemongo.bson._
 import reactivemongo.core.errors.DatabaseException
 import reactivemongo.play.json.ImplicitBSONHandlers._
+import uk.gov.hmrc.bindingtarifffilestore.config.AppConfig
 import uk.gov.hmrc.bindingtarifffilestore.model.FileMetadata
 import uk.gov.hmrc.mongo.MongoSpecSupport
 
@@ -35,24 +38,27 @@ class FileMetadataRepositorySpec extends BaseMongoIndexSpec
   with BeforeAndAfterAll
   with BeforeAndAfterEach
   with MongoSpecSupport
-  with Eventually {
+  with Eventually
+  with MockitoSugar {
   self =>
 
   private val mongoDbProvider: MongoDbProvider = new MongoDbProvider {
     override val mongo: () => DB = self.mongo
   }
 
-  private def createMongoRepo={
-    new FileMetadataMongoRepository(mongoDbProvider)
-  }
-
-  private val repository = createMongoRepo
-
   private val att1 = generateAttachment
   private val att2 = generateAttachment
+  private val config = mock[AppConfig]
+  private val repository = createMongoRepo
+
+
+  private def createMongoRepo = {
+    new FileMetadataMongoRepository(config, mongoDbProvider)
+  }
 
   override def beforeEach(): Unit = {
     super.beforeEach()
+    given(config.getInt("mongo.timeToLiveInSeconds")).willReturn(10)
     await(repository.drop)
     await(repository.ensureIndexes)
   }
@@ -149,7 +155,12 @@ class FileMetadataRepositorySpec extends BaseMongoIndexSpec
 
       val expectedIndexes = List(
         Index(key = Seq("id" -> Ascending), name = Some("id_Index"), unique = true, background = true),
-        Index(key = Seq("_id" -> Ascending), name = Some("_id_"))
+        Index(key = Seq("_id" -> Ascending), name = Some("_id_")),
+        Index(
+          key = Seq("lastUpdated" -> IndexType.Ascending),
+          name = Some("expiry"),
+          options = BSONDocument("expireAfterSeconds" -> 10)
+        )
       )
 
       val repo = createMongoRepo
@@ -167,7 +178,9 @@ class FileMetadataRepositorySpec extends BaseMongoIndexSpec
     fileName = generateString,
     mimeType = generateString
   )
+
   private def generateString = UUID.randomUUID().toString
+
   private def selectorById(att: FileMetadata) = {
     BSONDocument("id" -> att.id)
   }

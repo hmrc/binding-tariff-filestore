@@ -22,8 +22,9 @@ import play.api.libs.json.Json
 import reactivemongo.api.indexes.Index
 import reactivemongo.bson.BSONObjectID
 import reactivemongo.play.json.ImplicitBSONHandlers._
+import uk.gov.hmrc.bindingtarifffilestore.config.AppConfig
 import uk.gov.hmrc.bindingtarifffilestore.model.FileMetadata
-import uk.gov.hmrc.bindingtarifffilestore.repository.MongoIndexCreator.createSingleFieldAscendingIndex
+import uk.gov.hmrc.bindingtarifffilestore.repository.MongoIndexCreator.{createSingleFieldAscendingIndex, createTTLIndex}
 import uk.gov.hmrc.mongo.ReactiveRepository
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
 
@@ -34,13 +35,17 @@ import scala.concurrent.Future
 trait FileMetadataRepository {
 
   def get(id: String): Future[Option[FileMetadata]]
+
   def insert(att: FileMetadata): Future[FileMetadata]
+
   def update(att: FileMetadata): Future[Option[FileMetadata]]
+
   // TODO: delete not needed - we will use 7 days TTL on mongo config
 }
 
 @Singleton
-class FileMetadataMongoRepository @Inject()(mongoDbProvider: MongoDbProvider)
+class FileMetadataMongoRepository @Inject()(config: AppConfig,
+                                            mongoDbProvider: MongoDbProvider)
   extends ReactiveRepository[FileMetadata, BSONObjectID](
     collectionName = "fileMetadata",
     mongo = mongoDbProvider.mongo,
@@ -50,7 +55,8 @@ class FileMetadataMongoRepository @Inject()(mongoDbProvider: MongoDbProvider)
   lazy private val uniqueSingleFieldIndexes = Seq("id")
 
   override def indexes: Seq[Index] = {
-    uniqueSingleFieldIndexes.map(createSingleFieldAscendingIndex(_, isUnique = true))
+    val ttlIndex: Index = createTTLIndex(config.getInt("mongo.timeToLiveInSeconds"))
+    uniqueSingleFieldIndexes.map(createSingleFieldAscendingIndex(_, isUnique = true)) :+ ttlIndex
   }
 
   override def get(id: String): Future[Option[FileMetadata]] = {

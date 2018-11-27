@@ -1,3 +1,19 @@
+/*
+ * Copyright 2018 HM Revenue & Customs
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package uk.gov.hmrc.bindingtarifffilestore.model.upscan
 
 import java.time.Instant
@@ -12,19 +28,19 @@ class ScanResultSpec extends UnitSpec {
     val json = JsObject(Map(
       "reference" -> JsString("ref"),
       "downloadUrl" -> JsString("url"),
-      "fileStatus" -> JsString("READY"),
       "uploadDetails" -> JsObject(Map(
         "uploadTimestamp" -> JsString("1970-01-01T00:00:00Z"),
         "checksum" -> JsString("checksum")
-      ))
+      )),
+      "fileStatus" -> JsString("READY")
     ))
 
     "Convert Result to JSON" in {
-      Json.toJson(model)(SuccessfulScanResult.format) shouldBe json
+      Json.toJson(model)(ScanResult.format) shouldBe json
     }
 
     "Convert JSON to Result" in {
-      Json.fromJson[SuccessfulScanResult](json)(SuccessfulScanResult.format) shouldBe model
+      Json.fromJson[ScanResult](json)(ScanResult.format).get shouldBe model
     }
   }
 
@@ -32,19 +48,19 @@ class ScanResultSpec extends UnitSpec {
     val model = FailedScanResult("ref", FailureDetails(FailureReason.QUARANTINED, "message"))
     val json = JsObject(Map(
       "reference" -> JsString("ref"),
-      "fileStatus" -> JsString("FAILED"),
       "failureDetails" -> JsObject(Map(
         "failureReason" -> JsString("QUARANTINED"),
         "message" -> JsString("message")
-      ))
+      )),
+      "fileStatus" -> JsString("FAILED")
     ))
 
     "Convert Result to JSON" in {
-      Json.toJson(model)(FailedScanResult.format) shouldBe json
+      Json.toJson(model)(ScanResult.format) shouldBe json
     }
 
     "Convert JSON to Result" in {
-      Json.fromJson[FailedScanResult](json)(FailedScanResult.format) shouldBe model
+      Json.fromJson[ScanResult](json)(ScanResult.format).get shouldBe model
     }
   }
 
