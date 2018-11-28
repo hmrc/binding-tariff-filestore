@@ -18,12 +18,10 @@ package uk.gov.hmrc.bindingtarifffilestore
 
 import org.scalatest._
 import org.scalatestplus.play.guice.GuiceOneServerPerSuite
-import uk.gov.hmrc.bindingtarifffilestore.model.FileMetadata
 import uk.gov.hmrc.bindingtarifffilestore.repository.FileMetadataMongoRepository
 
 import scala.concurrent.Await.result
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
 import scala.concurrent.duration._
 
 abstract class BaseFeatureSpec extends FeatureSpec with Matchers with GivenWhenThen with GuiceOneServerPerSuite with BeforeAndAfterEach with BeforeAndAfterAll {
@@ -47,10 +45,6 @@ abstract class BaseFeatureSpec extends FeatureSpec with Matchers with GivenWhenT
 
   private def drop(): Unit = {
     result(store.drop, timeout)
-  }
-
-  protected def store(files: FileMetadata*): Seq[FileMetadata] = {
-    result(Future.sequence(files.map(store.insert)), timeout)
   }
 
 }
