@@ -229,7 +229,7 @@ class FileStoreSpec extends BaseFeatureSpec with WiremockFeatureTestServer with 
 
   private def stubUpscanUpload = {
     stubFor(
-      post(s"/upscan/upload")
+      post("/upscan/upload")
         .willReturn(
           aResponse()
             .withStatus(Status.OK)
