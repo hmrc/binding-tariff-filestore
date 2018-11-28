@@ -23,6 +23,7 @@ import uk.gov.hmrc.play.config.ServicesConfig
 
 @Singleton
 class AppConfig @Inject()(val runModeConfiguration: Configuration, environment: Environment) extends ServicesConfig {
+
   override protected def mode: Mode = environment.mode
 
   lazy val s3Configuration = S3Configuration(
@@ -40,6 +41,7 @@ class AppConfig @Inject()(val runModeConfiguration: Configuration, environment: 
 
   private def base64Decode(text: String) = new String(java.util.Base64.getDecoder.decode(text))
 
+  lazy val mongoTTL: Int = getInt("mongodb.timeToLiveInSeconds")
 }
 
 case class S3Configuration
@@ -50,6 +52,7 @@ case class S3Configuration
   bucket: String,
   endpoint: Option[String]
 ) {
+
   def baseUrl: String = endpoint.getOrElse(s"https://s3-$region.amazonaws.com/$bucket")
 }
 

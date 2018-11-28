@@ -28,6 +28,7 @@ import uk.gov.hmrc.play.bootstrap.controller.BaseController
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
+import scala.concurrent.Future.successful
 
 @Singleton()
 class FileStoreController @Inject()(service: FileStoreService) extends BaseController {
@@ -42,43 +43,40 @@ class FileStoreController @Inject()(service: FileStoreService) extends BaseContr
         file.ref,
         FileMetadata(
           fileName = file.filename,
-          mimeType = file.contentType.getOrElse(throw new RuntimeException("Unknown file type"))
+          mimeType = file.contentType.getOrElse(throw new RuntimeException("Missing file type"))
         )
       )
     }
+
     attachment
-      .map(a => service.upload(a).map(att => Ok(Json.toJson(att))))
-      .getOrElse(Future.successful(BadRequest(JsErrorResponse(ErrorCode.INVALID_REQUEST_PAYLOAD, "Invalid File"))))
+      .map(service.upload(_).map(f => Accepted(Json.toJson(f))))
+      .getOrElse(successful(BadRequest(JsErrorResponse(ErrorCode.INVALID_REQUEST_PAYLOAD, "Invalid File"))))
   }
 
   def get(id: String): Action[AnyContent] = Action.async { implicit request =>
-    service.getById(id).map {
-      case Some(att: FileMetadata) => Ok(Json.toJson(att))
-      case _ => NotFound(JsErrorResponse(ErrorCode.NOT_FOUND, "File Not Found"))
-    }
-  }
-
-  def publish(id: String): Action[AnyContent] = Action.async { implicit request =>
-    service.getById(id).flatMap {
-      case Some(att: FileMetadata) =>
-        att.scanStatus match {
-          case Some(ScanStatus.READY) => service.publish(att).map(att => Ok(Json.toJson(att)))
-          case Some(s: ScanStatus) => Future.successful(Forbidden(JsErrorResponse(ErrorCode.FORBIDDEN, s"Can not publish file with status ${s.toString}")))
-          case _ => Future.successful(Forbidden(JsErrorResponse(ErrorCode.FORBIDDEN, "File has not been scanned")))
-        }
-      case _ => Future.successful(NotFound(JsErrorResponse(ErrorCode.NOT_FOUND, "File Not Found")))
-    }
+    handleNotFound(id, (att: FileMetadata) => successful(Ok(Json.toJson(att))))
   }
 
   def notification(id: String): Action[JsValue] = Action.async(parse.json) { implicit request =>
     withJsonBody[ScanResult] { scanResult =>
-      service.getById(id).flatMap {
-        case Some(att: FileMetadata) =>
-          service
-            .notify(att, scanResult) // TODO pull this from the request
-            .map(attachment => Ok(Json.toJson(attachment)))
-        case _ => Future.successful(NotFound(JsErrorResponse(ErrorCode.NOT_FOUND, "File Not Found")))
+      handleNotFound(id, (att: FileMetadata) => service.notify(att, scanResult).map(f => Created(Json.toJson(f))))
+    }
+  }
+
+  def publish(id: String): Action[AnyContent] = Action.async { implicit request =>
+    handleNotFound(id, (att: FileMetadata) =>
+      att.scanStatus match {
+        case Some(ScanStatus.READY) => service.publish(att).map(f => Accepted(Json.toJson(f)))
+        case Some(s: ScanStatus) => successful(Forbidden(JsErrorResponse (ErrorCode.FORBIDDEN, s"Can not publish file with status ${s.toString}") ) )
+        case _ => successful(Forbidden(JsErrorResponse(ErrorCode.FORBIDDEN, "File has not been scanned")))
       }
+    )
+  }
+
+  private def handleNotFound(id: String, result: FileMetadata => Future[Result]): Future[Result] = {
+    service.getById(id).flatMap {
+      case Some(att: FileMetadata) => result(att)
+      case _ => successful(NotFound(JsErrorResponse(ErrorCode.NOT_FOUND, "File Not Found")))
     }
   }
 

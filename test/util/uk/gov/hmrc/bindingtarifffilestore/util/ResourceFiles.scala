@@ -14,16 +14,14 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.bindingtarifffilestore.model.upscan
+package uk.gov.hmrc.bindingtarifffilestore.util
 
-import uk.gov.hmrc.bindingtarifffilestore.util.EnumJson
+import scala.io.Source
 
-object FailureReason extends Enumeration {
-  type FailureReason = Value
+trait ResourceFiles {
 
-  val QUARANTINED = Value("QUARANTINED")
-  val REJECTED = Value("REJECTED")
-  val UNKNOWN = Value("UNKNOWN")
+  def fromFile(path: String): String = {
+    Source.fromFile(path).getLines().mkString
+  }
 
-  implicit val format = EnumJson.format(FailureReason)
 }

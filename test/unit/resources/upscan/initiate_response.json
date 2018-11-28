@@ -1,0 +1,9 @@
+{
+  "reference": "reference",
+  "uploadRequest": {
+    "href": "href",
+    "fields": {
+      "key": "value"
+    }
+  }
+}

@@ -16,10 +16,7 @@
 
 package uk.gov.hmrc.bindingtarifffilestore.service
 
-import java.nio.file.Paths
-
 import javax.inject.{Inject, Singleton}
-import play.api.libs.Files.TemporaryFile
 import uk.gov.hmrc.bindingtarifffilestore.config.AppConfig
 import uk.gov.hmrc.bindingtarifffilestore.connector.{AmazonS3Connector, UpscanConnector}
 import uk.gov.hmrc.bindingtarifffilestore.controllers.routes
@@ -36,28 +33,22 @@ class FileStoreService @Inject()(appConfig: AppConfig,
                                  fileStoreConnector: AmazonS3Connector,
                                  repository: FileMetadataRepository,
                                  upscanConnector: UpscanConnector) {
-  def publish(att: FileMetadata): Future[FileMetadata] = {
-    val file = Paths.get(att.url.getOrElse(throw new IllegalArgumentException("Cannot publish a file without a URL"))).toFile
-    val fileWithMetadata = FileWithMetadata(TemporaryFile(file), att)
-    Future.successful(fileStoreConnector.upload(fileWithMetadata).metadata)
+
+  def upload(fileWithMetadata: FileWithMetadata)(implicit headerCarrier: HeaderCarrier): Future[FileMetadata] = {
+    val settings = UploadSettings(
+      routes.FileStoreController
+        .notification(fileWithMetadata.metadata.id)
+        .absoluteURL(appConfig.filestoreSSL, appConfig.filestoreUrl)
+    )
+    upscanConnector.initiate(settings).flatMap { response =>
+      upscanConnector.upload(response.uploadRequest, fileWithMetadata)
+    }
+
+    repository.insert(fileWithMetadata.metadata)
   }
 
   def getById(id: String): Future[Option[FileMetadata]] = {
     repository.get(id)
-  }
-
-  def upload(fileWithMetadata: FileWithMetadata)(implicit headerCarrier: HeaderCarrier): Future[FileMetadata] = {
-    Future {
-      val settings = UploadSettings(
-        routes.FileStoreController
-          .notification(fileWithMetadata.metadata.id)
-          .absoluteURL(appConfig.filestoreSSL, appConfig.filestoreUrl)
-      )
-      upscanConnector.initiate(settings).flatMap { response =>
-        upscanConnector.upload(response.uploadRequest, fileWithMetadata)
-      }
-    }
-    repository.insert(fileWithMetadata.metadata)
   }
 
   def notify(attachment: FileMetadata, scanResult: ScanResult): Future[Option[FileMetadata]] = {
@@ -71,6 +62,9 @@ class FileStoreService @Inject()(appConfig: AppConfig,
     repository.update(updated)
   }
 
+  def publish(att: FileMetadata): Future[FileMetadata] = {
+    val metadata = fileStoreConnector.upload(att)
+    repository.update(metadata).map(_.get)
+  }
+
 }
-
-
