@@ -17,6 +17,8 @@
 package uk.gov.hmrc.bindingtarifffilestore.service
 
 import org.mockito.BDDMockito.given
+import org.mockito.Mockito.reset
+import org.scalatest.BeforeAndAfterEach
 import org.scalatest.mockito.MockitoSugar
 import play.api.libs.Files.TemporaryFile
 import uk.gov.hmrc.bindingtarifffilestore.config.AppConfig
@@ -27,9 +29,9 @@ import uk.gov.hmrc.bindingtarifffilestore.repository.FileMetadataRepository
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.test.UnitSpec
 
-import scala.concurrent.Future
+import scala.concurrent.Future.successful
 
-class FileStoreServiceSpec extends UnitSpec with MockitoSugar {
+class FileStoreServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfterEach {
 
   private val config = mock[AppConfig]
   private val s3Connector = mock[AmazonS3Connector]
@@ -39,10 +41,15 @@ class FileStoreServiceSpec extends UnitSpec with MockitoSugar {
 
   val service = new FileStoreService(config, s3Connector, repository, upscanConnector)
 
+  override protected def beforeEach(): Unit = {
+    super.beforeEach()
+    reset(repository)
+  }
+
   "Service 'get by id'" should {
     "Delegate to Connector" in {
       val attachment = mock[FileMetadata]
-      given(repository.get("id")).willReturn(Future.successful(Some(attachment)))
+      given(repository.get("id")).willReturn(successful(Some(attachment)))
 
       await(service.getById("id")) shouldBe Some(attachment)
     }
@@ -54,7 +61,7 @@ class FileStoreServiceSpec extends UnitSpec with MockitoSugar {
       val fileMetadata = mock[FileMetadata]
       val fileWithMetadata = FileWithMetadata(file, fileMetadata)
       val fileMetaDataCreated = mock[FileMetadata]
-      given(repository.insert(fileMetadata)).willReturn(Future.successful(fileMetaDataCreated))
+      given(repository.insert(fileMetadata)).willReturn(successful(fileMetaDataCreated))
 
       await(service.upload(fileWithMetadata)) shouldBe fileMetaDataCreated
     }
@@ -68,7 +75,7 @@ class FileStoreServiceSpec extends UnitSpec with MockitoSugar {
       val scanResult = SuccessfulScanResult("ref", "url", mock[UploadDetails])
       val expectedAttachment = attachment.copy(url = Some("url"), scanStatus = Some(ScanStatus.READY))
 
-      given(repository.update(expectedAttachment)).willReturn(Future.successful(Some(attachmentUpdated)))
+      given(repository.update(expectedAttachment)).willReturn(successful(Some(attachmentUpdated)))
 
       await(service.notify(attachment, scanResult)) shouldBe Some(attachmentUpdated)
     }
@@ -77,7 +84,7 @@ class FileStoreServiceSpec extends UnitSpec with MockitoSugar {
       val scanResult = FailedScanResult("ref", mock[FailureDetails])
       val expectedAttachment = attachment.copy(scanStatus = Some(ScanStatus.FAILED))
 
-      given(repository.update(expectedAttachment)).willReturn(Future.successful(Some(attachmentUpdated)))
+      given(repository.update(expectedAttachment)).willReturn(successful(Some(attachmentUpdated)))
 
       await(service.notify(attachment, scanResult)) shouldBe Some(attachmentUpdated)
     }
@@ -86,12 +93,15 @@ class FileStoreServiceSpec extends UnitSpec with MockitoSugar {
 
   "Service 'publish'" should {
 
-    "Delegate to the Filestore" in {
+    "Delegate to the File Store" in {
       val fileUploading = mock[FileMetadata]
       val fileUploaded = mock[FileMetadata]
+      val fileUpdated = mock[FileMetadata]
       given(s3Connector.upload(fileUploading)).willReturn(fileUploaded)
+      given(repository.update(fileUploaded)).willReturn(successful(Some(fileUpdated)))
 
-      await(service.publish(fileUploading)) shouldBe fileUploaded
+      await(service.publish(fileUploading)) shouldBe fileUpdated
     }
   }
+
 }

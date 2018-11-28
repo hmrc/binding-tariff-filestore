@@ -65,7 +65,8 @@ class FileStoreService @Inject()(appConfig: AppConfig,
   }
 
   def publish(att: FileMetadata): Future[FileMetadata] = {
-    Future.successful(fileStoreConnector.upload(att))
+    val metadata = fileStoreConnector.upload(att)
+    repository.update(metadata).map(_.get)
   }
 
 }

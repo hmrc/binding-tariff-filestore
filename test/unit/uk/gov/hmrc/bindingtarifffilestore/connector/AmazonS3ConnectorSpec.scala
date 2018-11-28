@@ -79,10 +79,13 @@ class AmazonS3ConnectorSpec extends UnitSpec with WiremockTestServer with Mockit
 
       val url = TemporaryFile("example.txt").file.toURI.toURL.toString
       val fileUploading = FileMetadata("id", "file.txt", "text/plain", Some(url))
-      val fileUploaded = FileMetadata("id", "file.txt", "text/plain", Some(s"$wireMockUrl/bucket/id"))
 
       // Then
-      connector.upload(fileUploading) shouldBe fileUploaded
+      val result = connector.upload(fileUploading)
+      result.id shouldBe "id"
+      result.fileName shouldBe "file.txt"
+      result.mimeType shouldBe "text/plain"
+      result.url.get should startWith(s"$wireMockUrl/bucket/id?X-Amz-Algorithm=AWS4-HMAC-SHA256")
     }
 
     "Throw Exception on missing URL" in {

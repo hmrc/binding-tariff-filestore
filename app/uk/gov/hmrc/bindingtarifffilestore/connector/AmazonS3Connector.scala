@@ -19,9 +19,10 @@ package uk.gov.hmrc.bindingtarifffilestore.connector
 import java.net.URL
 import java.util
 
+import com.amazonaws.HttpMethod
 import com.amazonaws.auth.{AWSStaticCredentialsProvider, BasicAWSCredentials}
 import com.amazonaws.client.builder.AwsClientBuilder.EndpointConfiguration
-import com.amazonaws.services.s3.model.{CannedAccessControlList, ObjectMetadata, PutObjectRequest}
+import com.amazonaws.services.s3.model.{CannedAccessControlList, GeneratePresignedUrlRequest, ObjectMetadata, PutObjectRequest}
 import com.amazonaws.services.s3.{AmazonS3, AmazonS3ClientBuilder}
 import com.google.inject.Inject
 import javax.inject.Singleton
@@ -66,25 +67,14 @@ class AmazonS3Connector @Inject()(config: AppConfig) {
     metadata.setContentType(fileMetaData.mimeType)
 
     val request = new PutObjectRequest(bucket, fileMetaData.id, url.openStream(), metadata)
-    request.withCannedAcl(CannedAccessControlList.PublicRead) // TODO Review what ACL this should be public/private?
+    request.withCannedAcl(CannedAccessControlList.Private)
 
     s3client.putObject(request)
-    //    // Handle Exceptions
-    //    //    case ase: AmazonServiceException =>
-    //    //      log.warn("S3 Bad Request", ase)
-    //    //      log.warn("Error Message:    " + ase.getMessage)
-    //    //      log.warn("HTTP Status Code: " + ase.getStatusCode)
-    //    //      log.warn("AWS Error Code:   " + ase.getErrorCode)
-    //    //      log.warn("Error Type:       " + ase.getErrorType)
-    //    //      log.warn("Request ID:       " + ase.getRequestId)
-    //    //      throw new RuntimeException("Amazon Service Exception", ase)
-    //    //    case ace: AmazonClientException =>
-    //    //      log.warn("S3 Connection error", ace)
-    //    //      throw new RuntimeException("Amazon Client Exception", ace)
-    //    //    case e: IOException =>
-    //    //      throw new RuntimeException("S3 IO Error", e)
 
-    fileMetaData.copy(url = Some(s"${config.s3Configuration.baseUrl}/${config.s3Configuration.bucket}/${fileMetaData.id}"))
+    val authenticatedURLRequest = new GeneratePresignedUrlRequest(config.s3Configuration.bucket, fileMetaData.id)
+        .withMethod(HttpMethod.GET)
+    val authenticatedURL: URL = s3client.generatePresignedUrl(authenticatedURLRequest)
+    fileMetaData.copy(url = Some(authenticatedURL.toString))
   }
 
 
