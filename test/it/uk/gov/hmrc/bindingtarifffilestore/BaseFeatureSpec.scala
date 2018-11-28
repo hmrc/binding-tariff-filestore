@@ -52,8 +52,4 @@ abstract class BaseFeatureSpec extends FeatureSpec with Matchers with GivenWhenT
     files.map(c => result(store.insert(c), timeout))
   }
 
-  protected def storeSize: Int = {
-    result(store.collection.count(), timeout)
-  }
-
 }
