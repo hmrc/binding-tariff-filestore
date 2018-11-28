@@ -88,6 +88,10 @@ class AppConfigSpec extends UnitSpec with GuiceOneAppPerSuite {
         "microservice.services.upscan-initiate.port" -> "123"
       ).upscanInitiateUrl shouldBe "http://host:123"
     }
+
+    "return app name" in {
+      configWith("appName" -> "app-name").appName shouldBe "app-name"
+    }
   }
 
 }

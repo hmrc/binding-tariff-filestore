@@ -17,7 +17,7 @@
 package uk.gov.hmrc.bindingtarifffilestore.connector
 
 import com.github.tomakehurst.wiremock.client.WireMock._
-import com.github.tomakehurst.wiremock.matching.ContainsPattern
+import com.github.tomakehurst.wiremock.matching.{ContainsPattern, EqualToPattern}
 import org.mockito.BDDMockito.given
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.mockito.MockitoSugar
@@ -43,19 +43,21 @@ class UpscanConnectorSpec extends UnitSpec with WithFakeApplication with Wiremoc
   private val wsClient: WSClient = fakeApplication.injector.instanceOf[WSClient]
   private val auditConnector = new DefaultAuditConnector(fakeApplication.configuration, fakeApplication.injector.instanceOf[Environment])
   private val hmrcWsClient = new DefaultHttpClient(fakeApplication.configuration, auditConnector, wsClient)
-  private implicit val headers = HeaderCarrier()
+  private implicit val headers: HeaderCarrier = HeaderCarrier()
 
   private val connector = new UpscanConnector(config, hmrcWsClient, wsClient)
 
   override protected def beforeEach(): Unit = {
     super.beforeEach()
     given(config.upscanInitiateUrl).willReturn(wireMockUrl)
+    given(config.appName).willReturn("app-name")
   }
 
   "Connector" should {
     "Initiate" in {
       stubFor(
         post("/upscan/initiate")
+          .withHeader("User-Agent", new EqualToPattern("app-name"))
           .willReturn(
             aResponse()
               .withBody(fromFile("test/util/resources/upscan/initiate_response.json"))

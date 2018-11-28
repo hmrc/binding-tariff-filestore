@@ -39,9 +39,11 @@ class AppConfig @Inject()(val runModeConfiguration: Configuration, environment: 
   lazy val filestoreUrl: String = getString("filestore.url")
   lazy val filestoreSSL: Boolean = getBoolean("filestore.ssl")
 
-  private def base64Decode(text: String) = new String(java.util.Base64.getDecoder.decode(text))
-
   lazy val mongoTTL: Int = getInt("mongodb.timeToLiveInSeconds")
+
+  lazy val appName: String = getString("appName")
+
+  private def base64Decode(text: String) = new String(java.util.Base64.getDecoder.decode(text))
 }
 
 case class S3Configuration

@@ -37,7 +37,11 @@ class UpscanConnector @Inject()(appConfig: AppConfig, http: HttpClient, ws: WSCl
 
   def initiate(uploadSettings: UploadSettings)
               (implicit headerCarrier: HeaderCarrier): Future[UpscanInitiateResponse] = {
-    http.POST[UploadSettings, UpscanInitiateResponse](s"${appConfig.upscanInitiateUrl}/upscan/initiate", uploadSettings)
+    http.POST[UploadSettings, UpscanInitiateResponse](
+      s"${appConfig.upscanInitiateUrl}/upscan/initiate",
+      uploadSettings,
+      headers = Seq("User-Agent" -> appConfig.appName)
+    )
   }
 
   def upload(template: UploadRequestTemplate, fileWithMetaData: FileWithMetadata)
