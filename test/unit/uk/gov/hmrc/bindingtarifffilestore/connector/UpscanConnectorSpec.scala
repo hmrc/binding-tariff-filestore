@@ -58,7 +58,7 @@ class UpscanConnectorSpec extends UnitSpec with WithFakeApplication with Wiremoc
         post("/upscan/initiate")
           .willReturn(
             aResponse()
-              .withBody(fromFile("test/unit/resources/upscan/initiate_response.json"))
+              .withBody(fromFile("test/util/resources/upscan/initiate_response.json"))
           )
       )
 
