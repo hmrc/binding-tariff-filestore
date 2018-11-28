@@ -20,9 +20,8 @@ import java.time.Instant
 
 import akka.stream.Materializer
 import org.mockito.ArgumentMatchers.any
-import org.mockito.BDDMockito.then
 import org.mockito.Mockito
-import org.mockito.Mockito.{never, when}
+import org.mockito.Mockito.{never, verify, when}
 import org.scalatest.mockito.MockitoSugar
 import org.scalatest.{BeforeAndAfterEach, Matchers}
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
@@ -40,7 +39,8 @@ import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.Future.successful
 
-class FileStoreControllerSpec extends UnitSpec with Matchers with GuiceOneAppPerSuite with MockitoSugar with BeforeAndAfterEach {
+class FileStoreControllerSpec extends UnitSpec with Matchers
+  with GuiceOneAppPerSuite with MockitoSugar with BeforeAndAfterEach {
 
   private implicit val mat: Materializer = fakeApplication.materializer
 
@@ -119,7 +119,7 @@ class FileStoreControllerSpec extends UnitSpec with Matchers with GuiceOneAppPer
 
       val result: Result = await(controller.publish("id")(fakeRequest))
 
-      then(service).should(never()).publish(any[FileMetadata])
+      verify(service, never()).publish(any[FileMetadata])
       status(result) shouldBe Status.FORBIDDEN
     }
 
@@ -129,7 +129,7 @@ class FileStoreControllerSpec extends UnitSpec with Matchers with GuiceOneAppPer
 
       val result: Result = await(controller.publish("id")(fakeRequest))
 
-      then(service).should(never()).publish(any[FileMetadata])
+      verify(service, never()).publish(any[FileMetadata])
       status(result) shouldBe Status.FORBIDDEN
     }
 
