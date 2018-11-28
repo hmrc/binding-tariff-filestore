@@ -24,7 +24,7 @@ import org.scalatest.mockito.MockitoSugar
 import play.api.http.Status
 import play.api.libs.Files.TemporaryFile
 import uk.gov.hmrc.bindingtarifffilestore.config.{AppConfig, S3Configuration}
-import uk.gov.hmrc.bindingtarifffilestore.model.{FileMetadata, FileWithMetadata}
+import uk.gov.hmrc.bindingtarifffilestore.model.FileMetadata
 import uk.gov.hmrc.bindingtarifffilestore.util.{ResourceFiles, WiremockTestServer}
 import uk.gov.hmrc.play.test.UnitSpec
 
@@ -40,8 +40,9 @@ class AmazonS3ConnectorSpec extends UnitSpec with WiremockTestServer with Mockit
     given(config.s3Configuration).willReturn(s3Config)
   }
 
-  "Connector" should {
-    "Get All" in {
+  "Get All" should {
+
+    "Delegate to S3" in {
       // Given
       stubFor(
         get("/bucket/?encoding-type=url")
@@ -60,8 +61,11 @@ class AmazonS3ConnectorSpec extends UnitSpec with WiremockTestServer with Mockit
       all should have size 1
       all.head.fileName shouldBe "image.jpg"
     }
+  }
 
-    "Upload" in {
+  "Upload" should {
+
+    "Delegate to S3" in {
       // Given
       stubFor(
         put("/bucket/id")
@@ -73,18 +77,23 @@ class AmazonS3ConnectorSpec extends UnitSpec with WiremockTestServer with Mockit
           )
       )
 
-      val exampleFile = TemporaryFile("example-file.json")
-      val fileUploading = FileWithMetadata(
-        exampleFile,
-        FileMetadata("id", "file.txt", "text/plain")
-      )
-      val fileUploaded = FileWithMetadata(
-        exampleFile,
-        FileMetadata("id", "file.txt", "text/plain", Some(s"$wireMockUrl/id"))
-      )
+      val url = TemporaryFile("example.txt").file.toURI.toURL.toString
+      val fileUploading = FileMetadata("id", "file.txt", "text/plain", Some(url))
+      val fileUploaded = FileMetadata("id", "file.txt", "text/plain", Some(s"$wireMockUrl/bucket/id"))
 
       // Then
       connector.upload(fileUploading) shouldBe fileUploaded
+    }
+
+    "Throw Exception on missing URL" in {
+      // Given
+      val fileUploading = FileMetadata("id", "file.txt", "text/plain")
+
+      // Then
+      val exception = intercept[IllegalArgumentException] {
+        connector.upload(fileUploading)
+      }
+      exception.getMessage shouldBe "Missing URL"
     }
   }
 

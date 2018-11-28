@@ -16,10 +16,7 @@
 
 package uk.gov.hmrc.bindingtarifffilestore.service
 
-import java.nio.file.Paths
-
 import javax.inject.{Inject, Singleton}
-import play.api.libs.Files.TemporaryFile
 import uk.gov.hmrc.bindingtarifffilestore.config.AppConfig
 import uk.gov.hmrc.bindingtarifffilestore.connector.{AmazonS3Connector, UpscanConnector}
 import uk.gov.hmrc.bindingtarifffilestore.controllers.routes
@@ -68,9 +65,7 @@ class FileStoreService @Inject()(appConfig: AppConfig,
   }
 
   def publish(att: FileMetadata): Future[FileMetadata] = {
-    val file = Paths.get(att.url.getOrElse(throw new IllegalArgumentException("Cannot publish a file without a URL"))).toFile
-    val fileWithMetadata = FileWithMetadata(TemporaryFile(file), att)
-    Future.successful(fileStoreConnector.upload(fileWithMetadata).metadata)
+    Future.successful(fileStoreConnector.upload(att))
   }
 
 }

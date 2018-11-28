@@ -16,8 +16,7 @@
 
 package uk.gov.hmrc.bindingtarifffilestore.connector
 
-import java.io.ByteArrayInputStream
-import java.nio.file.Files
+import java.net.URL
 import java.util
 
 import com.amazonaws.auth.{AWSStaticCredentialsProvider, BasicAWSCredentials}
@@ -27,7 +26,7 @@ import com.amazonaws.services.s3.{AmazonS3, AmazonS3ClientBuilder}
 import com.google.inject.Inject
 import javax.inject.Singleton
 import uk.gov.hmrc.bindingtarifffilestore.config.AppConfig
-import uk.gov.hmrc.bindingtarifffilestore.model.{FileMetadata, FileWithMetadata}
+import uk.gov.hmrc.bindingtarifffilestore.model.FileMetadata
 
 import scala.collection.JavaConverters
 
@@ -60,35 +59,34 @@ class AmazonS3Connector @Inject()(config: AppConfig) {
       .map(obj => FileMetadata(fileName = obj.getKey, mimeType = ""))
   }
 
-  def upload(fileWithMetadata: FileWithMetadata): FileWithMetadata = {
+  def upload(fileMetaData: FileMetadata): FileMetadata = {
+    val url: URL = new URL(fileMetaData.url.getOrElse(throw new IllegalArgumentException("Missing URL")))
+
     val metadata = new ObjectMetadata
-    metadata.setContentType(fileWithMetadata.metadata.mimeType)
-    metadata.setContentLength(fileWithMetadata.file.file.length())
-    put(fileWithMetadata.metadata.id, Files.readAllBytes(fileWithMetadata.file.file.toPath), metadata)
+    metadata.setContentType(fileMetaData.mimeType)
 
-    val updatedMetadata = fileWithMetadata.metadata.copy(url = Some(s"${config.s3Configuration.baseUrl}/${fileWithMetadata.metadata.id}"))
-    fileWithMetadata.copy(metadata = updatedMetadata)
-  }
+    val request = new PutObjectRequest(bucket, fileMetaData.id, url.openStream(), metadata)
+    request.withCannedAcl(CannedAccessControlList.PublicRead) // TODO Review what ACL this should be public/private?
 
-  private def put(name: String, data: Array[Byte], metadata: ObjectMetadata): Unit = {
-    val request = new PutObjectRequest(bucket, name, new ByteArrayInputStream(data), metadata)
-    request.withCannedAcl(CannedAccessControlList.Private) // TODO Review what ACL this should be public/private?
     s3client.putObject(request)
-    // Handle Exceptions
-    //    case ase: AmazonServiceException =>
-    //      log.warn("S3 Bad Request", ase)
-    //      log.warn("Error Message:    " + ase.getMessage)
-    //      log.warn("HTTP Status Code: " + ase.getStatusCode)
-    //      log.warn("AWS Error Code:   " + ase.getErrorCode)
-    //      log.warn("Error Type:       " + ase.getErrorType)
-    //      log.warn("Request ID:       " + ase.getRequestId)
-    //      throw new RuntimeException("Amazon Service Exception", ase)
-    //    case ace: AmazonClientException =>
-    //      log.warn("S3 Connection error", ace)
-    //      throw new RuntimeException("Amazon Client Exception", ace)
-    //    case e: IOException =>
-    //      throw new RuntimeException("S3 IO Error", e)
+    //    // Handle Exceptions
+    //    //    case ase: AmazonServiceException =>
+    //    //      log.warn("S3 Bad Request", ase)
+    //    //      log.warn("Error Message:    " + ase.getMessage)
+    //    //      log.warn("HTTP Status Code: " + ase.getStatusCode)
+    //    //      log.warn("AWS Error Code:   " + ase.getErrorCode)
+    //    //      log.warn("Error Type:       " + ase.getErrorType)
+    //    //      log.warn("Request ID:       " + ase.getRequestId)
+    //    //      throw new RuntimeException("Amazon Service Exception", ase)
+    //    //    case ace: AmazonClientException =>
+    //    //      log.warn("S3 Connection error", ace)
+    //    //      throw new RuntimeException("Amazon Client Exception", ace)
+    //    //    case e: IOException =>
+    //    //      throw new RuntimeException("S3 IO Error", e)
+
+    fileMetaData.copy(url = Some(s"${config.s3Configuration.baseUrl}/${config.s3Configuration.bucket}/${fileMetaData.id}"))
   }
+
 
   private def sequenceOf[T](list: util.List[T]) = {
     JavaConverters.asScalaIteratorConverter(list.iterator).asScala.toSeq

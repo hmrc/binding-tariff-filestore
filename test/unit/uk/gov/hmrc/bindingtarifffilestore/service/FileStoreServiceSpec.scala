@@ -16,10 +16,7 @@
 
 package uk.gov.hmrc.bindingtarifffilestore.service
 
-import org.mockito.ArgumentCaptor
-import org.mockito.ArgumentMatchers._
 import org.mockito.BDDMockito.given
-import org.mockito.Mockito.verify
 import org.scalatest.mockito.MockitoSugar
 import play.api.libs.Files.TemporaryFile
 import uk.gov.hmrc.bindingtarifffilestore.config.AppConfig
@@ -89,30 +86,12 @@ class FileStoreServiceSpec extends UnitSpec with MockitoSugar {
 
   "Service 'publish'" should {
 
-    "Upload the attachment to the Filestore" in {
-      val file = mock[TemporaryFile]
-      val metadata = FileMetadata(fileName = "file", mimeType = "type", url = Some("url"))
-      val uploaded = FileWithMetadata(file, metadata)
-      given(s3Connector.upload(any[FileWithMetadata])).willReturn(uploaded)
+    "Delegate to the Filestore" in {
+      val fileUploading = mock[FileMetadata]
+      val fileUploaded = mock[FileMetadata]
+      given(s3Connector.upload(fileUploading)).willReturn(fileUploaded)
 
-      await(service.publish(metadata)) shouldBe metadata
-      val upload = theFileUploaded
-      upload.file.file.getName shouldBe "url"
-      upload.metadata shouldBe metadata
+      await(service.publish(fileUploading)) shouldBe fileUploaded
     }
-
-    "Throw exception for missing URL" in {
-      val exception = intercept[RuntimeException] {
-        service.publish(FileMetadata(fileName = "file", mimeType = "type", url = None))
-      }
-
-      exception.getMessage shouldBe "Cannot publish a file without a URL"
-    }
-  }
-
-  def theFileUploaded: FileWithMetadata = {
-    val captor: ArgumentCaptor[FileWithMetadata] = ArgumentCaptor.forClass(classOf[FileWithMetadata])
-    verify(s3Connector).upload(captor.capture())
-    captor.getValue
   }
 }
