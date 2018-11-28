@@ -35,15 +35,13 @@ class FileStoreService @Inject()(appConfig: AppConfig,
                                  upscanConnector: UpscanConnector) {
 
   def upload(fileWithMetadata: FileWithMetadata)(implicit headerCarrier: HeaderCarrier): Future[FileMetadata] = {
-    Future {
-      val settings = UploadSettings(
-        routes.FileStoreController
-          .notification(fileWithMetadata.metadata.id)
-          .absoluteURL(appConfig.filestoreSSL, appConfig.filestoreUrl)
-      )
-      upscanConnector.initiate(settings).flatMap { response =>
-        upscanConnector.upload(response.uploadRequest, fileWithMetadata)
-      }
+    val settings = UploadSettings(
+      routes.FileStoreController
+        .notification(fileWithMetadata.metadata.id)
+        .absoluteURL(appConfig.filestoreSSL, appConfig.filestoreUrl)
+    )
+    upscanConnector.initiate(settings).flatMap { response =>
+      upscanConnector.upload(response.uploadRequest, fileWithMetadata)
     }
 
     repository.insert(fileWithMetadata.metadata)

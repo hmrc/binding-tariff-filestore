@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.bindingtarifffilestore.service
 
+import org.mockito.ArgumentMatchers.any
 import org.mockito.BDDMockito.given
 import org.mockito.Mockito.reset
 import org.scalatest.BeforeAndAfterEach
@@ -58,10 +59,13 @@ class FileStoreServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfte
   "Service 'upload'" should {
     "Delegate to Connector" in {
       val file = mock[TemporaryFile]
-      val fileMetadata = mock[FileMetadata]
+      val fileMetadata = FileMetadata(id = "id", fileName = "file", mimeType = "text/plain")
       val fileWithMetadata = FileWithMetadata(file, fileMetadata)
       val fileMetaDataCreated = mock[FileMetadata]
+      val uploadTemplate = mock[UploadRequestTemplate]
+      val initiateResponse = UpscanInitiateResponse("ref", uploadTemplate)
       given(repository.insert(fileMetadata)).willReturn(successful(fileMetaDataCreated))
+      given(upscanConnector.initiate(any[UploadSettings])(any[HeaderCarrier])).willReturn(successful(initiateResponse))
 
       await(service.upload(fileWithMetadata)) shouldBe fileMetaDataCreated
     }
