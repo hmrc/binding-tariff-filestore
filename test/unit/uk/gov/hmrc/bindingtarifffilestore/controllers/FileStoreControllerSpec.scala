@@ -16,14 +16,12 @@
 
 package uk.gov.hmrc.bindingtarifffilestore.controllers
 
-import java.io.File
 import java.time.Instant
 
 import akka.stream.Materializer
 import org.mockito.ArgumentMatchers.any
-import org.mockito.BDDMockito.then
 import org.mockito.Mockito
-import org.mockito.Mockito.{never, when}
+import org.mockito.Mockito.{never, verify, when}
 import org.scalatest.mockito.MockitoSugar
 import org.scalatest.{BeforeAndAfterEach, Matchers}
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
@@ -41,7 +39,8 @@ import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.Future.successful
 
-class FileStoreControllerSpec extends UnitSpec with Matchers with GuiceOneAppPerSuite with MockitoSugar with BeforeAndAfterEach {
+class FileStoreControllerSpec extends UnitSpec with Matchers
+  with GuiceOneAppPerSuite with MockitoSugar with BeforeAndAfterEach {
 
   private implicit val mat: Materializer = fakeApplication.materializer
 
@@ -120,7 +119,7 @@ class FileStoreControllerSpec extends UnitSpec with Matchers with GuiceOneAppPer
 
       val result: Result = await(controller.publish("id")(fakeRequest))
 
-      then(service).should(never()).publish(any[FileMetadata])
+      verify(service, never()).publish(any[FileMetadata])
       status(result) shouldBe Status.FORBIDDEN
     }
 
@@ -130,7 +129,7 @@ class FileStoreControllerSpec extends UnitSpec with Matchers with GuiceOneAppPer
 
       val result: Result = await(controller.publish("id")(fakeRequest))
 
-      then(service).should(never()).publish(any[FileMetadata])
+      verify(service, never()).publish(any[FileMetadata])
       status(result) shouldBe Status.FORBIDDEN
     }
 
@@ -149,9 +148,8 @@ class FileStoreControllerSpec extends UnitSpec with Matchers with GuiceOneAppPer
       val metadataUploaded = FileMetadata(id = "id", fileName = "name", mimeType = "text/plain")
       when(service.upload(any[FileWithMetadata])(any[HeaderCarrier])).thenReturn(successful(metadataUploaded))
 
-      // When
-      val file = new File("test/unit/resources/txt/text-file.txt")
-      val filePart = FilePart[TemporaryFile](key = "file", "file.txt", contentType = Some("text/plain"), ref = TemporaryFile(file))
+      // When=
+      val filePart = FilePart[TemporaryFile](key = "file", "file.txt", contentType = Some("text/plain"), ref = TemporaryFile("example-file.txt"))
       val form = MultipartFormData[TemporaryFile](dataParts = Map(), files = Seq(filePart), badParts = Seq.empty)
 
       val result: Result = await(controller.upload(fakeRequest.withBody(form)))
@@ -161,8 +159,7 @@ class FileStoreControllerSpec extends UnitSpec with Matchers with GuiceOneAppPer
     }
 
     "Throw exception on missing mime type" in {
-      val file = new File("test/unit/resources/txt/text-file.txt")
-      val filePart = FilePart[TemporaryFile](key = "file", "file.txt", contentType = None, ref = TemporaryFile(file))
+      val filePart = FilePart[TemporaryFile](key = "file", "file.txt", contentType = None, ref = TemporaryFile("example-file.txt"))
       val form = MultipartFormData[TemporaryFile](dataParts = Map(), files = Seq(filePart), badParts = Seq.empty)
 
       val exception = intercept[RuntimeException] {
