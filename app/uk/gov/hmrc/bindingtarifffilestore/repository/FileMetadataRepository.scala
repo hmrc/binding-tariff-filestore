@@ -19,7 +19,6 @@ package uk.gov.hmrc.bindingtarifffilestore.repository
 import com.google.inject.ImplementedBy
 import javax.inject.{Inject, Singleton}
 import play.api.libs.json.Json
-import reactivemongo.api.indexes.Index
 import reactivemongo.bson.BSONObjectID
 import reactivemongo.play.json.ImplicitBSONHandlers._
 import uk.gov.hmrc.bindingtarifffilestore.config.AppConfig
@@ -52,9 +51,11 @@ class FileMetadataMongoRepository @Inject()(config: AppConfig,
     domainFormat = FileMetadata.format,
     idFormat = ReactiveMongoFormats.objectIdFormats) with FileMetadataRepository {
 
-  override def indexes: Seq[Index] = {
-    createSingleFieldAscendingIndex("id", isUnique = true) :: createTTLIndex(config.mongoTTL) :: Nil
-  }
+  private val indices = Seq(
+    createSingleFieldAscendingIndex("id", isUnique = true),
+    createTTLIndex(config.mongoTTL)
+  )
+  indices.foreach(collection.indexesManager.create(_))
 
   override def get(id: String): Future[Option[FileMetadata]] = {
     collection.find(byId(id)).one[FileMetadata]
