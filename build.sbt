@@ -63,6 +63,7 @@ def oneForkedJvmPerTest(tests: Seq[TestDefinition]): Seq[Group] = {
     test => Group(test.name, Seq(test), SubProcess(ForkOptions(runJVMOptions = Seq("-Dtest.name=" + test.name))))
   }
 }
+
 // Coverage configuration
 coverageMinimum := 99
 coverageFailOnMinimum := true
