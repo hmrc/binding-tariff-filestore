@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.bindingtarifffilestore.connector
 
-import java.io.BufferedInputStream
+import java.io.{BufferedInputStream, IOException}
 import java.net.URL
 import java.util
 
@@ -27,6 +27,7 @@ import com.amazonaws.services.s3.model.{CannedAccessControlList, GeneratePresign
 import com.amazonaws.services.s3.{AmazonS3, AmazonS3ClientBuilder}
 import com.google.inject.Inject
 import javax.inject.Singleton
+import sun.net.www.protocol.file.FileURLConnection
 import uk.gov.hmrc.bindingtarifffilestore.config.AppConfig
 import uk.gov.hmrc.bindingtarifffilestore.model.FileMetadata
 
@@ -66,6 +67,7 @@ class AmazonS3Connector @Inject()(config: AppConfig) {
 
     val metadata = new ObjectMetadata
     metadata.setContentType(fileMetaData.mimeType)
+    metadata.setContentLength(contentLengthOf(url))
 
     val request = new PutObjectRequest(bucket, fileMetaData.id, new BufferedInputStream(url.openStream()), metadata)
     request.withCannedAcl(CannedAccessControlList.Private)
@@ -78,6 +80,17 @@ class AmazonS3Connector @Inject()(config: AppConfig) {
     fileMetaData.copy(url = Some(authenticatedURL.toString))
   }
 
+  private def contentLengthOf(url: URL): Long = {
+    var conn: FileURLConnection = null
+    try {
+      conn = url.openConnection.asInstanceOf[FileURLConnection]
+      conn.getContentLengthLong
+    } catch {
+      case e: IOException =>
+        throw new RuntimeException(e)
+    } finally if (conn != null) conn.close()
+
+  }
 
   private def sequenceOf[T](list: util.List[T]) = {
     JavaConverters.asScalaIteratorConverter(list.iterator).asScala.toSeq
