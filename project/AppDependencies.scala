@@ -4,7 +4,7 @@ object AppDependencies {
 
   val compile = Seq(
     "com.amazonaws"           %  "aws-java-sdk-s3"            % "1.11.462",
-    "uk.gov.hmrc"             %% "bootstrap-play-25"          % "4.2.0",
+    "uk.gov.hmrc"             %% "bootstrap-play-25"          % "4.3.0",
     "uk.gov.hmrc"             %% "play-json-union-formatter"  % "1.4.0",
     "uk.gov.hmrc"             %% "simple-reactivemongo"       % "7.7.0-play-25"
   )
