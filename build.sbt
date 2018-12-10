@@ -19,7 +19,7 @@ lazy val microservice = (project in file("."))
     name := appName,
     scalaVersion := "2.11.11",
     targetJvm := "jvm-1.8",
-    libraryDependencies ++= AppDependencies.compile ++ AppDependencies.test,
+    libraryDependencies ++= (AppDependencies.compile ++ AppDependencies.test).map(_ withSources()),
     evictionWarningOptions in update := EvictionWarningOptions.default.withWarnScalaVersionEviction(false),
     parallelExecution in Test := false,
     fork in Test := false,
@@ -63,6 +63,7 @@ def oneForkedJvmPerTest(tests: Seq[TestDefinition]): Seq[Group] = {
     test => Group(test.name, Seq(test), SubProcess(ForkOptions(runJVMOptions = Seq("-Dtest.name=" + test.name))))
   }
 }
+
 // Coverage configuration
 coverageMinimum := 99
 coverageFailOnMinimum := true

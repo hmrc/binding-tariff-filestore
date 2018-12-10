@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.bindingtarifffilestore.connector
 
+import java.io.BufferedInputStream
 import java.net.URL
 import java.util
 
@@ -66,7 +67,7 @@ class AmazonS3Connector @Inject()(config: AppConfig) {
     val metadata = new ObjectMetadata
     metadata.setContentType(fileMetaData.mimeType)
 
-    val request = new PutObjectRequest(bucket, fileMetaData.id, url.openStream(), metadata)
+    val request = new PutObjectRequest(bucket, fileMetaData.id, new BufferedInputStream(url.openStream()), metadata)
     request.withCannedAcl(CannedAccessControlList.Private)
 
     s3client.putObject(request)

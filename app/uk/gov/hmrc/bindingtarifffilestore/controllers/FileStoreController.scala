@@ -30,7 +30,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.concurrent.Future.successful
 
-@Singleton()
+@Singleton
 class FileStoreController @Inject()(service: FileStoreService) extends BaseController {
 
   //  def listAllFiles: Action[AnyContent] = Action.async { implicit request =>

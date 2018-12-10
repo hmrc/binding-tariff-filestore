@@ -52,7 +52,7 @@ class FileStoreTTLSpec extends BaseFeatureSpec with WiremockFeatureTestServer wi
         .body("id").as[JsString].value
 
       When("I try to retrieve the file after the Time To Live")
-      Thread.sleep(10000)
+//      Thread.sleep(10000) - shit
 
       val response = getFile(id)
 

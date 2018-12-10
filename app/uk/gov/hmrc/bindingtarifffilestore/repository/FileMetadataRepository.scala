@@ -28,7 +28,7 @@ import uk.gov.hmrc.mongo.ReactiveRepository
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 @ImplementedBy(classOf[FileMetadataMongoRepository])
 trait FileMetadataRepository {
@@ -56,6 +56,10 @@ class FileMetadataMongoRepository @Inject()(config: AppConfig,
     createTTLIndex(config.mongoTTL)
   )
   indices.foreach(collection.indexesManager.create(_))
+
+//  override def ensureIndexes(implicit ec: ExecutionContext): Future[Seq[Boolean]] = {
+//    Future.sequence(indexes.map(collection.indexesManager.ensure(_)))
+//  }
 
   override def get(id: String): Future[Option[FileMetadata]] = {
     collection.find(byId(id)).one[FileMetadata]

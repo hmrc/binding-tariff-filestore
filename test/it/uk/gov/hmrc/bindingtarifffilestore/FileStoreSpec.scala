@@ -31,7 +31,7 @@ import play.api.libs.json._
 import scalaj.http.{Http, HttpResponse, MultiPart}
 import uk.gov.hmrc.bindingtarifffilestore.model.upscan.ScanResult.format
 import uk.gov.hmrc.bindingtarifffilestore.model.upscan._
-import uk.gov.hmrc.bindingtarifffilestore.util.{ResourceFiles, WiremockFeatureTestServer}
+import uk.gov.hmrc.bindingtarifffilestore.util.ResourceFiles
 
 import scala.collection.Map
 import scala.util.Try
