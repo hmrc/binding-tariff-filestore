@@ -32,6 +32,7 @@ lazy val microservice = (project in file("."))
       (baseDirectory in Test).value / "test/unit",
       (baseDirectory in Test).value / "test/util"
     ),
+    resourceDirectory in Test := baseDirectory.value / "test" / "resources",
     addTestReportOption(Test, "test-reports")
   )
   .configs(IntegrationTest)
@@ -42,6 +43,7 @@ lazy val microservice = (project in file("."))
       (baseDirectory in IntegrationTest).value / "test/it",
       (baseDirectory in Test).value / "test/util"
     ),
+    resourceDirectory in IntegrationTest := baseDirectory.value / "test" / "resources",
     addTestReportOption(IntegrationTest, "int-test-reports"),
     testGrouping in IntegrationTest := oneForkedJvmPerTest((definedTests in IntegrationTest).value),
     parallelExecution in IntegrationTest := false)

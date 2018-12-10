@@ -22,7 +22,7 @@ import java.nio.file.Files
 import com.github.tomakehurst.wiremock.client.WireMock._
 import org.apache.commons.io.IOUtils
 import play.api.Application
-import play.api.http.Status
+import play.api.http.{HttpVerbs, Status}
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.Files.TemporaryFile
 import play.api.libs.json._
@@ -52,7 +52,7 @@ class FileStoreTTLSpec extends WiremockFeatureTestServer with ResourceFiles {
         .body("id").as[JsString].value
 
       When("I try to retrieve the file after the Time To Live")
-//      Thread.sleep(10000) - shit
+      Thread.sleep(10000) // TODO: do not use `sleep` in Scala
 
       val response = getFile(id)
 
@@ -63,7 +63,7 @@ class FileStoreTTLSpec extends WiremockFeatureTestServer with ResourceFiles {
 
   private def getFile(id: String): HttpResponse[Map[String, JsValue]] = {
     Http(s"$serviceUrl/file/$id")
-      .method("GET")
+      .method(HttpVerbs.GET)
       .execute(convertingResponseToJS)
   }
 
@@ -96,7 +96,7 @@ class FileStoreTTLSpec extends WiremockFeatureTestServer with ResourceFiles {
       post("/upscan/initiate")
         .willReturn(
           aResponse()
-            .withBody(fromFile("test/util/resources/upscan/initiate_wiremock-response.json"))
+            .withBody(fromFile("/upscan/initiate_wiremock-response.json"))
         )
     )
   }
