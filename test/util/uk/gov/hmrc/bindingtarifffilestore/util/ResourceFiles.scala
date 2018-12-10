@@ -21,8 +21,8 @@ import scala.io.Source
 trait ResourceFiles {
 
   protected def fromFile(path: String): String = {
-    val p = getClass.getResource(path).getFile
-    Source.fromFile(p).getLines().mkString
+    val filePath = getClass.getResource(path).getFile
+    Source.fromFile(filePath).getLines().mkString
   }
 
 }

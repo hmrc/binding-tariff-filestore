@@ -41,6 +41,8 @@ class FileStoreSpec extends WiremockFeatureTestServer with ResourceFiles {
   override lazy val port = 14681
   protected val serviceUrl = s"http://localhost:$port/binding-tariff-filestore"
 
+  private val filePath = "test/resources/file.txt"
+
   override def fakeApplication(): Application = new GuiceApplicationBuilder()
     .configure(
       "s3.endpoint" -> s"http://localhost:$wirePort",
@@ -95,7 +97,7 @@ class FileStoreSpec extends WiremockFeatureTestServer with ResourceFiles {
         .body("id").as[JsString].value
 
       When("Notify is Called")
-      val uri = new File("test/util/resources/file.txt").toURI
+      val uri = new File(filePath).toURI
       val response = notifySuccess(id, uri)
 
       Then("The response code should be Created")
@@ -194,7 +196,7 @@ class FileStoreSpec extends WiremockFeatureTestServer with ResourceFiles {
       .execute(convertingResponseToJS)
   }
 
-  private def notifySuccess(id: String, uri: URI = new File("file.txt").toURI): HttpResponse[Map[String, JsValue]] = {
+  private def notifySuccess(id: String, uri: URI = new File(filePath).toURI): HttpResponse[Map[String, JsValue]] = {
     val url = uri.toURL.toString
     val model = SuccessfulScanResult("reference", url, UploadDetails(Instant.now(), "checksum"))
 

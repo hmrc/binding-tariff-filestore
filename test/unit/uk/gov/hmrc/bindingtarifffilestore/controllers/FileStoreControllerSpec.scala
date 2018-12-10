@@ -143,13 +143,16 @@ class FileStoreControllerSpec extends UnitSpec with Matchers
   }
 
   "Upload" should {
+
+    val fileName = "file.txt"
+
     "return 202 on valid file" in {
       // Given
       val metadataUploaded = FileMetadata(id = "id", fileName = "name", mimeType = "text/plain")
       when(service.upload(any[FileWithMetadata])(any[HeaderCarrier])).thenReturn(successful(metadataUploaded))
 
       // When=
-      val filePart = FilePart[TemporaryFile](key = "file", "file.txt", contentType = Some("text/plain"), ref = TemporaryFile("example-file.txt"))
+      val filePart = FilePart[TemporaryFile](key = "file", fileName, contentType = Some("text/plain"), ref = TemporaryFile("example-file.txt"))
       val form = MultipartFormData[TemporaryFile](dataParts = Map(), files = Seq(filePart), badParts = Seq.empty)
 
       val result: Result = await(controller.upload(fakeRequest.withBody(form)))
@@ -159,7 +162,7 @@ class FileStoreControllerSpec extends UnitSpec with Matchers
     }
 
     "Throw exception on missing mime type" in {
-      val filePart = FilePart[TemporaryFile](key = "file", "file.txt", contentType = None, ref = TemporaryFile("example-file.txt"))
+      val filePart = FilePart[TemporaryFile](key = "file", fileName, contentType = None, ref = TemporaryFile("example-file.txt"))
       val form = MultipartFormData[TemporaryFile](dataParts = Map(), files = Seq(filePart), badParts = Seq.empty)
 
       val exception = intercept[RuntimeException] {
