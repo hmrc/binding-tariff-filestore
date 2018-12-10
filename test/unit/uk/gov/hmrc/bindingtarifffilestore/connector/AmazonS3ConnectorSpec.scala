@@ -100,6 +100,4 @@ class AmazonS3ConnectorSpec extends UnitSpec with WiremockTestServer with Mockit
     }
   }
 
-
-
 }

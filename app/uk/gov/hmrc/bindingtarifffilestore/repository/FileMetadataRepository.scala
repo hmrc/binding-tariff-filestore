@@ -51,15 +51,14 @@ class FileMetadataMongoRepository @Inject()(config: AppConfig,
     domainFormat = FileMetadata.format,
     idFormat = ReactiveMongoFormats.objectIdFormats) with FileMetadataRepository {
 
-  private val indices = Seq(
+  override lazy val indexes = Seq(
     createSingleFieldAscendingIndex("id", isUnique = true),
     createTTLIndex(config.mongoTTL)
   )
-  indices.foreach(collection.indexesManager.create(_))
 
-//  override def ensureIndexes(implicit ec: ExecutionContext): Future[Seq[Boolean]] = {
-//    Future.sequence(indexes.map(collection.indexesManager.ensure(_)))
-//  }
+  override def ensureIndexes(implicit ec: ExecutionContext): Future[Seq[Boolean]] = {
+    Future.sequence(indexes.map(collection.indexesManager.ensure(_)))
+  }
 
   override def get(id: String): Future[Option[FileMetadata]] = {
     collection.find(byId(id)).one[FileMetadata]

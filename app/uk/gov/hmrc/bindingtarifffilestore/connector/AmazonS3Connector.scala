@@ -31,6 +31,7 @@ import uk.gov.hmrc.bindingtarifffilestore.config.AppConfig
 import uk.gov.hmrc.bindingtarifffilestore.model.FileMetadata
 
 import scala.collection.JavaConverters
+import scala.util.{Failure, Success, Try}
 
 @Singleton
 class AmazonS3Connector @Inject()(config: AppConfig) {
@@ -70,16 +71,18 @@ class AmazonS3Connector @Inject()(config: AppConfig) {
     val request = new PutObjectRequest(bucket, fileMetaData.id, new BufferedInputStream(url.openStream()), metadata)
     request.withCannedAcl(CannedAccessControlList.Private)
 
-    s3client.putObject(request)
+    Try ( s3client.putObject(request) ) match {
+      case Success(_) =>
+        val authenticatedURLRequest = new GeneratePresignedUrlRequest(config.s3Configuration.bucket, fileMetaData.id)
+          .withMethod(HttpMethod.GET)
+        val authenticatedURL: URL = s3client.generatePresignedUrl(authenticatedURLRequest)
+        fileMetaData.copy(url = Some(authenticatedURL.toString))
+      case Failure(e: Throwable) => throw e
+    }
 
-    val authenticatedURLRequest = new GeneratePresignedUrlRequest(config.s3Configuration.bucket, fileMetaData.id)
-        .withMethod(HttpMethod.GET)
-    val authenticatedURL: URL = s3client.generatePresignedUrl(authenticatedURLRequest)
-    fileMetaData.copy(url = Some(authenticatedURL.toString))
   }
 
-
-  private def sequenceOf[T](list: util.List[T]) = {
+  private def sequenceOf[T](list: util.List[T]): Seq[T] = {
     JavaConverters.asScalaIteratorConverter(list.iterator).asScala.toSeq
   }
 

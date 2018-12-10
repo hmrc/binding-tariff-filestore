@@ -104,5 +104,4 @@ class UpscanConnectorSpec extends UnitSpec with WithFakeApplication with Wiremoc
     }
   }
 
-
 }

@@ -41,4 +41,5 @@ trait WiremockFeatureTestServer extends BaseFeatureSpec with BeforeAndAfterEach 
   override protected def afterEach(): Unit = {
     wireMockServer.stop()
   }
+
 }

@@ -44,4 +44,5 @@ trait WiremockTestServer extends UnitSpec with BeforeAndAfterEach {
     super.afterEach()
     wireMockServer.stop()
   }
+
 }

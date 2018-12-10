@@ -40,6 +40,7 @@ class FileStoreService @Inject()(appConfig: AppConfig,
         .notification(fileWithMetadata.metadata.id)
         .absoluteURL(appConfig.filestoreSSL, appConfig.filestoreUrl)
     )
+
     upscanConnector.initiate(settings).flatMap { response =>
       upscanConnector.upload(response.uploadRequest, fileWithMetadata)
     }
@@ -53,12 +54,12 @@ class FileStoreService @Inject()(appConfig: AppConfig,
 
   def notify(attachment: FileMetadata, scanResult: ScanResult): Future[Option[FileMetadata]] = {
     val updated: FileMetadata = scanResult.fileStatus match {
+      case ScanStatus.FAILED => attachment.copy(scanStatus = Some(ScanStatus.FAILED))
       case ScanStatus.READY =>
         val result = scanResult.asInstanceOf[SuccessfulScanResult]
         attachment.copy(url = Some(result.downloadUrl), scanStatus = Some(ScanStatus.READY))
-      case ScanStatus.FAILED =>
-        attachment.copy(scanStatus = Some(ScanStatus.FAILED))
     }
+
     repository.update(updated)
   }
 
