@@ -33,6 +33,7 @@ case class FileMetadata
 )
 
 object FileMetadata {
+
   implicit val instantFormat: OFormat[Instant] = new OFormat[Instant] {
     override def writes(instant: Instant): JsObject = {
       Json.obj("$date" -> instant.toEpochMilli)
