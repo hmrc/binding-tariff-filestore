@@ -20,7 +20,7 @@ import java.time.Instant
 
 import play.api.libs.json._
 import uk.gov.hmrc.bindingtarifffilestore.model
-import uk.gov.hmrc.bindingtarifffilestore.model.ScanStatus
+import uk.gov.hmrc.bindingtarifffilestore.model.ScanStatus.{FAILED, READY}
 import uk.gov.hmrc.bindingtarifffilestore.model.ScanStatus.ScanStatus
 import uk.gov.hmrc.bindingtarifffilestore.model.upscan.FailureReason.FailureReason
 import uk.gov.hmrc.play.json.Union
@@ -31,7 +31,7 @@ case class SuccessfulScanResult
   downloadUrl: String,
   uploadDetails: UploadDetails
 ) extends ScanResult {
-  override val fileStatus: model.ScanStatus.Value = ScanStatus.READY
+  override val fileStatus: model.ScanStatus.Value = READY
 }
 
 
@@ -40,7 +40,7 @@ case class FailedScanResult
   override val reference: String,
   failureDetails: FailureDetails
 ) extends ScanResult {
-  override val fileStatus: model.ScanStatus.Value = ScanStatus.FAILED
+  override val fileStatus: model.ScanStatus.Value = FAILED
 }
 
 
@@ -54,8 +54,8 @@ object ScanResult {
   implicit val formatFailed: OFormat[FailedScanResult] = Json.format[FailedScanResult]
   implicit val format: Format[ScanResult] = Union
     .from[ScanResult]("fileStatus")
-    .and[SuccessfulScanResult](ScanStatus.READY.toString)
-    .and[FailedScanResult](ScanStatus.FAILED.toString)
+    .and[SuccessfulScanResult](READY.toString)
+    .and[FailedScanResult](FAILED.toString)
     .format
 }
 
