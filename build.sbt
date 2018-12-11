@@ -41,7 +41,7 @@ lazy val microservice = (project in file("."))
     Keys.fork in IntegrationTest := false,
     unmanagedSourceDirectories in IntegrationTest := Seq(
       (baseDirectory in IntegrationTest).value / "test/it",
-      (baseDirectory in Test).value / "test/util"
+      (baseDirectory in IntegrationTest).value / "test/util"
     ),
     resourceDirectory in IntegrationTest := baseDirectory.value / "test" / "resources",
     addTestReportOption(IntegrationTest, "int-test-reports"),
