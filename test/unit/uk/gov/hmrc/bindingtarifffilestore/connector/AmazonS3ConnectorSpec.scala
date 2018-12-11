@@ -28,7 +28,8 @@ import uk.gov.hmrc.bindingtarifffilestore.model.FileMetadata
 import uk.gov.hmrc.bindingtarifffilestore.util.{ResourceFiles, WiremockTestServer}
 import uk.gov.hmrc.play.test.UnitSpec
 
-class AmazonS3ConnectorSpec extends UnitSpec with WiremockTestServer with MockitoSugar with BeforeAndAfterEach with ResourceFiles {
+class AmazonS3ConnectorSpec extends UnitSpec with WiremockTestServer
+  with MockitoSugar with BeforeAndAfterEach with ResourceFiles {
 
   private val s3Config = S3Configuration("key", "secret", "region", "bucket", Some(s"http://localhost:$wirePort"))
   private val config = mock[AppConfig]
@@ -50,7 +51,7 @@ class AmazonS3ConnectorSpec extends UnitSpec with WiremockTestServer with Mockit
           .willReturn(
             aResponse()
               .withStatus(Status.OK)
-              .withBody(fromFile("/aws/list-objects_response.xml"))
+              .withBody(fromFile("aws/list-objects_response.xml"))
           )
       )
 
@@ -61,6 +62,7 @@ class AmazonS3ConnectorSpec extends UnitSpec with WiremockTestServer with Mockit
       all should have size 1
       all.head.fileName shouldBe "image.jpg"
     }
+
   }
 
   "Upload" should {
@@ -98,6 +100,7 @@ class AmazonS3ConnectorSpec extends UnitSpec with WiremockTestServer with Mockit
       }
       exception.getMessage shouldBe "Missing URL"
     }
+
   }
 
 }

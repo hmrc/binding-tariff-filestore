@@ -244,7 +244,7 @@ class FileStoreSpec extends WiremockFeatureTestServer with ResourceFiles {
       post("/upscan/initiate")
         .willReturn(
           aResponse()
-            .withBody(fromFile("/upscan/initiate_wiremock-response.json"))
+            .withBody(fromFile("upscan/initiate_wiremock-response.json"))
         )
     )
   }
