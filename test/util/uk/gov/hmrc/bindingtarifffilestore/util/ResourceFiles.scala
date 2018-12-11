@@ -20,8 +20,9 @@ import scala.io.Source
 
 trait ResourceFiles {
 
-  def fromFile(path: String): String = {
-    Source.fromFile(path).getLines().mkString
+  protected def fromFile(path: String): String = {
+    val filePath = getClass.getResource(path).getFile
+    Source.fromFile(filePath).getLines().mkString
   }
 
 }

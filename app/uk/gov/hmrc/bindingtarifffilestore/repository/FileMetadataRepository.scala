@@ -19,7 +19,6 @@ package uk.gov.hmrc.bindingtarifffilestore.repository
 import com.google.inject.ImplementedBy
 import javax.inject.{Inject, Singleton}
 import play.api.libs.json.Json
-import reactivemongo.api.indexes.Index
 import reactivemongo.bson.BSONObjectID
 import reactivemongo.play.json.ImplicitBSONHandlers._
 import uk.gov.hmrc.bindingtarifffilestore.config.AppConfig
@@ -29,7 +28,7 @@ import uk.gov.hmrc.mongo.ReactiveRepository
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 @ImplementedBy(classOf[FileMetadataMongoRepository])
 trait FileMetadataRepository {
@@ -52,8 +51,13 @@ class FileMetadataMongoRepository @Inject()(config: AppConfig,
     domainFormat = FileMetadata.format,
     idFormat = ReactiveMongoFormats.objectIdFormats) with FileMetadataRepository {
 
-  override def indexes: Seq[Index] = {
-    createSingleFieldAscendingIndex("id", isUnique = true) :: createTTLIndex(config.mongoTTL) :: Nil
+  override lazy val indexes = Seq(
+    createSingleFieldAscendingIndex("id", isUnique = true),
+    createTTLIndex(config.mongoTTL)
+  )
+
+  override def ensureIndexes(implicit ec: ExecutionContext): Future[Seq[Boolean]] = {
+    Future.sequence(indexes.map(collection.indexesManager.ensure(_)))
   }
 
   override def get(id: String): Future[Option[FileMetadata]] = {

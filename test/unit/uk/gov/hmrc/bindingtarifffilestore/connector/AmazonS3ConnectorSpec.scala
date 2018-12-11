@@ -50,7 +50,7 @@ class AmazonS3ConnectorSpec extends UnitSpec with WiremockTestServer with Mockit
           .willReturn(
             aResponse()
               .withStatus(Status.OK)
-              .withBody(fromFile("test/util/resources/aws/list-objects_response.xml"))
+              .withBody(fromFile("/aws/list-objects_response.xml"))
           )
       )
 
@@ -99,7 +99,5 @@ class AmazonS3ConnectorSpec extends UnitSpec with WiremockTestServer with Mockit
       exception.getMessage shouldBe "Missing URL"
     }
   }
-
-
 
 }

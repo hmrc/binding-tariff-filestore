@@ -16,9 +16,10 @@
 
 package uk.gov.hmrc.bindingtarifffilestore.model
 
+import java.time.Instant
 import java.util.UUID
 
-import play.api.libs.json.{Json, OFormat}
+import play.api.libs.json._
 import uk.gov.hmrc.bindingtarifffilestore.model.ScanStatus._
 
 case class FileMetadata
@@ -27,9 +28,28 @@ case class FileMetadata
   fileName: String,
   mimeType: String,
   url: Option[String] = None,
-  scanStatus: Option[ScanStatus] = None
+  scanStatus: Option[ScanStatus] = None,
+  lastUpdated: Instant = Instant.now()
 )
 
 object FileMetadata {
+
+  implicit val instantFormat: OFormat[Instant] = new OFormat[Instant] {
+    override def writes(instant: Instant): JsObject = {
+      Json.obj("$date" -> instant.toEpochMilli)
+    }
+
+    override def reads(json: JsValue): JsResult[Instant] = {
+      json match {
+        case JsObject(map) if map.contains("$date") =>
+          map("$date") match {
+            case JsNumber(v) => JsSuccess(Instant.ofEpochMilli(v.toLong))
+            case _ => JsError("Unexpected Instant Format")
+          }
+        case _ => JsError("Unexpected Instant Format")
+      }
+    }
+  }
+
   implicit val format: OFormat[FileMetadata] = Json.format[FileMetadata]
 }

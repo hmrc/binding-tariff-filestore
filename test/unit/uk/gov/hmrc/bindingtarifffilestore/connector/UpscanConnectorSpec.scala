@@ -36,7 +36,8 @@ import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class UpscanConnectorSpec extends UnitSpec with WithFakeApplication with WiremockTestServer with MockitoSugar with BeforeAndAfterEach with ResourceFiles {
+class UpscanConnectorSpec extends UnitSpec with WithFakeApplication with WiremockTestServer
+  with MockitoSugar with BeforeAndAfterEach with ResourceFiles {
 
   private val config = mock[AppConfig]
 
@@ -58,7 +59,7 @@ class UpscanConnectorSpec extends UnitSpec with WithFakeApplication with Wiremoc
         post("/upscan/initiate")
           .willReturn(
             aResponse()
-              .withBody(fromFile("test/util/resources/upscan/initiate_response.json"))
+              .withBody(fromFile("/upscan/initiate_response.json"))
           )
       )
 
@@ -102,6 +103,5 @@ class UpscanConnectorSpec extends UnitSpec with WithFakeApplication with Wiremoc
       )
     }
   }
-
 
 }

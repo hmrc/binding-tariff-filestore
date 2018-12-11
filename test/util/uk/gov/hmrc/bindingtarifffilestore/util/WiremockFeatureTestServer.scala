@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.bindingtarifffilestore
+package uk.gov.hmrc.bindingtarifffilestore.util
 
 import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.client.{MappingBuilder, WireMock}
@@ -41,4 +41,5 @@ trait WiremockFeatureTestServer extends BaseFeatureSpec with BeforeAndAfterEach 
   override protected def afterEach(): Unit = {
     wireMockServer.stop()
   }
+
 }

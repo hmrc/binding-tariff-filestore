@@ -27,17 +27,19 @@ import com.amazonaws.services.s3.model.{CannedAccessControlList, GeneratePresign
 import com.amazonaws.services.s3.{AmazonS3, AmazonS3ClientBuilder}
 import com.google.inject.Inject
 import javax.inject.Singleton
+import play.api.Logger
 import uk.gov.hmrc.bindingtarifffilestore.config.AppConfig
 import uk.gov.hmrc.bindingtarifffilestore.model.FileMetadata
 
 import scala.collection.JavaConverters
+import scala.util.{Failure, Success, Try}
 
 @Singleton
 class AmazonS3Connector @Inject()(config: AppConfig) {
 
-  private lazy val bucket = config.s3Configuration.bucket
+  private lazy val s3Config = config.s3Configuration
 
-  private lazy val credentials = new BasicAWSCredentials(config.s3Configuration.key, config.s3Configuration.secret)
+  private lazy val credentials = new BasicAWSCredentials(s3Config.key, s3Config.secret)
   private lazy val provider = new AWSStaticCredentialsProvider(credentials)
 
   private lazy val s3client: AmazonS3 = {
@@ -46,19 +48,18 @@ class AmazonS3Connector @Inject()(config: AppConfig) {
       .withCredentials(provider)
       .withPathStyleAccessEnabled(true)
 
-    config.s3Configuration.endpoint match {
-      case Some(endpoint) => builder.withEndpointConfiguration(new EndpointConfiguration(endpoint, config.s3Configuration.region))
-      case _ => builder.withRegion(config.s3Configuration.region)
+    s3Config.endpoint match {
+      case Some(endpoint) => builder.withEndpointConfiguration(new EndpointConfiguration(endpoint, s3Config.region))
+      case _ => builder.withRegion(s3Config.region)
     }
 
     builder.build()
   }
 
   def getAll: Seq[FileMetadata] = {
-    sequenceOf(s3client
-      .listObjects(bucket)
-      .getObjectSummaries)
-      .map(obj => FileMetadata(fileName = obj.getKey, mimeType = ""))
+    sequenceOf(
+      s3client.listObjects(s3Config.bucket).getObjectSummaries
+    ).map(obj => FileMetadata(fileName = obj.getKey, mimeType = ""))
   }
 
   def upload(fileMetaData: FileMetadata): FileMetadata = {
@@ -67,19 +68,27 @@ class AmazonS3Connector @Inject()(config: AppConfig) {
     val metadata = new ObjectMetadata
     metadata.setContentType(fileMetaData.mimeType)
 
-    val request = new PutObjectRequest(bucket, fileMetaData.id, new BufferedInputStream(url.openStream()), metadata)
-    request.withCannedAcl(CannedAccessControlList.Private)
+    val request = new PutObjectRequest(
+      s3Config.bucket, fileMetaData.id, new BufferedInputStream(url.openStream()), metadata
+    ).withCannedAcl(CannedAccessControlList.Private)
 
-    s3client.putObject(request)
+    Try ( s3client.putObject(request) ) match {
 
-    val authenticatedURLRequest = new GeneratePresignedUrlRequest(config.s3Configuration.bucket, fileMetaData.id)
-        .withMethod(HttpMethod.GET)
-    val authenticatedURL: URL = s3client.generatePresignedUrl(authenticatedURLRequest)
-    fileMetaData.copy(url = Some(authenticatedURL.toString))
+      case Success(_) =>
+        val authenticatedURLRequest = new GeneratePresignedUrlRequest(config.s3Configuration.bucket, fileMetaData.id)
+          .withMethod(HttpMethod.GET)
+        val authenticatedURL: URL = s3client.generatePresignedUrl(authenticatedURLRequest)
+        fileMetaData.copy(url = Some(authenticatedURL.toString))
+
+      case Failure(e: Throwable) =>
+        Logger.error("Failing to upload to the S3 bucket.", e)
+        throw e
+
+    }
+
   }
 
-
-  private def sequenceOf[T](list: util.List[T]) = {
+  private def sequenceOf[T](list: util.List[T]): Seq[T] = {
     JavaConverters.asScalaIteratorConverter(list.iterator).asScala.toSeq
   }
 
