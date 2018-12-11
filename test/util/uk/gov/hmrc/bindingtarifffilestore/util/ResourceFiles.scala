@@ -21,8 +21,8 @@ import scala.io.Source
 trait ResourceFiles {
 
   protected def fromFile(path: String): String = {
-    val fileName = getClass.getClassLoader.getResource(path).getFile
-    Source.fromFile(fileName).getLines().mkString
+    val url = getClass.getClassLoader.getResource(path)
+    Source.fromURL(url, "UTF-8").getLines().mkString
   }
 
 }
