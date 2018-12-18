@@ -90,7 +90,7 @@ class AmazonS3Connector @Inject()(config: AppConfig) {
 
   private def contentLengthOf(url: URL): Long = {
     var conn: FileURLConnection = null
-    try(conn = url.openConnection.asInstanceOf[FileURLConnection]) {
+    try {
       conn = url.openConnection.asInstanceOf[FileURLConnection]
       conn.getContentLengthLong
     } catch {
