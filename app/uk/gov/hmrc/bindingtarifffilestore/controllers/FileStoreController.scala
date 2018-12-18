@@ -17,6 +17,7 @@
 package uk.gov.hmrc.bindingtarifffilestore.controllers
 
 import javax.inject.{Inject, Singleton}
+import play.api.libs.Files
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc._
 import uk.gov.hmrc.bindingtarifffilestore.model.FileMetadata.format
@@ -37,7 +38,7 @@ class FileStoreController @Inject()(service: FileStoreService) extends BaseContr
   //    service.getAll.map(attachments => Ok(Json.toJson(attachments)))
   //  }
 
-  def upload = Action.async(parse.multipartFormData) { implicit request =>
+  def upload: Action[MultipartFormData[Files.TemporaryFile]] = Action.async(parse.multipartFormData) { implicit request =>
     val attachment: Option[FileWithMetadata] = request.body.file("file").map { file =>
       FileWithMetadata(
         file.ref,

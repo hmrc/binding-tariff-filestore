@@ -53,7 +53,7 @@ object MongoIndexCreator {
     createCompoundIndex(
       indexFieldMappings = Seq(("lastUpdated", IndexType.Ascending)),
       isUnique = false,
-      name = Some("expiry"),
+      name = Some("expiry_Index"),
       isBackground = false,
       options = bson.BSONDocument("expireAfterSeconds" -> ttl)
     )

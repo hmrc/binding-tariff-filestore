@@ -21,7 +21,8 @@ import uk.gov.hmrc.bindingtarifffilestore.config.AppConfig
 import uk.gov.hmrc.bindingtarifffilestore.connector.{AmazonS3Connector, UpscanConnector}
 import uk.gov.hmrc.bindingtarifffilestore.controllers.routes
 import uk.gov.hmrc.bindingtarifffilestore.model.upscan.{ScanResult, SuccessfulScanResult, UploadSettings}
-import uk.gov.hmrc.bindingtarifffilestore.model.{FileMetadata, FileWithMetadata, ScanStatus}
+import uk.gov.hmrc.bindingtarifffilestore.model.ScanStatus.{FAILED, READY}
+import uk.gov.hmrc.bindingtarifffilestore.model.{FileMetadata, FileWithMetadata}
 import uk.gov.hmrc.bindingtarifffilestore.repository.FileMetadataRepository
 import uk.gov.hmrc.http.HeaderCarrier
 
@@ -40,6 +41,7 @@ class FileStoreService @Inject()(appConfig: AppConfig,
         .notification(fileWithMetadata.metadata.id)
         .absoluteURL(appConfig.filestoreSSL, appConfig.filestoreUrl)
     )
+
     upscanConnector.initiate(settings).flatMap { response =>
       upscanConnector.upload(response.uploadRequest, fileWithMetadata)
     }
@@ -53,12 +55,12 @@ class FileStoreService @Inject()(appConfig: AppConfig,
 
   def notify(attachment: FileMetadata, scanResult: ScanResult): Future[Option[FileMetadata]] = {
     val updated: FileMetadata = scanResult.fileStatus match {
-      case ScanStatus.READY =>
+      case FAILED => attachment.copy(scanStatus = Some(FAILED))
+      case READY =>
         val result = scanResult.asInstanceOf[SuccessfulScanResult]
-        attachment.copy(url = Some(result.downloadUrl), scanStatus = Some(ScanStatus.READY))
-      case ScanStatus.FAILED =>
-        attachment.copy(scanStatus = Some(ScanStatus.FAILED))
+        attachment.copy(url = Some(result.downloadUrl), scanStatus = Some(READY))
     }
+
     repository.update(updated)
   }
 

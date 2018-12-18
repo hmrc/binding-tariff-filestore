@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.bindingtarifffilestore
+package uk.gov.hmrc.bindingtarifffilestore.util
 
 import org.scalatest._
 import org.scalatestplus.play.guice.GuiceOneServerPerSuite
@@ -24,7 +24,9 @@ import scala.concurrent.Await.result
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 
-abstract class BaseFeatureSpec extends FeatureSpec with Matchers with GivenWhenThen with GuiceOneServerPerSuite with BeforeAndAfterEach with BeforeAndAfterAll {
+abstract class BaseFeatureSpec extends FeatureSpec with Matchers
+  with GivenWhenThen with GuiceOneServerPerSuite
+  with BeforeAndAfterEach with BeforeAndAfterAll {
 
   private val timeout = 2.seconds
 
@@ -35,11 +37,13 @@ abstract class BaseFeatureSpec extends FeatureSpec with Matchers with GivenWhenT
   }
 
   override protected def beforeEach(): Unit = {
+    super.beforeEach()
     drop()
     ensureIndexes()
   }
 
   override protected def afterAll(): Unit = {
+    super.afterAll()
     drop()
   }
 
