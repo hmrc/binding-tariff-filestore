@@ -67,12 +67,13 @@ class AmazonS3Connector @Inject()(config: AppConfig) {
 
     val metadata = new ObjectMetadata
     metadata.setContentType(fileMetaData.mimeType)
+    metadata.setContentLength(contentLengthOf(url))
 
     val request = new PutObjectRequest(
       s3Config.bucket, fileMetaData.id, new BufferedInputStream(url.openStream()), metadata
     ).withCannedAcl(CannedAccessControlList.Private)
 
-    Try ( s3client.putObject(request) ) match {
+    Try(s3client.putObject(request)) match {
 
       case Success(_) =>
         val authenticatedURLRequest = new GeneratePresignedUrlRequest(config.s3Configuration.bucket, fileMetaData.id)
@@ -83,9 +84,11 @@ class AmazonS3Connector @Inject()(config: AppConfig) {
       case Failure(e: Throwable) =>
         Logger.error("Failing to upload to the S3 bucket.", e)
         throw e
-
     }
+  }
 
+  private def contentLengthOf(url: URL): Long = {
+    url.openConnection.getContentLengthLong
   }
 
   private def sequenceOf[T](list: util.List[T]): Seq[T] = {
