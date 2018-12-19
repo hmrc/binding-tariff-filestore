@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.bindingtarifffilestore.connector
 
-import java.io.{BufferedInputStream, IOException}
+import java.io.BufferedInputStream
 import java.net.URL
 import java.util
 
@@ -28,7 +28,6 @@ import com.amazonaws.services.s3.{AmazonS3, AmazonS3ClientBuilder}
 import com.google.inject.Inject
 import javax.inject.Singleton
 import play.api.Logger
-import sun.net.www.protocol.file.FileURLConnection
 import uk.gov.hmrc.bindingtarifffilestore.config.AppConfig
 import uk.gov.hmrc.bindingtarifffilestore.model.FileMetadata
 
@@ -89,14 +88,7 @@ class AmazonS3Connector @Inject()(config: AppConfig) {
   }
 
   private def contentLengthOf(url: URL): Long = {
-    var conn: FileURLConnection = null
-    try {
-      conn = url.openConnection.asInstanceOf[FileURLConnection]
-      conn.getContentLengthLong
-    } catch {
-      case e: IOException =>
-        throw new RuntimeException(e)
-    } finally if (conn != null) conn.close()
+    url.openConnection.getContentLengthLong
   }
 
   private def sequenceOf[T](list: util.List[T]): Seq[T] = {
