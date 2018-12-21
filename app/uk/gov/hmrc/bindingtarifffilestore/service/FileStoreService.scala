@@ -45,6 +45,7 @@ class FileStoreService @Inject()(appConfig: AppConfig,
     )
 
     upscanConnector.initiate(settings).flatMap { response =>
+      Logger.info(s"Upscan-Initiating file [${fileWithMetadata.metadata.id}] with Upscan reference [${response.reference}]")
       upscanConnector.upload(response.uploadRequest, fileWithMetadata)
     } recover {case t => Logger.error("Upscan error", t)}
 
@@ -56,7 +57,7 @@ class FileStoreService @Inject()(appConfig: AppConfig,
   }
 
   def notify(attachment: FileMetadata, scanResult: ScanResult): Future[Option[FileMetadata]] = {
-    Logger.info(s"Scan completed for file [${attachment.id}] status [${scanResult.fileStatus}]")
+    Logger.info(s"Scan completed for file [${attachment.id}] with status [${scanResult.fileStatus}] and Upscan reference [${scanResult.reference}]")
     val updated: FileMetadata = scanResult.fileStatus match {
       case FAILED => attachment.copy(scanStatus = Some(FAILED))
       case READY =>
