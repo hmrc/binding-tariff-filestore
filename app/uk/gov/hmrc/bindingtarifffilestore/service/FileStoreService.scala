@@ -37,7 +37,7 @@ class FileStoreService @Inject()(appConfig: AppConfig,
                                  upscanConnector: UpscanConnector) {
 
   def upload(fileWithMetadata: FileWithMetadata)(implicit headerCarrier: HeaderCarrier): Future[FileMetadata] = {
-    Logger.info(s"Upload file [${fileWithMetadata.metadata.id}]")
+    Logger.info(s"Uploading file [${fileWithMetadata.metadata.id}]")
     val settings = UploadSettings(
       routes.FileStoreController
         .notification(fileWithMetadata.metadata.id)
@@ -46,7 +46,7 @@ class FileStoreService @Inject()(appConfig: AppConfig,
 
     upscanConnector.initiate(settings).flatMap { response =>
       upscanConnector.upload(response.uploadRequest, fileWithMetadata)
-    }
+    } recover {case t => Logger.error("Upscan error", t)}
 
     repository.insert(fileWithMetadata.metadata)
   }
