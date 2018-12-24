@@ -20,6 +20,7 @@ import akka.stream.IOResult
 import akka.stream.scaladsl.{FileIO, Source}
 import akka.util.ByteString
 import javax.inject.{Inject, Singleton}
+import play.api.Logger
 import play.api.libs.ws.WSClient
 import play.api.mvc.MultipartFormData
 import play.api.mvc.MultipartFormData.{DataPart, FilePart}
@@ -42,7 +43,7 @@ class UpscanConnector @Inject()(appConfig: AppConfig, http: HttpClient, ws: WSCl
 
   def upload(template: UploadRequestTemplate, fileWithMetaData: FileWithMetadata)
             (implicit headerCarrier: HeaderCarrier): Future[Unit] = {
-
+    Logger.info(s"Uploading file [${fileWithMetaData.metadata.id}] to Upscan Bucket [${template.href}]")
     val dataParts: List[DataPart] = template.fields.map {
       case (key, value) => DataPart(key, value)
     }.toList
@@ -54,7 +55,9 @@ class UpscanConnector @Inject()(appConfig: AppConfig, http: HttpClient, ws: WSCl
       FileIO.fromPath(fileWithMetaData.file.file.toPath)
     )
 
-    ws.url(template.href).post(Source(filePart :: dataParts)).map(_ => ())
+    ws.url(template.href)
+      .post(Source(filePart :: dataParts))
+      .map(_ => Logger.info(s"Uploaded file [${fileWithMetaData.metadata.id}] successfully to Upscan Bucket [${template.href}]"))
   }
 
 }

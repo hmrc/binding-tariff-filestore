@@ -45,7 +45,7 @@ class FileStoreService @Inject()(appConfig: AppConfig,
     )
 
     upscanConnector.initiate(settings).flatMap { response =>
-      Logger.info(s"Upscan-Initiating file [${fileWithMetadata.metadata.id}] with Upscan reference [${response.reference}]")
+      Logger.info(s"Upscan-Initiated file [${fileWithMetadata.metadata.id}] with Upscan reference [${response.reference}]")
       upscanConnector.upload(response.uploadRequest, fileWithMetadata)
     } recover {case t => Logger.error("Upscan error", t)}
 
