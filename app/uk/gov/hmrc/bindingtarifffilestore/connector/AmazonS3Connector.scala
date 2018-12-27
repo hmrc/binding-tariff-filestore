@@ -29,7 +29,7 @@ import com.google.inject.Inject
 import javax.inject.Singleton
 import play.api.Logger
 import uk.gov.hmrc.bindingtarifffilestore.config.AppConfig
-import uk.gov.hmrc.bindingtarifffilestore.model.FileMetadataMongo
+import uk.gov.hmrc.bindingtarifffilestore.model.FileMetadata
 
 import scala.collection.JavaConverters
 import scala.util.{Failure, Success, Try}
@@ -56,13 +56,13 @@ class AmazonS3Connector @Inject()(config: AppConfig) {
     builder.build()
   }
 
-  def getAll: Seq[FileMetadataMongo] = {
+  def getAll: Seq[FileMetadata] = {
     sequenceOf(
       s3client.listObjects(s3Config.bucket).getObjectSummaries
-    ).map(obj => FileMetadataMongo(fileName = obj.getKey, mimeType = ""))
+    ).map(obj => FileMetadata(fileName = obj.getKey, mimeType = ""))
   }
 
-  def upload(fileMetaData: FileMetadataMongo): FileMetadataMongo = {
+  def upload(fileMetaData: FileMetadata): FileMetadata = {
     val url: URL = new URL(fileMetaData.url.getOrElse(throw new IllegalArgumentException("Missing URL")))
 
     val metadata = new ObjectMetadata

@@ -23,7 +23,7 @@ import uk.gov.hmrc.bindingtarifffilestore.connector.{AmazonS3Connector, UpscanCo
 import uk.gov.hmrc.bindingtarifffilestore.controllers.routes
 import uk.gov.hmrc.bindingtarifffilestore.model.ScanStatus.{FAILED, READY}
 import uk.gov.hmrc.bindingtarifffilestore.model.upscan.{ScanResult, SuccessfulScanResult, UploadSettings}
-import uk.gov.hmrc.bindingtarifffilestore.model.{FileMetadataMongo, FileWithMetadata}
+import uk.gov.hmrc.bindingtarifffilestore.model.{FileMetadata, FileWithMetadata}
 import uk.gov.hmrc.bindingtarifffilestore.repository.FileMetadataRepository
 import uk.gov.hmrc.http.HeaderCarrier
 
@@ -36,7 +36,7 @@ class FileStoreService @Inject()(appConfig: AppConfig,
                                  repository: FileMetadataRepository,
                                  upscanConnector: UpscanConnector) {
 
-  def upload(fileWithMetadata: FileWithMetadata)(implicit headerCarrier: HeaderCarrier): Future[FileMetadataMongo] = {
+  def upload(fileWithMetadata: FileWithMetadata)(implicit headerCarrier: HeaderCarrier): Future[FileMetadata] = {
     Logger.info(s"Uploading file [${fileWithMetadata.metadata.id}]")
     val settings = UploadSettings(
       routes.FileStoreController
@@ -52,13 +52,13 @@ class FileStoreService @Inject()(appConfig: AppConfig,
     repository.insert(fileWithMetadata.metadata)
   }
 
-  def getById(id: String): Future[Option[FileMetadataMongo]] = {
+  def getById(id: String): Future[Option[FileMetadata]] = {
     repository.get(id)
   }
 
-  def notify(attachment: FileMetadataMongo, scanResult: ScanResult): Future[Option[FileMetadataMongo]] = {
+  def notify(attachment: FileMetadata, scanResult: ScanResult): Future[Option[FileMetadata]] = {
     Logger.info(s"Scan completed for file [${attachment.id}] with status [${scanResult.fileStatus}] and Upscan reference [${scanResult.reference}]")
-    val updated: FileMetadataMongo = scanResult.fileStatus match {
+    val updated: FileMetadata = scanResult.fileStatus match {
       case FAILED => attachment.copy(scanStatus = Some(FAILED))
       case READY =>
         val result = scanResult.asInstanceOf[SuccessfulScanResult]
@@ -68,7 +68,7 @@ class FileStoreService @Inject()(appConfig: AppConfig,
     repository.update(updated)
   }
 
-  def publish(att: FileMetadataMongo): Future[FileMetadataMongo] = {
+  def publish(att: FileMetadata): Future[FileMetadata] = {
     Logger.info(s"Publishing file [${att.id}]")
     val metadata = fileStoreConnector.upload(att)
     repository.update(metadata).map(_.get)

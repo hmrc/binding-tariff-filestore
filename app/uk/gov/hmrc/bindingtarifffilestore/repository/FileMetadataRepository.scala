@@ -22,8 +22,8 @@ import play.api.libs.json.Json
 import reactivemongo.bson.BSONObjectID
 import reactivemongo.play.json.ImplicitBSONHandlers._
 import uk.gov.hmrc.bindingtarifffilestore.config.AppConfig
-import uk.gov.hmrc.bindingtarifffilestore.model.FileMetadataMongo
 import uk.gov.hmrc.bindingtarifffilestore.model.FileMetadataMongo.format
+import uk.gov.hmrc.bindingtarifffilestore.model.{FileMetadata, FileMetadataMongo}
 import uk.gov.hmrc.bindingtarifffilestore.repository.MongoIndexCreator.{createSingleFieldAscendingIndex, createTTLIndex}
 import uk.gov.hmrc.mongo.ReactiveRepository
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
@@ -34,11 +34,11 @@ import scala.concurrent.{ExecutionContext, Future}
 @ImplementedBy(classOf[FileMetadataMongoRepository])
 trait FileMetadataRepository {
 
-  def get(id: String): Future[Option[FileMetadataMongo]]
+  def get(id: String): Future[Option[FileMetadata]]
 
-  def insert(att: FileMetadataMongo): Future[FileMetadataMongo]
+  def insert(att: FileMetadata): Future[FileMetadata]
 
-  def update(att: FileMetadataMongo): Future[Option[FileMetadataMongo]]
+  def update(att: FileMetadata): Future[Option[FileMetadata]]
 
   // TODO: delete not needed - we will use 7 days TTL on mongo config
 }
@@ -46,7 +46,7 @@ trait FileMetadataRepository {
 @Singleton
 class FileMetadataMongoRepository @Inject()(config: AppConfig,
                                             mongoDbProvider: MongoDbProvider)
-  extends ReactiveRepository[FileMetadataMongo, BSONObjectID](
+  extends ReactiveRepository[FileMetadata, BSONObjectID](
     collectionName = "fileMetadata",
     mongo = mongoDbProvider.mongo,
     domainFormat = FileMetadataMongo.format,
@@ -61,21 +61,21 @@ class FileMetadataMongoRepository @Inject()(config: AppConfig,
     Future.sequence(indexes.map(collection.indexesManager.ensure(_)))
   }
 
-  override def get(id: String): Future[Option[FileMetadataMongo]] = {
-    collection.find(byId(id)).one[FileMetadataMongo]
+  override def get(id: String): Future[Option[FileMetadata]] = {
+    collection.find(byId(id)).one[FileMetadata]
   }
 
-  override def insert(att: FileMetadataMongo): Future[FileMetadataMongo] = {
+  override def insert(att: FileMetadata): Future[FileMetadata] = {
     collection.insert(att).map(_ => att)
   }
 
-  override def update(att: FileMetadataMongo): Future[Option[FileMetadataMongo]] = {
+  override def update(att: FileMetadata): Future[Option[FileMetadata]] = {
     collection.findAndUpdate(
       selector = byId(att.id),
       update = att,
       fetchNewObject = true,
       upsert = false
-    ).map(_.value.map(_.as[FileMetadataMongo]))
+    ).map(_.value.map(_.as[FileMetadata]))
   }
 
   private def byId(id: String) = {

@@ -22,7 +22,7 @@ import java.util.UUID
 import play.api.libs.json._
 import uk.gov.hmrc.bindingtarifffilestore.model.ScanStatus._
 
-case class FileMetadataMongo
+case class FileMetadata
 (
   id: String = UUID.randomUUID().toString,
   fileName: String,
@@ -33,7 +33,7 @@ case class FileMetadataMongo
 )
 
 object FileMetadataREST {
-  implicit val format: OFormat[FileMetadataMongo] = Json.format[FileMetadataMongo]
+  implicit val format: OFormat[FileMetadata] = Json.format[FileMetadata]
 }
 
 object FileMetadataMongo {
@@ -54,5 +54,5 @@ object FileMetadataMongo {
     }
   }
 
-  implicit val format: OFormat[FileMetadataMongo] = Json.format[FileMetadataMongo]
+  implicit val format: OFormat[FileMetadata] = Json.format[FileMetadata]
 }

@@ -25,7 +25,7 @@ class FileMetadataSpec extends UnitSpec {
 
   "File Meta Data" should {
 
-    val model = FileMetadataMongo(
+    val model = FileMetadata(
       id = "id",
       fileName = "fileName",
       mimeType = "type",
@@ -34,7 +34,7 @@ class FileMetadataSpec extends UnitSpec {
       lastUpdated = Instant.EPOCH
     )
 
-    val json: JsObject = Json.obj(
+    val jsonMongo: JsObject = Json.obj(
       "id" -> JsString("id"),
       "fileName" -> JsString("fileName"),
       "mimeType" -> JsString("type"),
@@ -43,13 +43,32 @@ class FileMetadataSpec extends UnitSpec {
       "lastUpdated" -> Json.obj("$date" -> JsNumber(0))
     )
 
-    "Convert to JSON" in {
+    val jsonREST: JsObject = Json.obj(
+      "id" -> JsString("id"),
+      "fileName" -> JsString("fileName"),
+      "mimeType" -> JsString("type"),
+      "url" -> JsString("url"),
+      "scanStatus" -> JsString("READY"),
+      "lastUpdated" -> JsString("1970-01-01T00:00:00Z")
+    )
+
+    "Convert to Mongo JSON" in {
       val value = Json.toJson(model)(FileMetadataMongo.format)
-      value.toString() shouldBe json.toString()
+      value.toString() shouldBe jsonMongo.toString()
     }
 
-    "Convert from JSON" in {
-      val value = Json.fromJson[FileMetadataMongo](json)(FileMetadataMongo.format).get
+    "Convert from Mongo JSON" in {
+      val value = Json.fromJson[FileMetadata](jsonMongo)(FileMetadataMongo.format).get
+      value shouldBe model
+    }
+
+    "Convert to REST JSON" in {
+      val value = Json.toJson(model)(FileMetadataREST.format)
+      value.toString() shouldBe jsonREST.toString()
+    }
+
+    "Convert from REST JSON" in {
+      val value = Json.fromJson[FileMetadata](jsonREST)(FileMetadataREST.format).get
       value shouldBe model
     }
 
