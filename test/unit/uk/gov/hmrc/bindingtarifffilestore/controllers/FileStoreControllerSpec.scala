@@ -31,8 +31,9 @@ import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.MultipartFormData.FilePart
 import play.api.mvc.{MultipartFormData, Result}
 import play.api.test.FakeRequest
+import uk.gov.hmrc.bindingtarifffilestore.model.FileMetadataREST.format
 import uk.gov.hmrc.bindingtarifffilestore.model.upscan.{ScanResult, SuccessfulScanResult, UploadDetails}
-import uk.gov.hmrc.bindingtarifffilestore.model.{FileMetadata, FileWithMetadata, ScanStatus}
+import uk.gov.hmrc.bindingtarifffilestore.model.{FileMetadataMongo, FileWithMetadata, ScanStatus}
 import uk.gov.hmrc.bindingtarifffilestore.service.FileStoreService
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.test.UnitSpec
@@ -56,7 +57,7 @@ class FileStoreControllerSpec extends UnitSpec with Matchers
 
   "Get By ID" should {
     "return 200 when found" in {
-      val attachment = FileMetadata(id="id", fileName = "file", mimeType = "type")
+      val attachment = FileMetadataMongo(id="id", fileName = "file", mimeType = "type")
       when(service.getById("id")).thenReturn(successful(Some(attachment)))
 
       val result = await(controller.get("id")(fakeRequest))
@@ -77,8 +78,8 @@ class FileStoreControllerSpec extends UnitSpec with Matchers
   "Notify" should {
     "return 201 when found" in {
       val scanResult = SuccessfulScanResult("ref", "url", UploadDetails(Instant.now(), "checksum"))
-      val attachment = FileMetadata(id="id", fileName = "file", mimeType = "type")
-      val attachmentUpdated = FileMetadata(id="id", fileName = "file", mimeType = "type", url = Some("url"))
+      val attachment = FileMetadataMongo(id="id", fileName = "file", mimeType = "type")
+      val attachmentUpdated = FileMetadataMongo(id="id", fileName = "file", mimeType = "type", url = Some("url"))
       when(service.getById("id")).thenReturn(successful(Some(attachment)))
       when(service.notify(attachment, scanResult)).thenReturn(successful(Some(attachmentUpdated)))
 
@@ -102,8 +103,8 @@ class FileStoreControllerSpec extends UnitSpec with Matchers
 
   "Publish" should {
     "return 201 when found" in {
-      val attachmentExisting = FileMetadata(id="id", fileName = "file", mimeType = "type", scanStatus = Some(ScanStatus.READY))
-      val attachmentUpdated = FileMetadata(id="id", fileName = "file", mimeType = "type", scanStatus = Some(ScanStatus.READY), url = Some("url"))
+      val attachmentExisting = FileMetadataMongo(id="id", fileName = "file", mimeType = "type", scanStatus = Some(ScanStatus.READY))
+      val attachmentUpdated = FileMetadataMongo(id="id", fileName = "file", mimeType = "type", scanStatus = Some(ScanStatus.READY), url = Some("url"))
       when(service.getById("id")).thenReturn(successful(Some(attachmentExisting)))
       when(service.publish(attachmentExisting)).thenReturn(successful(attachmentUpdated))
 
@@ -114,22 +115,22 @@ class FileStoreControllerSpec extends UnitSpec with Matchers
     }
 
     "return 403 when invalid status" in {
-      val attachmentExisting = FileMetadata(id="id", fileName = "file", mimeType = "type", scanStatus = Some(ScanStatus.FAILED))
+      val attachmentExisting = FileMetadataMongo(id="id", fileName = "file", mimeType = "type", scanStatus = Some(ScanStatus.FAILED))
       when(service.getById("id")).thenReturn(successful(Some(attachmentExisting)))
 
       val result: Result = await(controller.publish("id")(fakeRequest))
 
-      verify(service, never()).publish(any[FileMetadata])
+      verify(service, never()).publish(any[FileMetadataMongo])
       status(result) shouldBe Status.FORBIDDEN
     }
 
     "return 403 when unscanned" in {
-      val attachmentExisting = FileMetadata(id="id", fileName = "file", mimeType = "type", scanStatus = None)
+      val attachmentExisting = FileMetadataMongo(id="id", fileName = "file", mimeType = "type", scanStatus = None)
       when(service.getById("id")).thenReturn(successful(Some(attachmentExisting)))
 
       val result: Result = await(controller.publish("id")(fakeRequest))
 
-      verify(service, never()).publish(any[FileMetadata])
+      verify(service, never()).publish(any[FileMetadataMongo])
       status(result) shouldBe Status.FORBIDDEN
     }
 
@@ -148,7 +149,7 @@ class FileStoreControllerSpec extends UnitSpec with Matchers
 
     "return 202 on valid file" in {
       // Given
-      val metadataUploaded = FileMetadata(id = "id", fileName = "name", mimeType = "text/plain")
+      val metadataUploaded = FileMetadataMongo(id = "id", fileName = "name", mimeType = "text/plain")
       when(service.upload(any[FileWithMetadata])(any[HeaderCarrier])).thenReturn(successful(metadataUploaded))
 
       // When=

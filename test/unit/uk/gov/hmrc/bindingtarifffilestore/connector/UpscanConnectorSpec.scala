@@ -28,7 +28,7 @@ import play.api.libs.Files.TemporaryFile
 import play.api.libs.ws.WSClient
 import uk.gov.hmrc.bindingtarifffilestore.config.AppConfig
 import uk.gov.hmrc.bindingtarifffilestore.model.upscan.{UploadRequestTemplate, UploadSettings, UpscanInitiateResponse}
-import uk.gov.hmrc.bindingtarifffilestore.model.{FileMetadata, FileWithMetadata}
+import uk.gov.hmrc.bindingtarifffilestore.model.{FileMetadataMongo, FileWithMetadata}
 import uk.gov.hmrc.bindingtarifffilestore.util.{ResourceFiles, WiremockTestServer}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.bootstrap.audit.DefaultAuditConnector
@@ -95,7 +95,7 @@ class UpscanConnectorSpec extends UnitSpec with WithFakeApplication with Wiremoc
       )
       val fileUploading = FileWithMetadata(
         TemporaryFile("example-file.json"),
-        FileMetadata("id", "file.txt", "text/plain")
+        FileMetadataMongo("id", "file.txt", "text/plain")
       )
 
       await(connector.upload(templateUploading, fileUploading))

@@ -21,5 +21,5 @@ import play.api.libs.Files.TemporaryFile
 case class FileWithMetadata
 (
   file: TemporaryFile,
-  metadata: FileMetadata
+  metadata: FileMetadataMongo
 )

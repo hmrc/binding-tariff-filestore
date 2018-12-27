@@ -25,7 +25,7 @@ class FileMetadataSpec extends UnitSpec {
 
   "File Meta Data" should {
 
-    val model = FileMetadata(
+    val model = FileMetadataMongo(
       id = "id",
       fileName = "fileName",
       mimeType = "type",
@@ -44,12 +44,12 @@ class FileMetadataSpec extends UnitSpec {
     )
 
     "Convert to JSON" in {
-      val value = Json.toJson(model)(FileMetadata.format)
+      val value = Json.toJson(model)(FileMetadataMongo.format)
       value.toString() shouldBe json.toString()
     }
 
     "Convert from JSON" in {
-      val value = Json.fromJson[FileMetadata](json)(FileMetadata.format).get
+      val value = Json.fromJson[FileMetadataMongo](json)(FileMetadataMongo.format).get
       value shouldBe model
     }
 

@@ -29,7 +29,8 @@ import reactivemongo.bson._
 import reactivemongo.core.errors.DatabaseException
 import reactivemongo.play.json.ImplicitBSONHandlers._
 import uk.gov.hmrc.bindingtarifffilestore.config.AppConfig
-import uk.gov.hmrc.bindingtarifffilestore.model.FileMetadata
+import uk.gov.hmrc.bindingtarifffilestore.model.FileMetadataMongo
+import uk.gov.hmrc.bindingtarifffilestore.model.FileMetadataMongo.format
 import uk.gov.hmrc.mongo.MongoSpecSupport
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -79,7 +80,7 @@ class FileMetadataRepositorySpec extends BaseMongoIndexSpec
 
       await(repository.insert(att1)) shouldBe att1
       collectionSize shouldBe 1 + size
-      await(repository.collection.find(selectorById(att1)).one[FileMetadata]) shouldBe Some(att1)
+      await(repository.collection.find(selectorById(att1)).one[FileMetadataMongo]) shouldBe Some(att1)
     }
 
     "fail to insert an existing document in the collection" in {
@@ -106,7 +107,7 @@ class FileMetadataRepositorySpec extends BaseMongoIndexSpec
       await(repository.update(updated)) shouldBe Some(updated)
       collectionSize shouldBe size
 
-      await(repository.collection.find(selectorById(updated)).one[FileMetadata]) shouldBe Some(updated)
+      await(repository.collection.find(selectorById(updated)).one[FileMetadataMongo]) shouldBe Some(updated)
     }
 
     "do nothing when trying to update a non existing document in the collection" in {
@@ -174,14 +175,14 @@ class FileMetadataRepositorySpec extends BaseMongoIndexSpec
     }
   }
 
-  private def generateAttachment = FileMetadata(
+  private def generateAttachment = FileMetadataMongo(
     fileName = generateString,
     mimeType = generateString
   )
 
   private def generateString = UUID.randomUUID().toString
 
-  private def selectorById(att: FileMetadata) = {
+  private def selectorById(att: FileMetadataMongo) = {
     BSONDocument("id" -> att.id)
   }
 

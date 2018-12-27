@@ -20,7 +20,7 @@ import javax.inject.{Inject, Singleton}
 import play.api.libs.Files
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc._
-import uk.gov.hmrc.bindingtarifffilestore.model.FileMetadata.format
+import uk.gov.hmrc.bindingtarifffilestore.model.FileMetadataREST.format
 import uk.gov.hmrc.bindingtarifffilestore.model.ScanStatus.ScanStatus
 import uk.gov.hmrc.bindingtarifffilestore.model._
 import uk.gov.hmrc.bindingtarifffilestore.model.upscan.ScanResult
@@ -42,7 +42,7 @@ class FileStoreController @Inject()(service: FileStoreService) extends BaseContr
     val attachment: Option[FileWithMetadata] = request.body.file("file").map { file =>
       FileWithMetadata(
         file.ref,
-        FileMetadata(
+        FileMetadataMongo(
           fileName = file.filename,
           mimeType = file.contentType.getOrElse(throw new RuntimeException("Missing file type"))
         )
@@ -55,17 +55,17 @@ class FileStoreController @Inject()(service: FileStoreService) extends BaseContr
   }
 
   def get(id: String): Action[AnyContent] = Action.async { implicit request =>
-    handleNotFound(id, (att: FileMetadata) => successful(Ok(Json.toJson(att))))
+    handleNotFound(id, (att: FileMetadataMongo) => successful(Ok(Json.toJson(att))))
   }
 
   def notification(id: String): Action[JsValue] = Action.async(parse.json) { implicit request =>
     withJsonBody[ScanResult] { scanResult =>
-      handleNotFound(id, (att: FileMetadata) => service.notify(att, scanResult).map(f => Created(Json.toJson(f))))
+      handleNotFound(id, (att: FileMetadataMongo) => service.notify(att, scanResult).map(f => Created(Json.toJson(f))))
     }
   }
 
   def publish(id: String): Action[AnyContent] = Action.async { implicit request =>
-    handleNotFound(id, (att: FileMetadata) =>
+    handleNotFound(id, (att: FileMetadataMongo) =>
       att.scanStatus match {
         case Some(ScanStatus.READY) => service.publish(att).map(f => Accepted(Json.toJson(f)))
         case Some(s: ScanStatus) => successful(Forbidden(JsErrorResponse (ErrorCode.FORBIDDEN, s"Can not publish file with status ${s.toString}") ) )
@@ -74,9 +74,9 @@ class FileStoreController @Inject()(service: FileStoreService) extends BaseContr
     )
   }
 
-  private def handleNotFound(id: String, result: FileMetadata => Future[Result]): Future[Result] = {
+  private def handleNotFound(id: String, result: FileMetadataMongo => Future[Result]): Future[Result] = {
     service.getById(id).flatMap {
-      case Some(att: FileMetadata) => result(att)
+      case Some(att: FileMetadataMongo) => result(att)
       case _ => successful(NotFound(JsErrorResponse(ErrorCode.NOT_FOUND, "File Not Found")))
     }
   }

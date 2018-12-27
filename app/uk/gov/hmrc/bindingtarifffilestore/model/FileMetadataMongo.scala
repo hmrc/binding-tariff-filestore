@@ -22,7 +22,7 @@ import java.util.UUID
 import play.api.libs.json._
 import uk.gov.hmrc.bindingtarifffilestore.model.ScanStatus._
 
-case class FileMetadata
+case class FileMetadataMongo
 (
   id: String = UUID.randomUUID().toString,
   fileName: String,
@@ -32,8 +32,11 @@ case class FileMetadata
   lastUpdated: Instant = Instant.now()
 )
 
-object FileMetadata {
+object FileMetadataREST {
+  implicit val format: OFormat[FileMetadataMongo] = Json.format[FileMetadataMongo]
+}
 
+object FileMetadataMongo {
   implicit val instantFormat: OFormat[Instant] = new OFormat[Instant] {
     override def writes(instant: Instant): JsObject = {
       Json.obj("$date" -> instant.toEpochMilli)
@@ -51,5 +54,5 @@ object FileMetadata {
     }
   }
 
-  implicit val format: OFormat[FileMetadata] = Json.format[FileMetadata]
+  implicit val format: OFormat[FileMetadataMongo] = Json.format[FileMetadataMongo]
 }

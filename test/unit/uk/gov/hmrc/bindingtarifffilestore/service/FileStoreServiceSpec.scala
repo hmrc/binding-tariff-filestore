@@ -25,7 +25,7 @@ import play.api.libs.Files.TemporaryFile
 import uk.gov.hmrc.bindingtarifffilestore.config.AppConfig
 import uk.gov.hmrc.bindingtarifffilestore.connector.{AmazonS3Connector, UpscanConnector}
 import uk.gov.hmrc.bindingtarifffilestore.model.upscan._
-import uk.gov.hmrc.bindingtarifffilestore.model.{FileMetadata, FileWithMetadata, ScanStatus}
+import uk.gov.hmrc.bindingtarifffilestore.model.{FileMetadataMongo, FileWithMetadata, ScanStatus}
 import uk.gov.hmrc.bindingtarifffilestore.repository.FileMetadataRepository
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.test.UnitSpec
@@ -49,7 +49,7 @@ class FileStoreServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfte
 
   "Service 'get by id'" should {
     "Delegate to Connector" in {
-      val attachment = mock[FileMetadata]
+      val attachment = mock[FileMetadataMongo]
       given(repository.get("id")).willReturn(successful(Some(attachment)))
 
       await(service.getById("id")) shouldBe Some(attachment)
@@ -59,9 +59,9 @@ class FileStoreServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfte
   "Service 'upload'" should {
     "Delegate to Connector" in {
       val file = mock[TemporaryFile]
-      val fileMetadata = FileMetadata(id = "id", fileName = "file", mimeType = "text/plain")
+      val fileMetadata = FileMetadataMongo(id = "id", fileName = "file", mimeType = "text/plain")
       val fileWithMetadata = FileWithMetadata(file, fileMetadata)
-      val fileMetaDataCreated = mock[FileMetadata]
+      val fileMetaDataCreated = mock[FileMetadataMongo]
       val uploadTemplate = mock[UploadRequestTemplate]
       val initiateResponse = UpscanInitiateResponse("ref", uploadTemplate)
       given(repository.insert(fileMetadata)).willReturn(successful(fileMetaDataCreated))
@@ -72,8 +72,8 @@ class FileStoreServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfte
   }
 
   "Service 'notify'" should {
-    val attachment = FileMetadata(fileName = "file", mimeType = "type")
-    val attachmentUpdated = mock[FileMetadata]
+    val attachment = FileMetadataMongo(fileName = "file", mimeType = "type")
+    val attachmentUpdated = mock[FileMetadataMongo]
 
     "Update the attachment for Successful Scan and Delegate to Connector" in {
       val scanResult = SuccessfulScanResult("ref", "url", mock[UploadDetails])
@@ -98,9 +98,9 @@ class FileStoreServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfte
   "Service 'publish'" should {
 
     "Delegate to the File Store" in {
-      val fileUploading = mock[FileMetadata]
-      val fileUploaded = mock[FileMetadata]
-      val fileUpdated = mock[FileMetadata]
+      val fileUploading = mock[FileMetadataMongo]
+      val fileUploaded = mock[FileMetadataMongo]
+      val fileUpdated = mock[FileMetadataMongo]
       given(s3Connector.upload(fileUploading)).willReturn(fileUploaded)
       given(repository.update(fileUploaded)).willReturn(successful(Some(fileUpdated)))
 

@@ -24,7 +24,7 @@ import org.scalatest.mockito.MockitoSugar
 import play.api.http.Status
 import play.api.libs.Files.TemporaryFile
 import uk.gov.hmrc.bindingtarifffilestore.config.{AppConfig, S3Configuration}
-import uk.gov.hmrc.bindingtarifffilestore.model.FileMetadata
+import uk.gov.hmrc.bindingtarifffilestore.model.FileMetadataMongo
 import uk.gov.hmrc.bindingtarifffilestore.util.{ResourceFiles, WiremockTestServer}
 import uk.gov.hmrc.play.test.UnitSpec
 
@@ -56,7 +56,7 @@ class AmazonS3ConnectorSpec extends UnitSpec with WiremockTestServer
       )
 
       // When
-      val all: Seq[FileMetadata] = connector.getAll
+      val all: Seq[FileMetadataMongo] = connector.getAll
 
       // Then
       all should have size 1
@@ -80,7 +80,7 @@ class AmazonS3ConnectorSpec extends UnitSpec with WiremockTestServer
       )
 
       val url = TemporaryFile("example.txt").file.toURI.toURL.toString
-      val fileUploading = FileMetadata("id", "file.txt", "text/plain", Some(url))
+      val fileUploading = FileMetadataMongo("id", "file.txt", "text/plain", Some(url))
 
       // Then
       val result = connector.upload(fileUploading)
@@ -92,7 +92,7 @@ class AmazonS3ConnectorSpec extends UnitSpec with WiremockTestServer
 
     "Throw Exception on missing URL" in {
       // Given
-      val fileUploading = FileMetadata("id", "file.txt", "text/plain")
+      val fileUploading = FileMetadataMongo("id", "file.txt", "text/plain")
 
       // Then
       val exception = intercept[IllegalArgumentException] {
