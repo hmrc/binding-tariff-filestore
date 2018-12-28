@@ -70,7 +70,7 @@ class UpscanConnector @Inject()(appConfig: AppConfig, http: HttpClient, ws: WSCl
     )
 
     ws.url(template.href)
-      .post(Source(filePart :: dataParts))
+      .post(Source(dataParts :+ filePart))
       .map {
         case response: WSResponse if response.status == HttpStatus.SC_OK =>
           Logger.info(s"Uploaded file [${fileWithMetaData.metadata.id}] successfully to Upscan Bucket [${template.href}]")
