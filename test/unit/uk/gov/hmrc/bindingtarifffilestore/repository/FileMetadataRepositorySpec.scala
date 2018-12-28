@@ -155,7 +155,7 @@ class FileMetadataRepositorySpec extends BaseMongoIndexSpec
       import scala.concurrent.duration._
 
       val expectedIndexes = List(
-        Index(key = Seq("id" -> Ascending), name = Some("id_Index"), unique = true, background = true),
+        Index(key = Seq("id" -> Ascending), name = Some("id_Index"), unique = true),
         Index(key = Seq("_id" -> Ascending), name = Some("_id_")),
         Index(
           key = Seq("lastUpdated" -> IndexType.Ascending),

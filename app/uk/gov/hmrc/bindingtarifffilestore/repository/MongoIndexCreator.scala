@@ -37,7 +37,7 @@ object MongoIndexCreator {
   def createCompoundIndex(indexFieldMappings: Seq[(String, IndexType)],
                           isUnique: Boolean,
                           name: Option[String] = None,
-                          isBackground: Boolean = true,
+                          isBackground: Boolean = false,
                           options: BSONDocument): Index = {
 
     Index(
@@ -54,7 +54,6 @@ object MongoIndexCreator {
       indexFieldMappings = Seq(("lastUpdated", IndexType.Ascending)),
       isUnique = false,
       name = Some("expiry_Index"),
-      isBackground = false,
       options = bson.BSONDocument("expireAfterSeconds" -> ttl)
     )
   }
