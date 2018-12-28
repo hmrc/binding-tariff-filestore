@@ -18,7 +18,6 @@ package uk.gov.hmrc.bindingtarifffilestore.connector
 
 import akka.actor.ActorSystem
 import com.github.tomakehurst.wiremock.client.WireMock._
-import com.github.tomakehurst.wiremock.matching.ContainsPattern
 import org.mockito.BDDMockito.given
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.mockito.MockitoSugar
@@ -83,7 +82,7 @@ class UpscanConnectorSpec extends UnitSpec with WithFakeApplication with Wiremoc
         post("/path")
           .willReturn(
             aResponse()
-              .withStatus(Status.OK)
+              .withStatus(Status.NO_CONTENT)
           )
       )
 
@@ -99,11 +98,32 @@ class UpscanConnectorSpec extends UnitSpec with WithFakeApplication with Wiremoc
       )
 
       await(connector.upload(templateUploading, fileUploading))
-      verify(
-        postRequestedFor(urlEqualTo("/path"))
-          .withRequestBody(new ContainsPattern("Content-Disposition: form-data"))
-          .withRequestBody(new ContainsPattern("Content-Type: text/plain"))
+    }
+
+    "Upload with error handling" in {
+      stubFor(
+        post("/path")
+          .willReturn(
+            aResponse()
+              .withStatus(Status.BAD_GATEWAY)
+              .withBody("content")
+          )
       )
+
+      val templateUploading = UploadRequestTemplate(
+        href = s"$wireMockUrl/path",
+        fields = Map(
+          "key" -> "value"
+        )
+      )
+      val fileUploading = FileWithMetadata(
+        TemporaryFile("example-file.json"),
+        FileMetadata("id", "file.txt", "text/plain")
+      )
+
+      intercept[RuntimeException] {
+        await(connector.upload(templateUploading, fileUploading))
+      }.getMessage shouldBe "Bad AWS response for file [id] with status [502] body [content]"
     }
   }
 
