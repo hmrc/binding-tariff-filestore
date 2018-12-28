@@ -20,6 +20,7 @@ import akka.stream.IOResult
 import akka.stream.scaladsl.{FileIO, Source}
 import akka.util.ByteString
 import javax.inject.{Inject, Singleton}
+import org.apache.http.HttpStatus
 import play.api.Logger
 import play.api.libs.ws.{WSClient, WSResponse}
 import play.api.mvc.MultipartFormData
@@ -70,9 +71,11 @@ class UpscanConnector @Inject()(appConfig: AppConfig, http: HttpClient, ws: WSCl
 
     ws.url(template.href)
       .post(Source(filePart :: dataParts))
-      .map { response: WSResponse =>
-        Logger.info(s"AWS responded for file [${fileWithMetaData.metadata.id}] with status [${response.status}] body [${response.body}]")
-        Logger.info(s"Uploaded file [${fileWithMetaData.metadata.id}] successfully to Upscan Bucket [${template.href}]")
+      .map {
+        case response: WSResponse if response.status == HttpStatus.SC_OK =>
+          Logger.info(s"Uploaded file [${fileWithMetaData.metadata.id}] successfully to Upscan Bucket [${template.href}]")
+        case response: WSResponse =>
+          Logger.info(s"Bad AWS response for file [${fileWithMetaData.metadata.id}] with status [${response.status}] body [${response.body}]")
       }
   }
 
