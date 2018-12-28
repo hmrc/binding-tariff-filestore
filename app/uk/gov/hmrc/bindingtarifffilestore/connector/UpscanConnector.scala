@@ -45,22 +45,9 @@ class UpscanConnector @Inject()(appConfig: AppConfig, http: HttpClient, ws: WSCl
   def upload(template: UploadRequestTemplate, fileWithMetaData: FileWithMetadata)
             (implicit headerCarrier: HeaderCarrier): Future[Unit] = {
     Logger.info(s"Uploading file [${fileWithMetaData.metadata.id}] with template [$template]")
-    val dataParts: List[DataPart] = List(
-      DataPart("x-amz-meta-callback-url", template.fields("x-amz-meta-callback-url")),
-      DataPart("x-amz-date", template.fields("x-amz-date")),
-      DataPart("x-amz-credential", template.fields("x-amz-credential")),
-      DataPart("x-amz-meta-original-filename", template.fields("x-amz-meta-original-filename")),
-      DataPart("x-amz-algorithm", template.fields("x-amz-algorithm")),
-      DataPart("key", template.fields("key")),
-      DataPart("acl", template.fields("acl")),
-      DataPart("x-amz-signature", template.fields("x-amz-signature")),
-      DataPart("x-amz-meta-session-id", template.fields("x-amz-meta-session-id")),
-      DataPart("x-amz-meta-request-id", template.fields("x-amz-meta-request-id")),
-      DataPart("x-amz-meta-consuming-service", template.fields("x-amz-meta-consuming-service")),
-      DataPart("x-amz-meta-upscan-initiate-received", template.fields("x-amz-meta-upscan-initiate-received")),
-      DataPart("x-amz-meta-upscan-initiate-response", template.fields("x-amz-meta-upscan-initiate-response")),
-      DataPart("policy", template.fields("policy"))
-    )
+    val dataParts: List[DataPart] = template.fields.map {
+      case (key, value) => DataPart(key, value)
+    }.toList
 
     val filePart: MultipartFormData.Part[Source[ByteString, Future[IOResult]]] = FilePart(
       "file",

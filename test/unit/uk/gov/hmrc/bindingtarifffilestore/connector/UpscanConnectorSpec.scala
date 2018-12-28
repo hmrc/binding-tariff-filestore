@@ -90,20 +90,7 @@ class UpscanConnectorSpec extends UnitSpec with WithFakeApplication with Wiremoc
       val templateUploading = UploadRequestTemplate(
         href = s"$wireMockUrl/path",
         fields = Map(
-          "x-amz-meta-callback-url" -> "x-amz-meta-callback-url",
-          "x-amz-date" -> "x-amz-date",
-          "x-amz-credential" -> "x-amz-credential",
-          "x-amz-meta-original-filename" -> "x-amz-meta-original-filename",
-          "x-amz-algorithm" -> "x-amz-algorithm",
-          "key" -> "key",
-          "acl" -> "acl",
-          "x-amz-signature" -> "x-amz-signature",
-          "x-amz-meta-session-id" -> "x-amz-meta-session-id",
-          "x-amz-meta-request-id" -> "x-amz-meta-request-id",
-          "x-amz-meta-consuming-service" -> "x-amz-meta-consuming-service",
-          "x-amz-meta-upscan-initiate-received" -> "x-amz-meta-upscan-initiate-received",
-          "x-amz-meta-upscan-initiate-response" -> "x-amz-meta-upscan-initiate-response",
-          "policy" -> "policy"
+          "key" -> "value"
         )
       )
       val fileUploading = FileWithMetadata(
@@ -114,28 +101,10 @@ class UpscanConnectorSpec extends UnitSpec with WithFakeApplication with Wiremoc
       await(connector.upload(templateUploading, fileUploading))
       verify(
         postRequestedFor(urlEqualTo("/path"))
-          .withRequestBody(containing("x-amz-meta-callback-url"))
-          .withRequestBody(containing("x-amz-date"))
-          .withRequestBody(containing("x-amz-credential"))
-          .withRequestBody(containing("x-amz-meta-original-filename"))
-          .withRequestBody(containing("x-amz-algorithm"))
-          .withRequestBody(containing("key"))
-          .withRequestBody(containing("acl"))
-          .withRequestBody(containing("x-amz-signature"))
-          .withRequestBody(containing("x-amz-meta-session-id"))
-          .withRequestBody(containing("x-amz-meta-request-id"))
-          .withRequestBody(containing("x-amz-meta-consuming-service"))
-          .withRequestBody(containing("x-amz-meta-upscan-initiate-received"))
-          .withRequestBody(containing("x-amz-meta-upscan-initiate-response"))
-          .withRequestBody(containing("policy"))
-          .withRequestBody(containing("Content-Disposition: form-data"))
-          .withRequestBody(containing("Content-Type: text/plain"))
+          .withRequestBody(new ContainsPattern("Content-Disposition: form-data"))
+          .withRequestBody(new ContainsPattern("Content-Type: text/plain"))
       )
     }
-  }
-
-  private def containing(string: String): ContainsPattern = {
-    new ContainsPattern(string)
   }
 
 }

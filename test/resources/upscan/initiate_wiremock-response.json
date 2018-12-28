@@ -3,20 +3,7 @@
   "uploadRequest": {
     "href": "http://localhost:20001/upscan/upload",
     "fields": {
-      "x-amz-meta-callback-url": "x-amz-meta-callback-url",
-      "x-amz-date": "x-amz-date",
-      "x-amz-credential": "x-amz-credential",
-      "x-amz-meta-original-filename": "x-amz-meta-original-filename",
-      "x-amz-algorithm": "x-amz-algorithm",
-      "key": "key",
-      "acl": "acl",
-      "x-amz-signature": "x-amz-signature",
-      "x-amz-meta-session-id": "x-amz-meta-session-id",
-      "x-amz-meta-request-id": "x-amz-meta-request-id",
-      "x-amz-meta-consuming-service": "x-amz-meta-consuming-service",
-      "x-amz-meta-upscan-initiate-received": "x-amz-meta-upscan-initiate-received",
-      "x-amz-meta-upscan-initiate-response": "x-amz-meta-upscan-initiate-response",
-      "policy": "policy"
+      "key": "value"
     }
   }
 }
