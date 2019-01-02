@@ -44,11 +44,9 @@ class UpscanConnector @Inject()(appConfig: AppConfig, http: HttpClient, ws: WSCl
   def upload(template: UploadRequestTemplate, fileWithMetaData: FileWithMetadata)
             (implicit headerCarrier: HeaderCarrier): Future[Unit] = {
     Logger.info(s"Uploading file [${fileWithMetaData.metadata.id}] with template [$template]")
-
-    val contentLength = DataPart("Content-Length", s"${fileWithMetaData.file.file.length()}")
     val dataParts: List[DataPart] = template.fields.map {
       case (key, value) => DataPart(key, value)
-    }.toList.::(contentLength)
+    }.toList
 
     val filePart: MultipartFormData.Part[Source[ByteString, Future[IOResult]]] = FilePart(
       "file",
@@ -58,6 +56,7 @@ class UpscanConnector @Inject()(appConfig: AppConfig, http: HttpClient, ws: WSCl
     )
 
     ws.url(template.href)
+      .withHeaders("Content-Length" -> s"${fileWithMetaData.file.file.length()}")
       .post(Source(dataParts :+ filePart))
       .map {
         case response: WSResponse if response.status >= 200 && response.status < 300 =>
