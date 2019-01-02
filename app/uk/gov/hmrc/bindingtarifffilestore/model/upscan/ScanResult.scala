@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 HM Revenue & Customs
+ * Copyright 2019 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,8 +20,7 @@ import java.time.Instant
 
 import play.api.libs.json._
 import uk.gov.hmrc.bindingtarifffilestore.model
-import uk.gov.hmrc.bindingtarifffilestore.model.ScanStatus.{FAILED, READY}
-import uk.gov.hmrc.bindingtarifffilestore.model.ScanStatus.ScanStatus
+import uk.gov.hmrc.bindingtarifffilestore.model.ScanStatus.{FAILED, READY, ScanStatus}
 import uk.gov.hmrc.bindingtarifffilestore.model.upscan.FailureReason.FailureReason
 import uk.gov.hmrc.play.json.Union
 

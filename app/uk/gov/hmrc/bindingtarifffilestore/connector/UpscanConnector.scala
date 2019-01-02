@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 HM Revenue & Customs
+ * Copyright 2019 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -44,9 +44,11 @@ class UpscanConnector @Inject()(appConfig: AppConfig, http: HttpClient, ws: WSCl
   def upload(template: UploadRequestTemplate, fileWithMetaData: FileWithMetadata)
             (implicit headerCarrier: HeaderCarrier): Future[Unit] = {
     Logger.info(s"Uploading file [${fileWithMetaData.metadata.id}] with template [$template]")
+
+    val contentLength = DataPart("Content-Length", s"${fileWithMetaData.file.file.length()}")
     val dataParts: List[DataPart] = template.fields.map {
       case (key, value) => DataPart(key, value)
-    }.toList
+    }.toList.::(contentLength)
 
     val filePart: MultipartFormData.Part[Source[ByteString, Future[IOResult]]] = FilePart(
       "file",
