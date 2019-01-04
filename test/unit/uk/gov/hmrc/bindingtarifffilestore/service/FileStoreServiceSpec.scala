@@ -18,7 +18,7 @@ package uk.gov.hmrc.bindingtarifffilestore.service
 
 import org.mockito.ArgumentMatchers.any
 import org.mockito.BDDMockito.given
-import org.mockito.Mockito.reset
+import org.mockito.Mockito.{never, reset, verify}
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.mockito.MockitoSugar
 import play.api.libs.Files.TemporaryFile
@@ -42,17 +42,29 @@ class FileStoreServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfte
 
   val service = new FileStoreService(config, s3Connector, repository, upscanConnector)
 
-  override protected def beforeEach(): Unit = {
-    super.beforeEach()
-    reset(repository)
+  override protected def afterEach(): Unit = {
+    super.afterEach()
+    reset(repository, s3Connector)
   }
 
   "Service 'get by id'" should {
     "Delegate to Connector" in {
       val attachment = mock[FileMetadata]
+      val attachmentSigned = mock[FileMetadata]
+      given(attachment.published).willReturn(true)
+      given(repository.get("id")).willReturn(successful(Some(attachment)))
+      given(s3Connector.sign(attachment)).willReturn(attachmentSigned)
+
+      await(service.getById("id")) shouldBe Some(attachmentSigned)
+    }
+
+    "Not sign unpublished files" in {
+      val attachment = mock[FileMetadata]
       given(repository.get("id")).willReturn(successful(Some(attachment)))
 
       await(service.getById("id")) shouldBe Some(attachment)
+
+      verify(s3Connector, never()).sign(any[FileMetadata])
     }
   }
 
@@ -100,11 +112,15 @@ class FileStoreServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfte
     "Delegate to the File Store" in {
       val fileUploading = mock[FileMetadata]
       val fileUploaded = mock[FileMetadata]
+      val fileUpdating = mock[FileMetadata]
       val fileUpdated = mock[FileMetadata]
+      val fileSigned = mock[FileMetadata]
+      given(fileUploaded.copy(published = true)).willReturn(fileUpdating)
       given(s3Connector.upload(fileUploading)).willReturn(fileUploaded)
-      given(repository.update(fileUploaded)).willReturn(successful(Some(fileUpdated)))
+      given(repository.update(any[FileMetadata])).willReturn(successful(Some(fileUpdated)))
+      given(s3Connector.sign(fileUpdated)).willReturn(fileSigned)
 
-      await(service.publish(fileUploading)) shouldBe fileUpdated
+      await(service.publish(fileUploading)) shouldBe fileSigned
     }
   }
 

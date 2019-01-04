@@ -29,6 +29,7 @@ case class FileMetadata
   mimeType: String,
   url: Option[String] = None,
   scanStatus: Option[ScanStatus] = None,
+  published: Boolean = false,
   lastUpdated: Instant = Instant.now()
 )
 

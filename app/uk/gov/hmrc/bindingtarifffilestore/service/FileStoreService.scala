@@ -47,13 +47,13 @@ class FileStoreService @Inject()(appConfig: AppConfig,
     upscanConnector.initiate(settings).flatMap { response =>
       Logger.info(s"Upscan-Initiated file [${fileWithMetadata.metadata.id}] with Upscan reference [${response.reference}]")
       upscanConnector.upload(response.uploadRequest, fileWithMetadata)
-    } recover {case t => Logger.error("Upscan error", t)}
+    } recover { case t => Logger.error("Upscan error", t) }
 
     repository.insert(fileWithMetadata.metadata)
   }
 
   def getById(id: String): Future[Option[FileMetadata]] = {
-    repository.get(id)
+    repository.get(id).map(signingURLIfPublished)
   }
 
   def notify(attachment: FileMetadata, scanResult: ScanResult): Future[Option[FileMetadata]] = {
@@ -65,13 +65,24 @@ class FileStoreService @Inject()(appConfig: AppConfig,
         attachment.copy(url = Some(result.downloadUrl), scanStatus = Some(READY))
     }
 
-    repository.update(updated)
+    repository.update(updated).map(signingURLIfPublished)
   }
 
   def publish(att: FileMetadata): Future[FileMetadata] = {
     Logger.info(s"Publishing file [${att.id}]")
     val metadata = fileStoreConnector.upload(att)
-    repository.update(metadata).map(_.get)
+    repository.update(metadata.copy(published = true))
+      .map(signingURL)
+      .map(_.get)
+  }
+
+  private def signingURLIfPublished: Option[FileMetadata] => Option[FileMetadata] = metadata =>
+    metadata.filter(_.published)
+      .map(fileStoreConnector.sign)
+      .orElse(metadata)
+
+  private def signingURL: Option[FileMetadata] => Option[FileMetadata] = _.map { metadata =>
+    fileStoreConnector.sign(metadata)
   }
 
 }

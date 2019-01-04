@@ -18,7 +18,7 @@ package uk.gov.hmrc.bindingtarifffilestore.model
 
 import java.time.Instant
 
-import play.api.libs.json.{JsNumber, JsObject, JsString, Json}
+import play.api.libs.json._
 import uk.gov.hmrc.play.test.UnitSpec
 
 class FileMetadataSpec extends UnitSpec {
@@ -30,6 +30,7 @@ class FileMetadataSpec extends UnitSpec {
       fileName = "fileName",
       mimeType = "type",
       url = Some("url"),
+      published = true,
       scanStatus = Some(ScanStatus.READY),
       lastUpdated = Instant.EPOCH
     )
@@ -40,6 +41,7 @@ class FileMetadataSpec extends UnitSpec {
       "mimeType" -> JsString("type"),
       "url" -> JsString("url"),
       "scanStatus" -> JsString("READY"),
+      "published" -> JsBoolean(true),
       "lastUpdated" -> Json.obj("$date" -> JsNumber(0))
     )
 
@@ -49,6 +51,7 @@ class FileMetadataSpec extends UnitSpec {
       "mimeType" -> JsString("type"),
       "url" -> JsString("url"),
       "scanStatus" -> JsString("READY"),
+      "published" -> JsBoolean(true),
       "lastUpdated" -> JsString("1970-01-01T00:00:00Z")
     )
 
