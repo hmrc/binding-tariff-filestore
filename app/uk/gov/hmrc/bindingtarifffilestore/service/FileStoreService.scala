@@ -65,7 +65,7 @@ class FileStoreService @Inject()(appConfig: AppConfig,
         attachment.copy(url = Some(result.downloadUrl), scanStatus = Some(READY))
     }
 
-    repository.update(updated).map(signingURLIfPublished)
+    repository.update(updated)
   }
 
   def publish(att: FileMetadata): Future[FileMetadata] = {

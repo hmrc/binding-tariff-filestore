@@ -34,7 +34,22 @@ case class FileMetadata
 )
 
 object FileMetadataREST {
-  implicit val format: OFormat[FileMetadata] = Json.format[FileMetadata]
+  val writes: OWrites[FileMetadata] = new OWrites[FileMetadata] {
+    override def writes(o: FileMetadata): JsObject = {
+      JsObject(
+        Map[String, JsValue](
+          "id" -> JsString(o.id),
+          "fileName" -> JsString(o.fileName),
+          "mimeType" -> JsString(o.mimeType),
+          "published" -> JsBoolean(o.published),
+          "lastUpdated" -> JsString(o.lastUpdated.toString)
+        )
+        ++ o.scanStatus.map("scanStatus" -> Json.toJson(_))
+        ++ o.url.filter(_ => o.scanStatus.contains(READY)).map("url" -> JsString(_))
+      )
+    }
+  }
+  implicit val format: OFormat[FileMetadata] = OFormat(Json.reads[FileMetadata], writes)
 }
 
 object FileMetadataMongo {
