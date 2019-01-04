@@ -48,7 +48,7 @@ class UpscanConnectorSpec extends UnitSpec with WithFakeApplication with Wiremoc
 
   private implicit val headers: HeaderCarrier = HeaderCarrier()
 
-  private val connector = new UpscanConnector(config, hmrcWsClient, wsClient)
+  private val connector = new UpscanConnector(config, hmrcWsClient)
 
   override protected def beforeEach(): Unit = {
     super.beforeEach()

@@ -16,14 +16,14 @@
 
 package uk.gov.hmrc.bindingtarifffilestore.connector
 
-import akka.stream.IOResult
-import akka.stream.scaladsl.{FileIO, Source}
-import akka.util.ByteString
 import javax.inject.{Inject, Singleton}
+import org.apache.http.client.methods.{CloseableHttpResponse, HttpPost}
+import org.apache.http.entity.ContentType
+import org.apache.http.entity.mime.MultipartEntityBuilder
+import org.apache.http.entity.mime.content.{FileBody, StringBody}
+import org.apache.http.impl.client.HttpClientBuilder
+import org.apache.http.util.EntityUtils
 import play.api.Logger
-import play.api.libs.ws.{WSClient, WSResponse}
-import play.api.mvc.MultipartFormData
-import play.api.mvc.MultipartFormData.{DataPart, FilePart}
 import uk.gov.hmrc.bindingtarifffilestore.config.AppConfig
 import uk.gov.hmrc.bindingtarifffilestore.model.FileWithMetadata
 import uk.gov.hmrc.bindingtarifffilestore.model.upscan.{UploadRequestTemplate, UploadSettings, UpscanInitiateResponse}
@@ -33,7 +33,7 @@ import uk.gov.hmrc.play.bootstrap.http.HttpClient
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class UpscanConnector @Inject()(appConfig: AppConfig, http: HttpClient, ws: WSClient)(
+class UpscanConnector @Inject()(appConfig: AppConfig, http: HttpClient)(
   implicit executionContext: ExecutionContext) {
 
   def initiate(uploadSettings: UploadSettings)
@@ -44,26 +44,28 @@ class UpscanConnector @Inject()(appConfig: AppConfig, http: HttpClient, ws: WSCl
   def upload(template: UploadRequestTemplate, fileWithMetaData: FileWithMetadata)
             (implicit headerCarrier: HeaderCarrier): Future[Unit] = {
     Logger.info(s"Uploading file [${fileWithMetaData.metadata.id}] with template [$template]")
-    val dataParts: List[DataPart] = template.fields.map {
-      case (key, value) => DataPart(key, value)
-    }.toList
 
-    val filePart: MultipartFormData.Part[Source[ByteString, Future[IOResult]]] = FilePart(
-      "file",
-      fileWithMetaData.metadata.fileName,
-      Some(fileWithMetaData.metadata.mimeType),
-      FileIO.fromPath(fileWithMetaData.file.file.toPath)
-    )
+    val builder: MultipartEntityBuilder = MultipartEntityBuilder.create
 
-    ws.url(template.href)
-      .withHeaders("Content-Length" -> s"${fileWithMetaData.file.file.length()}")
-      .post(Source(dataParts :+ filePart))
-      .map {
-        case response: WSResponse if response.status >= 200 && response.status < 300 =>
-          Logger.info(s"Uploaded file [${fileWithMetaData.metadata.id}] successfully to Upscan Bucket [${template.href}]")
-        case response: WSResponse =>
-          throw new RuntimeException(s"Bad AWS response for file [${fileWithMetaData.metadata.id}] with status [${response.status}] body [${response.body}]")
-      }
+    template.fields.foreach(entry => builder.addPart(entry._1, new StringBody(entry._2, ContentType.TEXT_PLAIN)))
+    builder.addPart("file", new FileBody(fileWithMetaData.file.file))
+
+    val request: HttpPost = new HttpPost(template.href)
+    request.setEntity(builder.build())
+
+    val client = HttpClientBuilder.create.build
+    val response: CloseableHttpResponse = client.execute(request)
+    val code = response.getStatusLine.getStatusCode
+    if(code >= 200 && code < 300) {
+      Logger.info(s"Uploaded file [${fileWithMetaData.metadata.id}] successfully to Upscan Bucket [${template.href}]")
+      Future.successful(() : Unit)
+    } else {
+      Future.failed(
+        new RuntimeException(
+          s"Bad AWS response for file [${fileWithMetaData.metadata.id}] with status [$code] body [${EntityUtils.toString(response.getEntity)}]"
+        )
+      )
+    }
   }
 
 }
