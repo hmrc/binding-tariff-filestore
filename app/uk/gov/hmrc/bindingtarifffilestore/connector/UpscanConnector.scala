@@ -17,7 +17,7 @@
 package uk.gov.hmrc.bindingtarifffilestore.connector
 
 import javax.inject.{Inject, Singleton}
-import org.apache.http.client.methods.{CloseableHttpResponse, HttpPost}
+import org.apache.http.client.methods.HttpPost
 import org.apache.http.entity.ContentType
 import org.apache.http.entity.mime.MultipartEntityBuilder
 import org.apache.http.entity.mime.content.{FileBody, StringBody}
@@ -31,6 +31,7 @@ import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.bootstrap.http.HttpClient
 
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.Try
 
 @Singleton
 class UpscanConnector @Inject()(appConfig: AppConfig, http: HttpClient)(
@@ -54,18 +55,21 @@ class UpscanConnector @Inject()(appConfig: AppConfig, http: HttpClient)(
     request.setEntity(builder.build())
 
     val client = HttpClientBuilder.create.build
-    val response: CloseableHttpResponse = client.execute(request)
-    val code = response.getStatusLine.getStatusCode
-    if(code >= 200 && code < 300) {
-      Logger.info(s"Uploaded file [${fileWithMetaData.metadata.id}] successfully to Upscan Bucket [${template.href}]")
-      Future.successful(() : Unit)
-    } else {
-      Future.failed(
-        new RuntimeException(
-          s"Bad AWS response for file [${fileWithMetaData.metadata.id}] with status [$code] body [${EntityUtils.toString(response.getEntity)}]"
+    val attempt = Try(client.execute(request)).map { response =>
+      val code = response.getStatusLine.getStatusCode
+      if(code >= 200 && code < 300) {
+        Logger.info(s"Uploaded file [${fileWithMetaData.metadata.id}] successfully to Upscan Bucket [${template.href}]")
+        Future.successful(() : Unit)
+      } else {
+        Future.failed(
+          new RuntimeException(
+            s"Bad AWS response for file [${fileWithMetaData.metadata.id}] with status [$code] body [${EntityUtils.toString(response.getEntity)}]"
+          )
         )
-      )
+      }
     }
+    client.close()
+    attempt.get
   }
 
 }
