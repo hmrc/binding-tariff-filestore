@@ -20,6 +20,7 @@ import uk.gov.hmrc.bindingtarifffilestore.util.EnumJson
 
 object ScanStatus extends Enumeration {
   type ScanStatus = Value
+
   val READY, FAILED = Value
 
   implicit val format = EnumJson.format(ScanStatus)

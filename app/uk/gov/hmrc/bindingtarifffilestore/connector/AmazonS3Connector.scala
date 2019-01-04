@@ -83,7 +83,7 @@ class AmazonS3Connector @Inject()(config: AppConfig) {
   }
 
   def sign(fileMetaData: FileMetadata): FileMetadata = {
-    if(fileMetaData.url.isDefined) {
+    if (fileMetaData.url.isDefined) {
       val authenticatedURLRequest = new GeneratePresignedUrlRequest(config.s3Configuration.bucket, fileMetaData.id)
         .withMethod(HttpMethod.GET)
       val authenticatedURL: URL = s3client.generatePresignedUrl(authenticatedURLRequest)

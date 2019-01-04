@@ -20,6 +20,7 @@ import play.api.libs.json.Json.JsValueWrapper
 import play.api.libs.json.{JsObject, Json}
 
 object JsErrorResponse {
+
   def apply(errorCode: ErrorCode.Value, message: JsValueWrapper): JsObject =
     Json.obj(
       "code" -> errorCode.toString,
