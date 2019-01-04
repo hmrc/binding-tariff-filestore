@@ -69,9 +69,8 @@ class AppConfigSpec extends UnitSpec with GuiceOneAppPerSuite {
 
     "return AWS S3 default base URL" in {
       s3ConfigWith(
-        "s3.region" -> "region",
-        "s3.bucket" -> "bucket"
-      ).baseUrl shouldBe "https://s3-region.amazonaws.com/bucket"
+        "s3.region" -> "region"
+      ).baseUrl shouldBe "https://s3-region.amazonaws.com"
     }
 
     "return application Host" in {

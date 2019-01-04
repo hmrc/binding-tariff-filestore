@@ -87,7 +87,7 @@ class AmazonS3ConnectorSpec extends UnitSpec with WiremockTestServer
       result.id shouldBe "id"
       result.fileName shouldBe "file.txt"
       result.mimeType shouldBe "text/plain"
-      result.url.get should startWith(s"$wireMockUrl/bucket/id?X-Amz-Algorithm=AWS4-HMAC-SHA256")
+      result.url.get shouldBe s"$wireMockUrl/bucket/id"
     }
 
     "Throw Exception on missing URL" in {
@@ -101,6 +101,24 @@ class AmazonS3ConnectorSpec extends UnitSpec with WiremockTestServer
       exception.getMessage shouldBe "Missing URL"
     }
 
+  }
+
+  "Sign" should {
+    "append token to URL" in {
+      // Given
+      val file = FileMetadata("id", "file.txt", "text/plain", Some("url"))
+
+      // When
+      connector.sign(file).url.get should startWith(s"$wireMockUrl/bucket/id?X-Amz-Algorithm=AWS4-HMAC-SHA256")
+    }
+
+    "not append token to empty URL" in {
+      // Given
+      val file = FileMetadata("id", "file.txt", "text/plain", None)
+
+      // When
+      connector.sign(file).url shouldBe None
+    }
   }
 
 }
