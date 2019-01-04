@@ -53,6 +53,6 @@ case class S3Configuration
   endpoint: Option[String]
 ) {
 
-  def baseUrl: String = endpoint.getOrElse(s"https://s3-$region.amazonaws.com/$bucket")
+  def baseUrl: String = endpoint.getOrElse(s"https://s3-$region.amazonaws.com")
 }
 

@@ -18,7 +18,7 @@ package uk.gov.hmrc.bindingtarifffilestore.model
 
 import java.time.Instant
 
-import play.api.libs.json.{JsNumber, JsObject, JsString, Json}
+import play.api.libs.json._
 import uk.gov.hmrc.play.test.UnitSpec
 
 class FileMetadataSpec extends UnitSpec {
@@ -30,6 +30,7 @@ class FileMetadataSpec extends UnitSpec {
       fileName = "fileName",
       mimeType = "type",
       url = Some("url"),
+      published = true,
       scanStatus = Some(ScanStatus.READY),
       lastUpdated = Instant.EPOCH
     )
@@ -40,16 +41,18 @@ class FileMetadataSpec extends UnitSpec {
       "mimeType" -> JsString("type"),
       "url" -> JsString("url"),
       "scanStatus" -> JsString("READY"),
+      "published" -> JsBoolean(true),
       "lastUpdated" -> Json.obj("$date" -> JsNumber(0))
     )
 
     val jsonREST: JsObject = Json.obj(
-      "id" -> JsString("id"),
+      "url" -> JsString("url"),
+      "lastUpdated" -> JsString("1970-01-01T00:00:00Z"),
+      "published" -> JsBoolean(true),
+      "scanStatus" -> JsString("READY"),
       "fileName" -> JsString("fileName"),
       "mimeType" -> JsString("type"),
-      "url" -> JsString("url"),
-      "scanStatus" -> JsString("READY"),
-      "lastUpdated" -> JsString("1970-01-01T00:00:00Z")
+      "id" -> JsString("id")
     )
 
     "Convert to Mongo JSON" in {
@@ -65,6 +68,29 @@ class FileMetadataSpec extends UnitSpec {
     "Convert to REST JSON" in {
       val value = Json.toJson(model)(FileMetadataREST.format)
       value.toString() shouldBe jsonREST.toString()
+    }
+
+    "Convert to REST JSON ignoring URL if Un-scanned" in {
+      val value = Json.toJson(model.copy(scanStatus = None))(FileMetadataREST.format)
+      value.toString() shouldBe Json.obj(
+        "lastUpdated" -> JsString("1970-01-01T00:00:00Z"),
+        "published" -> JsBoolean(true),
+        "fileName" -> JsString("fileName"),
+        "mimeType" -> JsString("type"),
+        "id" -> JsString("id")
+      ).toString()
+    }
+
+    "Convert to REST JSON ignoring URL if Failed" in {
+      val value = Json.toJson(model.copy(scanStatus = Some(ScanStatus.FAILED)))(FileMetadataREST.format)
+      value.toString() shouldBe Json.obj(
+        "lastUpdated" -> JsString("1970-01-01T00:00:00Z"),
+      "published" -> JsBoolean(true),
+      "scanStatus" -> JsString("FAILED"),
+      "fileName" -> JsString("fileName"),
+      "mimeType" -> JsString("type"),
+      "id" -> JsString("id")
+      ).toString()
     }
 
     "Convert from REST JSON" in {
