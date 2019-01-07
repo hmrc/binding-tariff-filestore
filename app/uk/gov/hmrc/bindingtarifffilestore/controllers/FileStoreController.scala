@@ -74,16 +74,16 @@ class FileStoreController @Inject()(service: FileStoreService) extends BaseContr
     )
   }
 
+  def getFiles(ids: Option[Seq[String]]): Action[AnyContent] = Action.async { implicit request =>
+    service.getByIds(ids.getOrElse(Seq.empty)) map {
+      fileMetadataObjects: Seq[FileMetadata] => Ok(Json.toJson(fileMetadataObjects))
+    }
+  }
+
   private def handleNotFound(id: String, result: FileMetadata => Future[Result]): Future[Result] = {
     service.getById(id).flatMap {
       case Some(att: FileMetadata) => result(att)
       case _ => successful(NotFound(JsErrorResponse(ErrorCode.NOT_FOUND, "File Not Found")))
-    }
-  }
-
-  def getFiles(ids: Option[Seq[String]]): Action[AnyContent] = Action.async { implicit request =>
-    service.getByIds(ids.getOrElse(Seq.empty)) map {
-      fileMetadataObjects: Seq[FileMetadata] => Ok(Json.toJson(fileMetadataObjects))
     }
   }
 }
