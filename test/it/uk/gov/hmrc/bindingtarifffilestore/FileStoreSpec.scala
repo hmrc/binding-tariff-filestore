@@ -90,6 +90,26 @@ class FileStoreSpec extends WiremockFeatureTestServer with ResourceFiles {
     }
   }
 
+  feature("Get files") {
+    scenario("Should show the files are persisted") {
+      Given("Files have been uploaded")
+      val id1 = upload("some-file1.txt", "text/plain").body("id").as[JsString].value
+      val id2 = upload("some-file2.txt", "text/plain").body("id").as[JsString].value
+
+      When("I request the file details")
+      val response = getFiles(id1, id2)
+
+      Then("The response code should be Ok")
+      response.code shouldBe Status.OK
+
+      And("The response body contains the file details")
+//      response.body("fileName") shouldBe JsString("some-file.txt")
+//      response.body("mimeType") shouldBe JsString("text/plain")
+//      response.body.contains("url") shouldBe false
+//      response.body.contains("scanStatus") shouldBe false
+    }
+  }
+
   feature("Notify") {
     scenario("Successful scan should update the status") {
       Given("A File has been uploaded")
@@ -189,6 +209,12 @@ class FileStoreSpec extends WiremockFeatureTestServer with ResourceFiles {
       .execute(convertingResponseToJS)
   }
 
+  private def getFiles(id1: String, id2: String): HttpResponse[Seq[JsValue]] = {
+    Http(s"$serviceUrl/file?id=$id1&id=$id2")
+      .method(HttpVerbs.GET)
+      .execute(convertingArrayResponseToJS)
+  }
+
   private def publish(id: String): HttpResponse[Map[String, JsValue]] = {
     stubS3Upload(id)
     Http(s"$serviceUrl/file/$id/publish")
@@ -263,6 +289,13 @@ class FileStoreSpec extends WiremockFeatureTestServer with ResourceFiles {
     val body = IOUtils.toString(is)
     Try(Json.parse(body))
       .map(_.as[JsObject].value)
+      .getOrElse(throw new AssertionError(s"The response was not valid JSON:\n $body"))
+  }
+
+  private def convertingArrayResponseToJS: InputStream => Seq[JsValue] = { is =>
+    val body = IOUtils.toString(is)
+    Try(Json.parse(body))
+      .map(_.as[JsArray].value)
       .getOrElse(throw new AssertionError(s"The response was not valid JSON:\n $body"))
   }
 
