@@ -68,6 +68,43 @@ class FileStoreServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfte
     }
   }
 
+  private def generateSignedFile(filename : String, published : Boolean = true) = {
+    val attatchment = mock[FileMetadata]
+    val attSigned = mock[FileMetadata]
+    given(attatchment.published).willReturn(published)
+    given(repository.get(filename)).willReturn(successful(Some(attatchment)))
+    given(s3Connector.sign(attatchment)).willReturn(attSigned)
+    attSigned
+  }
+
+  "Service 'get by id list'" should {
+
+    "return empty when no ids are requested" in {
+      await(service.getByIds(Seq())) shouldBe Seq.empty
+    }
+
+    "return empty when no ids are found on the db" in {
+      given(repository.get("unknownFile")).willReturn(successful(None))
+      await(service.getByIds(Seq("unknownFile"))) shouldBe Seq.empty
+    }
+
+    "return all signed attachment requested" in {
+      val attachmentSigned1 = generateSignedFile("filename_1")
+      val attachmentSigned2 = generateSignedFile("filename_2")
+
+      await(service.getByIds(Seq("filename_1","filename_2"))) shouldBe Seq(attachmentSigned1,attachmentSigned2)
+    }
+
+    "return only stored attachments requested" in {
+      val attachmentSigned1 = generateSignedFile("filename")
+      given(repository.get("unknownFile")).willReturn(successful(None))
+
+      await(service.getByIds(Seq("filename", "unknownFile"))) shouldBe Seq(attachmentSigned1)
+    }
+
+  }
+
+
   "Service 'upload'" should {
     "Delegate to Connector" in {
       val file = mock[TemporaryFile]
