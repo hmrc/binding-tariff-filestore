@@ -75,6 +75,10 @@ class FileStoreControllerSpec extends UnitSpec with Matchers
     }
   }
 
+//  "Get By IDs" should {
+//    "return empty array when no ids are provided"
+//  }
+
   "Notify" should {
     "return 201 when found" in {
       val scanResult = SuccessfulScanResult("ref", "url", UploadDetails(Instant.now(), "checksum"))

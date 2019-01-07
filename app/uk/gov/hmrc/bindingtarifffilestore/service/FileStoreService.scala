@@ -56,6 +56,11 @@ class FileStoreService @Inject()(appConfig: AppConfig,
     repository.get(id).map(signingURLIfPublished)
   }
 
+  def getByIds(ids: Seq[String]): Future[Seq[FileMetadata]] = {
+    val allFileMetadataObjects: Seq[Future[Option[FileMetadata]]] = ids.map(getById)
+    Future.sequence(allFileMetadataObjects) map ( _.filter ( _.isDefined ) map ( _.get ) )
+  }
+
   def notify(attachment: FileMetadata, scanResult: ScanResult): Future[Option[FileMetadata]] = {
     Logger.info(s"Scan completed for file [${attachment.id}] with status [${scanResult.fileStatus}] and Upscan reference [${scanResult.reference}]")
     val updated: FileMetadata = scanResult.fileStatus match {
