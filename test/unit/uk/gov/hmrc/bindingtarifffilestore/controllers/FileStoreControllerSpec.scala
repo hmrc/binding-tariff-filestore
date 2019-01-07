@@ -76,10 +76,19 @@ class FileStoreControllerSpec extends UnitSpec with Matchers
   }
 
   "Get By IDs" should {
-    "return 200 with empty array when no ids are provided" in {
+    "return 200 with empty array when empty id array are provided" in {
       when(service.getByIds(Seq.empty)).thenReturn(successful(Seq.empty))
 
       val result = await(controller.getFiles(Some(Seq.empty))(fakeRequest))
+
+      status(result) shouldBe Status.OK
+      bodyOf(result) shouldEqual Json.toJson(Seq.empty).toString()
+    }
+
+    "return 200 with empty array when no ids are provided" in {
+      when(service.getByIds(Seq.empty)).thenReturn(successful(Seq.empty))
+
+      val result = await(controller.getFiles(None)(fakeRequest))
 
       status(result) shouldBe Status.OK
       bodyOf(result) shouldEqual Json.toJson(Seq.empty).toString()
