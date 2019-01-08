@@ -103,6 +103,7 @@ class FileStoreSpec extends WiremockFeatureTestServer with ResourceFiles {
       response.code shouldBe Status.OK
 
       And("The response body contains the file details")
+      response.body.asInstanceOf[JsArray].value.size shouldBe 2
 
       (response.body \ 0 \ "fileName").as[String] shouldBe "some-file1.txt"
       (response.body \ 0 \ "mimeType").as[String] shouldBe "text/plain"
