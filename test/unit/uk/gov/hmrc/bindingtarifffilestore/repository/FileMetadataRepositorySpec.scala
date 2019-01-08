@@ -175,6 +175,23 @@ class FileMetadataRepositorySpec extends BaseMongoIndexSpec
     }
   }
 
+  "getAll" should {
+
+    "retrieve the expected documents from the collection" in {
+
+      await(repository.insert(att1))
+      await(repository.insert(att2))
+      collectionSize shouldBe 2
+
+      await(repository.getAll(Seq(att1.id, att2.id))) contains Seq(att1, att2)
+    }
+
+    "return None when there are no documents in the collection" in {
+      await(repository.getAll(Seq(att1.id, att2.id))) shouldBe Seq.empty
+    }
+
+  }
+
   private def generateAttachment = FileMetadata(
     fileName = generateString,
     mimeType = generateString
