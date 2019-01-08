@@ -214,7 +214,10 @@ class FileStoreSpec extends WiremockFeatureTestServer with ResourceFiles {
   }
 
   private def getFiles(ids: String*): HttpResponse[JsValue] = {
-    Http(s"$serviceUrl/file?id=${ids(0)}&id=${ids(1)}")
+
+    val queryParams = ids.map(id => s"id=$id").mkString("&")
+
+    Http(s"$serviceUrl/file?$queryParams")
       .method(HttpVerbs.GET)
       .execute(convertingArrayResponseToJS)
   }
