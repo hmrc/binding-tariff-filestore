@@ -57,8 +57,10 @@ class FileStoreService @Inject()(appConfig: AppConfig,
   }
 
   def getByIds(ids: Seq[String]): Future[Seq[FileMetadata]] = {
-    val allFileMetadataObjects: Seq[Future[Option[FileMetadata]]] = ids.map(getById)
-    Future.sequence(allFileMetadataObjects) map ( _.filter ( _.isDefined ) map ( _.get ) )
+    repository.getAll(ids) map {
+      case files: Seq[FileMetadata] =>
+        files.map(file => signingURLIfPublishedNoOption(file))
+    }
   }
 
   def notify(attachment: FileMetadata, scanResult: ScanResult): Future[Option[FileMetadata]] = {
@@ -85,6 +87,12 @@ class FileStoreService @Inject()(appConfig: AppConfig,
     metadata.filter(_.published)
       .map(fileStoreConnector.sign)
       .orElse(metadata)
+
+  private def signingURLIfPublishedNoOption: FileMetadata => FileMetadata = metadata =>
+    metadata match {
+      case data if (data.published) => fileStoreConnector.sign(data)
+      case _ => metadata
+    }
 
   private def signingURL: Option[FileMetadata] => Option[FileMetadata] = _.map { metadata =>
     fileStoreConnector.sign(metadata)
