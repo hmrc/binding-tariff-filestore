@@ -19,6 +19,7 @@ package uk.gov.hmrc.bindingtarifffilestore.repository
 import com.google.inject.ImplementedBy
 import javax.inject.{Inject, Singleton}
 import play.api.libs.json.Json
+import reactivemongo.api.Cursor
 import reactivemongo.bson.BSONObjectID
 import reactivemongo.play.json.ImplicitBSONHandlers._
 import uk.gov.hmrc.bindingtarifffilestore.config.AppConfig
@@ -36,11 +37,12 @@ trait FileMetadataRepository {
 
   def get(id: String): Future[Option[FileMetadata]]
 
+  def getAll(ids: Seq[String]) : Future[Seq[FileMetadata]]
+
   def insert(att: FileMetadata): Future[FileMetadata]
 
   def update(att: FileMetadata): Future[Option[FileMetadata]]
 
-  // TODO: delete not needed - we will use 7 days TTL on mongo config
 }
 
 @Singleton
@@ -65,6 +67,15 @@ class FileMetadataMongoRepository @Inject()(config: AppConfig,
     collection.find(byId(id)).one[FileMetadata]
   }
 
+  override def getAll(ids: Seq[String]): Future[Seq[FileMetadata]] = {
+    val query = Json.obj(
+      "id" -> Json.obj(
+                "$in" -> ids))
+    collection.find(query)
+      .cursor[FileMetadata]()
+      .collect[Seq](-1, Cursor.FailOnError[Seq[FileMetadata]]())
+  }
+
   override def insert(att: FileMetadata): Future[FileMetadata] = {
     collection.insert(att).map(_ => att)
   }
@@ -81,5 +92,4 @@ class FileMetadataMongoRepository @Inject()(config: AppConfig,
   private def byId(id: String) = {
     Json.obj("id" -> id)
   }
-
 }
