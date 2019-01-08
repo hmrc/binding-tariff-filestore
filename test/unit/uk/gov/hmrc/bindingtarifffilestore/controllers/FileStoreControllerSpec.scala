@@ -75,6 +75,38 @@ class FileStoreControllerSpec extends UnitSpec with Matchers
     }
   }
 
+  "Get By IDs" should {
+    "return 200 with empty array when empty id array are provided" in {
+      when(service.getByIds(Seq.empty)).thenReturn(successful(Seq.empty))
+
+      val result = await(controller.getFiles(Some(Seq.empty))(fakeRequest))
+
+      status(result) shouldBe Status.OK
+      bodyOf(result) shouldEqual Json.toJson(Seq.empty).toString()
+    }
+
+    "return 200 with empty array when no ids are provided" in {
+      when(service.getByIds(Seq.empty)).thenReturn(successful(Seq.empty))
+
+      val result = await(controller.getFiles(None)(fakeRequest))
+
+      status(result) shouldBe Status.OK
+      bodyOf(result) shouldEqual Json.toJson(Seq.empty).toString()
+    }
+
+    "return 200 with file metadata array when ids are provided" in {
+      val attachment1 = FileMetadata(id="id1", fileName = "file1", mimeType = "type1")
+      val attachment2 = FileMetadata(id="id2", fileName = "file2", mimeType = "type2")
+
+      when(service.getByIds(Seq("id1", "id2"))).thenReturn(successful(Seq(attachment1, attachment2)))
+
+      val result = await(controller.getFiles(Some(Seq("id1", "id2")))(fakeRequest))
+
+      status(result) shouldBe Status.OK
+      bodyOf(result) shouldEqual Json.toJson(Seq(attachment1, attachment2)).toString()
+    }
+  }
+
   "Notify" should {
     "return 201 when found" in {
       val scanResult = SuccessfulScanResult("ref", "url", UploadDetails(Instant.now(), "checksum"))

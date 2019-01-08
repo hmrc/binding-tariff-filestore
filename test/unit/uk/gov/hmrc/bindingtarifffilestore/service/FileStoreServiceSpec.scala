@@ -68,6 +68,35 @@ class FileStoreServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfte
     }
   }
 
+  "Service 'get by id list'" should {
+
+    "return empty when no ids are requested" in {
+      given(repository.getAll(Seq.empty)).willReturn(successful(Seq.empty))
+      await(service.getByIds(Seq())) shouldBe Seq.empty
+    }
+
+    "return empty when no ids are found on the db" in {
+      given(repository.getAll(Seq("unknownFile"))).willReturn(successful(Seq.empty))
+      await(service.getByIds(Seq("unknownFile"))) shouldBe Seq.empty
+    }
+
+    "return all attachment requested already signed" in {
+      val attatchment1 = mock[FileMetadata]
+      val attSigned1 = mock[FileMetadata]
+      given(attatchment1.published).willReturn(true)
+      given(s3Connector.sign(attatchment1)).willReturn(attSigned1)
+
+      val attatchment2 = mock[FileMetadata]
+      val attSigned2 = mock[FileMetadata]
+      given(attatchment2.published).willReturn(true)
+      given(s3Connector.sign(attatchment2)).willReturn(attSigned2)
+
+      given(repository.getAll(Seq("filename_1","filename_2"))).willReturn(successful(Seq(attatchment1,attatchment2)))
+
+      await(service.getByIds(Seq("filename_1","filename_2"))) shouldBe Seq(attSigned1,attSigned2)
+    }
+  }
+
   "Service 'upload'" should {
     "Delegate to Connector" in {
       val file = mock[TemporaryFile]

@@ -90,6 +90,30 @@ class FileStoreSpec extends WiremockFeatureTestServer with ResourceFiles {
     }
   }
 
+  feature("Get files") {
+    scenario("Should show the files are persisted") {
+      Given("Files have been uploaded")
+      val id1 = upload("some-file1.txt", "text/plain").body("id").as[JsString].value
+      val id2 = upload("some-file2.txt", "text/plain").body("id").as[JsString].value
+
+      When("I request the file details")
+      val response = getFiles(id1, id2)
+
+      Then("The response code should be Ok")
+      response.code shouldBe Status.OK
+
+      And("The response body contains the file details")
+
+      (response.body \ 0 \ "fileName").as[String] shouldBe "some-file1.txt"
+      (response.body \ 0 \ "mimeType").as[String] shouldBe "text/plain"
+      (response.body \ 0 \ "published").as[Boolean] shouldBe false
+
+      (response.body \ 1 \ "fileName").as[String] shouldBe "some-file2.txt"
+      (response.body \ 1 \ "mimeType").as[String] shouldBe "text/plain"
+      (response.body \ 1 \ "published").as[Boolean] shouldBe false
+    }
+  }
+
   feature("Notify") {
     scenario("Successful scan should update the status") {
       Given("A File has been uploaded")
@@ -191,6 +215,15 @@ class FileStoreSpec extends WiremockFeatureTestServer with ResourceFiles {
       .execute(convertingResponseToJS)
   }
 
+  private def getFiles(ids: String*): HttpResponse[JsValue] = {
+
+    val queryParams = ids.map(id => s"id=$id").mkString("&")
+
+    Http(s"$serviceUrl/file?$queryParams")
+      .method(HttpVerbs.GET)
+      .execute(convertingArrayResponseToJS)
+  }
+
   private def publishSafeFile(id: String): HttpResponse[Map[String, JsValue]] = {
     stubS3Upload(id)
     Http(s"$serviceUrl/file/$id/publish")
@@ -272,7 +305,13 @@ class FileStoreSpec extends WiremockFeatureTestServer with ResourceFiles {
     val body = IOUtils.toString(is)
     Try(Json.parse(body))
       .map(_.as[JsObject].value)
-      .getOrElse(throw new AssertionError(s"The response was not valid JSON:\n $body"))
+      .getOrElse(throw new AssertionError(s"The response was not valid JSON object:\n $body"))
+  }
+
+  private def convertingArrayResponseToJS: InputStream => JsValue = { is =>
+    val body = IOUtils.toString(is)
+    Try(Json.parse(body))
+      .getOrElse(throw new AssertionError(s"The response was not valid JSON array:\n $body"))
   }
 
 }
