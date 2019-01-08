@@ -213,8 +213,8 @@ class FileStoreSpec extends WiremockFeatureTestServer with ResourceFiles {
       .execute(convertingResponseToJS)
   }
 
-  private def getFiles(id1: String, id2: String): HttpResponse[JsValue] = {
-    Http(s"$serviceUrl/file?id=$id1&id=$id2")
+  private def getFiles(ids: String*): HttpResponse[JsValue] = {
+    Http(s"$serviceUrl/file?id=${ids(0)}&id=${ids(1)}")
       .method(HttpVerbs.GET)
       .execute(convertingArrayResponseToJS)
   }
