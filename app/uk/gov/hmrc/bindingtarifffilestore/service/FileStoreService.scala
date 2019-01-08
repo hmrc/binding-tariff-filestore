@@ -72,7 +72,9 @@ class FileStoreService @Inject()(appConfig: AppConfig,
             updated: Option[FileMetadata] <- repository.update(update)
             published: Option[FileMetadata] <- updated match {
               case Some(metadata) => publish(metadata)
-              case _ => Future.successful(None)
+              case _ =>
+                Logger.warn(s"Scan completed for file [${attachment.id}] but it couldn't be published as it no longer exits")
+                Future.successful(None)
             }
           } yield published
         } else {
