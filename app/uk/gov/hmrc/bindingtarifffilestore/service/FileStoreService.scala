@@ -88,7 +88,10 @@ class FileStoreService @Inject()(appConfig: AppConfig,
       .orElse(metadata)
 
   private def signingURLsIfPublished: Seq[FileMetadata] => Seq[FileMetadata] = metadataSeq =>
-    metadataSeq.filter(_.published).map(fileStoreConnector.sign)
+    metadataSeq map {
+      case file if (file.published) => fileStoreConnector.sign(file)
+      case other => other
+    }
 
   private def signingURL: Option[FileMetadata] => Option[FileMetadata] = _.map { metadata =>
     fileStoreConnector.sign(metadata)
