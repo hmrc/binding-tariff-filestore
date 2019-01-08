@@ -65,7 +65,10 @@ class FileStoreController @Inject()(service: FileStoreService) extends BaseContr
 
   def publish(id: String): Action[AnyContent] = Action.async { implicit request =>
     handleNotFound(id, (att: FileMetadata) =>
-      service.publish(att).map(f => Accepted(Json.toJson(f)))
+      service.publish(att).map {
+        case Some(metadata) => Accepted(Json.toJson(metadata))
+        case None => NotFound(JsErrorResponse(ErrorCode.NOT_FOUND, "File Not Found"))
+      }
     )
   }
 

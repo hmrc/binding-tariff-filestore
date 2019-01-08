@@ -121,6 +121,16 @@ class FileStoreControllerSpec extends UnitSpec with Matchers
 
       status(result) shouldBe Status.NOT_FOUND
     }
+
+    "return 404 when publish returns not found" in {
+      val attachmentExisting = FileMetadata(id="id", fileName = "file", mimeType = "type", scanStatus = Some(ScanStatus.READY))
+      when(service.getById("id")).thenReturn(successful(Some(attachmentExisting)))
+      when(service.publish(attachmentExisting)).thenReturn(successful(None))
+
+      val result: Result = await(controller.publish("id")(fakeRequest))
+
+      status(result) shouldBe Status.NOT_FOUND
+    }
   }
 
   "Upload" should {
