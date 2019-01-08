@@ -21,7 +21,7 @@ import java.time.Instant
 import akka.stream.Materializer
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito
-import org.mockito.Mockito.{never, verify, when}
+import org.mockito.Mockito.when
 import org.scalatest.mockito.MockitoSugar
 import org.scalatest.{BeforeAndAfterEach, Matchers}
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
@@ -106,32 +106,12 @@ class FileStoreControllerSpec extends UnitSpec with Matchers
       val attachmentExisting = FileMetadata(id="id", fileName = "file", mimeType = "type", scanStatus = Some(ScanStatus.READY))
       val attachmentUpdated = FileMetadata(id="id", fileName = "file", mimeType = "type", scanStatus = Some(ScanStatus.READY), url = Some("url"))
       when(service.getById("id")).thenReturn(successful(Some(attachmentExisting)))
-      when(service.publish(attachmentExisting)).thenReturn(successful(attachmentUpdated))
+      when(service.publish(attachmentExisting)).thenReturn(successful(Some(attachmentUpdated)))
 
       val result: Result = await(controller.publish("id")(fakeRequest))
 
       status(result) shouldBe Status.ACCEPTED
       jsonBodyOf(result) shouldBe Json.toJson(attachmentUpdated)
-    }
-
-    "return 403 when invalid status" in {
-      val attachmentExisting = FileMetadata(id="id", fileName = "file", mimeType = "type", scanStatus = Some(ScanStatus.FAILED))
-      when(service.getById("id")).thenReturn(successful(Some(attachmentExisting)))
-
-      val result: Result = await(controller.publish("id")(fakeRequest))
-
-      verify(service, never()).publish(any[FileMetadata])
-      status(result) shouldBe Status.FORBIDDEN
-    }
-
-    "return 403 when unscanned" in {
-      val attachmentExisting = FileMetadata(id="id", fileName = "file", mimeType = "type", scanStatus = None)
-      when(service.getById("id")).thenReturn(successful(Some(attachmentExisting)))
-
-      val result: Result = await(controller.publish("id")(fakeRequest))
-
-      verify(service, never()).publish(any[FileMetadata])
-      status(result) shouldBe Status.FORBIDDEN
     }
 
     "return 404 when not found" in {

@@ -20,8 +20,7 @@ import javax.inject.{Inject, Singleton}
 import play.api.libs.Files
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc._
-import uk.gov.hmrc.bindingtarifffilestore.model.FileMetadataREST.format
-import uk.gov.hmrc.bindingtarifffilestore.model.ScanStatus.ScanStatus
+import uk.gov.hmrc.bindingtarifffilestore.model.FileMetadataREST._
 import uk.gov.hmrc.bindingtarifffilestore.model._
 import uk.gov.hmrc.bindingtarifffilestore.model.upscan.ScanResult
 import uk.gov.hmrc.bindingtarifffilestore.service.FileStoreService
@@ -66,11 +65,7 @@ class FileStoreController @Inject()(service: FileStoreService) extends BaseContr
 
   def publish(id: String): Action[AnyContent] = Action.async { implicit request =>
     handleNotFound(id, (att: FileMetadata) =>
-      att.scanStatus match {
-        case Some(ScanStatus.READY) => service.publish(att).map(f => Accepted(Json.toJson(f)))
-        case Some(s: ScanStatus) => successful(Forbidden(JsErrorResponse (ErrorCode.FORBIDDEN, s"Can not publish file with status ${s.toString}") ) )
-        case _ => successful(Forbidden(JsErrorResponse(ErrorCode.FORBIDDEN, "File has not been scanned")))
-      }
+      service.publish(att).map(f => Accepted(Json.toJson(f)))
     )
   }
 
