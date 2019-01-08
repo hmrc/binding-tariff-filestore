@@ -58,7 +58,7 @@ class FileStoreService @Inject()(appConfig: AppConfig,
 
   def getByIds(ids: Seq[String]): Future[Seq[FileMetadata]] = {
     repository.getAll(ids) map {
-      case files: Seq[FileMetadata] => signingURLsIfPublished(files)
+      files: Seq[FileMetadata] => signingURLsIfPublished(files)
     }
   }
 
