@@ -160,7 +160,7 @@ class FileStoreSpec extends WiremockFeatureTestServer with ResourceFiles {
       notifySuccess(id)
 
       When("It is Published")
-      val response = publish(id)
+      val response = publishSafeFile(id)
 
       Then("The response code should be Accepted")
       response.code shouldBe Status.ACCEPTED
@@ -169,28 +169,29 @@ class FileStoreSpec extends WiremockFeatureTestServer with ResourceFiles {
       response.body("fileName") shouldBe JsString("some-file.txt")
       response.body("mimeType") shouldBe JsString("text/plain")
       response.body("scanStatus") shouldBe JsString("READY")
+      response.body("published") shouldBe JsBoolean(true)
 
       And("The response shows the file published")
       response.body("url").as[JsString].value should include(s"$id?X-Amz-Algorithm=AWS4-HMAC-SHA256")
     }
 
-    scenario("Should return an error for an un-safe file") {
+    scenario("Should mark an un-safe file as published, but not persist") {
       Given("A File has been uploaded and marked as quarantined")
       val id = upload("some-file.txt", "text/plain")
         .body("id").as[JsString].value
       notifyFailure(id)
 
       When("It is Published")
-      val publishResponse = publish(id)
+      val publishResponse = publishUnSafeFile(id)
 
       Then("The response code should be Forbidden")
-      publishResponse.code shouldBe Status.FORBIDDEN
+      publishResponse.code shouldBe Status.ACCEPTED
 
-      And("The response body contains An error")
-      publishResponse.body shouldBe Map(
-        "code" -> JsString("FORBIDDEN"),
-        "message" -> JsString("Can not publish file with status FAILED")
-      )
+      And("The response body contains the file details")
+      publishResponse.body("fileName") shouldBe JsString("some-file.txt")
+      publishResponse.body("mimeType") shouldBe JsString("text/plain")
+      publishResponse.body("scanStatus") shouldBe JsString("FAILED")
+      publishResponse.body("published") shouldBe JsBoolean(true)
 
       And("I can call GET and see the file is unpublished")
       val getResponse = getFile(id)
@@ -198,6 +199,7 @@ class FileStoreSpec extends WiremockFeatureTestServer with ResourceFiles {
       getResponse.body("fileName") shouldBe JsString("some-file.txt")
       getResponse.body("mimeType") shouldBe JsString("text/plain")
       getResponse.body("scanStatus") shouldBe JsString("FAILED")
+      getResponse.body("published") shouldBe JsBoolean(true)
       getResponse.body.contains("url") shouldBe false
     }
   }
@@ -217,8 +219,15 @@ class FileStoreSpec extends WiremockFeatureTestServer with ResourceFiles {
       .execute(convertingArrayResponseToJS)
   }
 
-  private def publish(id: String): HttpResponse[Map[String, JsValue]] = {
+  private def publishSafeFile(id: String): HttpResponse[Map[String, JsValue]] = {
     stubS3Upload(id)
+    Http(s"$serviceUrl/file/$id/publish")
+      .method(HttpVerbs.POST)
+      .execute(convertingResponseToJS)
+  }
+
+  private def publishUnSafeFile(id: String): HttpResponse[Map[String, JsValue]] = {
+    // Should NOT call S3 Upload
     Http(s"$serviceUrl/file/$id/publish")
       .method(HttpVerbs.POST)
       .execute(convertingResponseToJS)

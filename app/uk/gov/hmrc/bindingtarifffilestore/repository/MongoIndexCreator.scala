@@ -18,7 +18,6 @@ package uk.gov.hmrc.bindingtarifffilestore.repository
 
 import reactivemongo.api.indexes.IndexType.Ascending
 import reactivemongo.api.indexes.{Index, IndexType}
-import reactivemongo.bson
 import reactivemongo.bson.BSONDocument
 
 object MongoIndexCreator {
@@ -54,7 +53,7 @@ object MongoIndexCreator {
       indexFieldMappings = Seq(("lastUpdated", IndexType.Ascending)),
       isUnique = false,
       name = Some("expiry_Index"),
-      options = bson.BSONDocument("expireAfterSeconds" -> ttl)
+      options = BSONDocument("expireAfterSeconds" -> ttl, "partialFilterExpression" -> BSONDocument("published" -> false))
     )
   }
 

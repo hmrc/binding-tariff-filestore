@@ -21,7 +21,6 @@ import play.api.libs.Files
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc._
 import uk.gov.hmrc.bindingtarifffilestore.model.FileMetadataREST._
-import uk.gov.hmrc.bindingtarifffilestore.model.ScanStatus.ScanStatus
 import uk.gov.hmrc.bindingtarifffilestore.model._
 import uk.gov.hmrc.bindingtarifffilestore.model.upscan.ScanResult
 import uk.gov.hmrc.bindingtarifffilestore.service.FileStoreService
@@ -33,10 +32,6 @@ import scala.concurrent.Future.successful
 
 @Singleton
 class FileStoreController @Inject()(service: FileStoreService) extends BaseController {
-
-  //  def listAllFiles: Action[AnyContent] = Action.async { implicit request =>
-  //    service.getAll.map(attachments => Ok(Json.toJson(attachments)))
-  //  }
 
   def upload: Action[MultipartFormData[Files.TemporaryFile]] = Action.async(parse.multipartFormData) { implicit request =>
     val attachment: Option[FileWithMetadata] = request.body.file("file").map { file =>
@@ -66,10 +61,9 @@ class FileStoreController @Inject()(service: FileStoreService) extends BaseContr
 
   def publish(id: String): Action[AnyContent] = Action.async { implicit request =>
     handleNotFound(id, (att: FileMetadata) =>
-      att.scanStatus match {
-        case Some(ScanStatus.READY) => service.publish(att).map(f => Accepted(Json.toJson(f)))
-        case Some(s: ScanStatus) => successful(Forbidden(JsErrorResponse (ErrorCode.FORBIDDEN, s"Can not publish file with status ${s.toString}") ) )
-        case _ => successful(Forbidden(JsErrorResponse(ErrorCode.FORBIDDEN, "File has not been scanned")))
+      service.publish(att).map {
+        case Some(metadata) => Accepted(Json.toJson(metadata))
+        case None => NotFound(JsErrorResponse(ErrorCode.NOT_FOUND, "File Not Found"))
       }
     )
   }

@@ -57,29 +57,44 @@ class FileStoreService @Inject()(appConfig: AppConfig,
   }
 
   def getByIds(ids: Seq[String]): Future[Seq[FileMetadata]] = {
-    repository.getAll(ids) map {
-      files: Seq[FileMetadata] => signingURLsIfPublished(files)
-    }
+    repository.getAll(ids) map(signingURLsIfPublished(_))
   }
 
   def notify(attachment: FileMetadata, scanResult: ScanResult): Future[Option[FileMetadata]] = {
     Logger.info(s"Scan completed for file [${attachment.id}] with status [${scanResult.fileStatus}] and Upscan reference [${scanResult.reference}]")
-    val updated: FileMetadata = scanResult.fileStatus match {
-      case FAILED => attachment.copy(scanStatus = Some(FAILED))
+    scanResult.fileStatus match {
+      case FAILED => repository.update(attachment.copy(scanStatus = Some(FAILED)))
       case READY =>
         val result = scanResult.asInstanceOf[SuccessfulScanResult]
-        attachment.copy(url = Some(result.downloadUrl), scanStatus = Some(READY))
+        val update = attachment.copy(url = Some(result.downloadUrl), scanStatus = Some(READY))
+        if (update.published) {
+          for {
+            updated: Option[FileMetadata] <- repository.update(update)
+            published: Option[FileMetadata] <- updated match {
+              case Some(metadata) => publish(metadata)
+              case _ =>
+                Logger.warn(s"Scan completed for file [${attachment.id}] but it couldn't be published as it no longer exits")
+                Future.successful(None)
+            }
+          } yield published
+        } else {
+          repository.update(update)
+        }
     }
-
-    repository.update(updated)
   }
 
-  def publish(att: FileMetadata): Future[FileMetadata] = {
+  def publish(att: FileMetadata): Future[Option[FileMetadata]] = {
     Logger.info(s"Publishing file [${att.id}]")
-    val metadata = fileStoreConnector.upload(att)
-    repository.update(metadata.copy(published = true))
-      .map(signingURL)
-      .map(_.get)
+    att.scanStatus match {
+      case Some(READY) =>
+        val metadata = fileStoreConnector.upload(att)
+        val update = if(metadata.published) metadata else metadata.copy(published = true)
+        repository.update(update)
+          .map(signingURL)
+      case _ =>
+        repository.update(att.copy(published = true))
+    }
+
   }
 
   private def signingURLIfPublished: Option[FileMetadata] => Option[FileMetadata] = metadata =>
