@@ -103,10 +103,14 @@ class FileStoreSpec extends WiremockFeatureTestServer with ResourceFiles {
       response.code shouldBe Status.OK
 
       And("The response body contains the file details")
-//      response.body("fileName") shouldBe JsString("some-file.txt")
-//      response.body("mimeType") shouldBe JsString("text/plain")
-//      response.body.contains("url") shouldBe false
-//      response.body.contains("scanStatus") shouldBe false
+
+      (response.body \ 0 \ "fileName").as[String] shouldBe "some-file1.txt"
+      (response.body \ 0 \ "mimeType").as[String] shouldBe "text/plain"
+      (response.body \ 0 \ "published").as[Boolean] shouldBe false
+
+      (response.body \ 1 \ "fileName").as[String] shouldBe "some-file2.txt"
+      (response.body \ 1 \ "mimeType").as[String] shouldBe "text/plain"
+      (response.body \ 1 \ "published").as[Boolean] shouldBe false
     }
   }
 
@@ -209,7 +213,7 @@ class FileStoreSpec extends WiremockFeatureTestServer with ResourceFiles {
       .execute(convertingResponseToJS)
   }
 
-  private def getFiles(id1: String, id2: String): HttpResponse[Seq[JsValue]] = {
+  private def getFiles(id1: String, id2: String): HttpResponse[JsValue] = {
     Http(s"$serviceUrl/file?id=$id1&id=$id2")
       .method(HttpVerbs.GET)
       .execute(convertingArrayResponseToJS)
@@ -289,14 +293,13 @@ class FileStoreSpec extends WiremockFeatureTestServer with ResourceFiles {
     val body = IOUtils.toString(is)
     Try(Json.parse(body))
       .map(_.as[JsObject].value)
-      .getOrElse(throw new AssertionError(s"The response was not valid JSON:\n $body"))
+      .getOrElse(throw new AssertionError(s"The response was not valid JSON object:\n $body"))
   }
 
-  private def convertingArrayResponseToJS: InputStream => Seq[JsValue] = { is =>
+  private def convertingArrayResponseToJS: InputStream => JsValue = { is =>
     val body = IOUtils.toString(is)
     Try(Json.parse(body))
-      .map(_.as[JsArray].value)
-      .getOrElse(throw new AssertionError(s"The response was not valid JSON:\n $body"))
+      .getOrElse(throw new AssertionError(s"The response was not valid JSON array:\n $body"))
   }
 
 }
