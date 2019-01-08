@@ -141,6 +141,7 @@ class FileStoreServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfte
       given(attachmentUpdated.published).willReturn(true)
       given(attachmentUpdated.scanStatus).willReturn(Some(ScanStatus.READY))
       given(attachmentUploaded.published).willReturn(true)
+      given(attachmentUploadedUpdated.published).willReturn(true)
 
       given(repository.update(attachmentUpdating)).willReturn(successful(Some(attachmentUpdated)))
       given(s3Connector.upload(attachmentUpdated)).willReturn(attachmentUploaded)
@@ -173,6 +174,7 @@ class FileStoreServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfte
       val fileSigned = mock[FileMetadata]("Signed")
       given(fileUploading.scanStatus).willReturn(Some(ScanStatus.READY))
       given(fileUploaded.copy(published = true)).willReturn(fileUpdating)
+      given(fileUpdated.published).willReturn(true)
       given(s3Connector.upload(fileUploading)).willReturn(fileUploaded)
       given(repository.update(any[FileMetadata])).willReturn(successful(Some(fileUpdated)))
       given(s3Connector.sign(fileUpdated)).willReturn(fileSigned)

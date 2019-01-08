@@ -53,11 +53,11 @@ class FileStoreService @Inject()(appConfig: AppConfig,
   }
 
   def getById(id: String): Future[Option[FileMetadata]] = {
-    repository.get(id).map(signingURLIfPublished)
+    repository.get(id).map(signingPermanentURL)
   }
 
   def getByIds(ids: Seq[String]): Future[Seq[FileMetadata]] = {
-    repository.getAll(ids) map (signingURLsIfPublished(_))
+    repository.getAll(ids) map (signingPermanentURLs(_))
   }
 
   def notify(attachment: FileMetadata, scanResult: ScanResult): Future[Option[FileMetadata]] = {
@@ -90,25 +90,20 @@ class FileStoreService @Inject()(appConfig: AppConfig,
         val metadata = fileStoreConnector.upload(att)
         val update = if (metadata.published) metadata else metadata.copy(published = true)
         repository.update(update)
-          .map(signingURL)
+          .map(signingPermanentURL)
       case _ =>
         repository.update(att.copy(published = true))
     }
 
   }
 
-  private def signingURLIfPublished: Option[FileMetadata] => Option[FileMetadata] = _ map {
+  private def signingPermanentURL: Option[FileMetadata] => Option[FileMetadata] = _ map signingIfPublished
+
+  private def signingPermanentURLs: Seq[FileMetadata] => Seq[FileMetadata] = _ map signingIfPublished
+
+  private def signingIfPublished: FileMetadata => FileMetadata = {
     case file if file.published => fileStoreConnector.sign(file)
     case other => other
-  }
-
-  private def signingURLsIfPublished: Seq[FileMetadata] => Seq[FileMetadata] = _ map {
-    case file if file.published => fileStoreConnector.sign(file)
-    case other => other
-  }
-
-  private def signingURL: Option[FileMetadata] => Option[FileMetadata] = _.map { metadata =>
-    fileStoreConnector.sign(metadata)
   }
 
 }
