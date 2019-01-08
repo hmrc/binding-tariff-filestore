@@ -21,7 +21,6 @@ import play.api.libs.Files
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc._
 import uk.gov.hmrc.bindingtarifffilestore.model.FileMetadataREST._
-import uk.gov.hmrc.bindingtarifffilestore.model.ScanStatus.ScanStatus
 import uk.gov.hmrc.bindingtarifffilestore.model._
 import uk.gov.hmrc.bindingtarifffilestore.model.upscan.ScanResult
 import uk.gov.hmrc.bindingtarifffilestore.service.FileStoreService
@@ -33,10 +32,6 @@ import scala.concurrent.Future.successful
 
 @Singleton
 class FileStoreController @Inject()(service: FileStoreService) extends BaseController {
-
-  //  def listAllFiles: Action[AnyContent] = Action.async { implicit request =>
-  //    service.getAll.map(attachments => Ok(Json.toJson(attachments)))
-  //  }
 
   def upload: Action[MultipartFormData[Files.TemporaryFile]] = Action.async(parse.multipartFormData) { implicit request =>
     val attachment: Option[FileWithMetadata] = request.body.file("file").map { file =>
