@@ -95,6 +95,7 @@ class FileStoreSpec extends WiremockFeatureTestServer with ResourceFiles {
       Given("Files have been uploaded")
       val id1 = upload("some-file1.txt", "text/plain").body("id").as[JsString].value
       val id2 = upload("some-file2.txt", "text/plain").body("id").as[JsString].value
+      val id3 = upload("some-file3.txt", "text/plain").body("id").as[JsString].value
 
       When("I request the file details")
       val response = getFiles(id1, id2)
@@ -105,7 +106,24 @@ class FileStoreSpec extends WiremockFeatureTestServer with ResourceFiles {
       And("The response body contains the file details")
 
       response.body.asInstanceOf[JsArray].value.size shouldBe 2
-      (response.body \\ "fileName").map(_.as[String])  should contain allOf  ("some-file1.txt", "some-file2.txt")
+      (response.body \\ "fileName").map(_.as[String])  should contain only ("some-file1.txt", "some-file2.txt")
+    }
+
+    scenario("Should return all files where no ids are provided") {
+      Given("Files have been uploaded")
+
+      upload("some-file1.txt", "text/plain").body("id").as[JsString].value
+      upload("some-file2.txt", "text/plain").body("id").as[JsString].value
+
+      When("I request the file details")
+      val response =  Http(s"$serviceUrl/file").method(HttpVerbs.GET).execute(convertingArrayResponseToJS)
+
+      Then("The response code should be Ok")
+      response.code shouldBe Status.OK
+
+      And("The response body contains the file details")
+
+      (response.body \\ "fileName").map(_.as[String]) should contain allOf ("some-file1.txt", "some-file2.txt")
     }
   }
 
