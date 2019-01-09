@@ -71,12 +71,12 @@ class FileStoreServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfte
   "Service 'get by id list'" should {
 
     "return empty when no ids are requested" in {
-      given(repository.getAll(Seq.empty)).willReturn(successful(Seq.empty))
+      given(repository.get(Seq.empty)).willReturn(successful(Seq.empty))
       await(service.getByIds(Seq())) shouldBe Seq.empty
     }
 
     "return empty when no ids are found on the db" in {
-      given(repository.getAll(Seq("unknownFile"))).willReturn(successful(Seq.empty))
+      given(repository.get(Seq("unknownFile"))).willReturn(successful(Seq.empty))
       await(service.getByIds(Seq("unknownFile"))) shouldBe Seq.empty
     }
 
@@ -91,7 +91,7 @@ class FileStoreServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfte
       given(attatchment2.published).willReturn(true)
       given(s3Connector.sign(attatchment2)).willReturn(attSigned2)
 
-      given(repository.getAll(Seq("filename_1","filename_2"))).willReturn(successful(Seq(attatchment1,attatchment2)))
+      given(repository.get(Seq("filename_1","filename_2"))).willReturn(successful(Seq(attatchment1,attatchment2)))
 
       await(service.getByIds(Seq("filename_1","filename_2"))) shouldBe Seq(attSigned1,attSigned2)
     }

@@ -53,11 +53,11 @@ class FileStoreService @Inject()(appConfig: AppConfig,
   }
 
   def getById(id: String): Future[Option[FileMetadata]] = {
-    repository.get(id).map(signingPermanentURL)
+    repository.get(id) map signingPermanentURL
   }
 
   def getByIds(ids: Seq[String]): Future[Seq[FileMetadata]] = {
-    repository.getAll(ids) map (signingPermanentURLs(_))
+    repository.get(ids) map (signingPermanentURLs(_))
   }
 
   def notify(attachment: FileMetadata, scanResult: ScanResult): Future[Option[FileMetadata]] = {

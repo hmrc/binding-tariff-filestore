@@ -37,7 +37,7 @@ trait FileMetadataRepository {
 
   def get(id: String): Future[Option[FileMetadata]]
 
-  def getAll(ids: Seq[String]): Future[Seq[FileMetadata]]
+  def get(ids: Seq[String]): Future[Seq[FileMetadata]]
 
   def insert(att: FileMetadata): Future[FileMetadata]
 
@@ -67,10 +67,10 @@ class FileMetadataMongoRepository @Inject()(config: AppConfig,
     collection.find(byId(id)).one[FileMetadata]
   }
 
-  override def getAll(ids: Seq[String]): Future[Seq[FileMetadata]] = {
+  override def get(ids: Seq[String]): Future[Seq[FileMetadata]] = {
 
     val query = ids match {
-      case s if !s.isEmpty => Json.obj("id" -> Json.obj("$in" -> ids))
+      case s if s.nonEmpty => Json.obj("id" -> Json.obj("$in" -> ids))
       case _ => Json.obj()
     }
 
@@ -95,4 +95,5 @@ class FileMetadataMongoRepository @Inject()(config: AppConfig,
   private def byId(id: String) = {
     Json.obj("id" -> id)
   }
+
 }

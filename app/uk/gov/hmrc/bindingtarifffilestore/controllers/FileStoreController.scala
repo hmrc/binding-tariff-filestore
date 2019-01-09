@@ -34,7 +34,7 @@ import scala.concurrent.Future.successful
 class FileStoreController @Inject()(service: FileStoreService) extends BaseController {
 
   def upload: Action[MultipartFormData[Files.TemporaryFile]] = Action.async(parse.multipartFormData) { implicit request =>
-    val attachment: Option[FileWithMetadata] = request.body.file("file").map { file =>
+    val attachment: Option[FileWithMetadata] = request.body.file("file") map { file =>
       FileWithMetadata(
         file.ref,
         FileMetadata(
@@ -75,9 +75,10 @@ class FileStoreController @Inject()(service: FileStoreService) extends BaseContr
   }
 
   private def handleNotFound(id: String, result: FileMetadata => Future[Result]): Future[Result] = {
-    service.getById(id).flatMap {
+    service.getById(id) flatMap {
       case Some(att: FileMetadata) => result(att)
       case _ => successful(NotFound(JsErrorResponse(ErrorCode.NOT_FOUND, "File Not Found")))
     }
   }
+
 }

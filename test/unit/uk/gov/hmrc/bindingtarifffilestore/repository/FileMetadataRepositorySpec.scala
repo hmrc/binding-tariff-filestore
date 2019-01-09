@@ -175,7 +175,7 @@ class FileMetadataRepositorySpec extends BaseMongoIndexSpec
     }
   }
 
-  "getAll" should {
+  "get by id list" should {
 
     "retrieve the expected documents from the collection" in {
 
@@ -183,7 +183,7 @@ class FileMetadataRepositorySpec extends BaseMongoIndexSpec
       await(repository.insert(att2))
       collectionSize shouldBe 2
 
-      await(repository.getAll(Seq(att2.id))) should contain only att2
+      await(repository.get(Seq(att2.id))) should contain only att2
     }
 
     "retrieve all the files when no ids are passed" in {
@@ -192,11 +192,11 @@ class FileMetadataRepositorySpec extends BaseMongoIndexSpec
       await(repository.insert(att2))
       collectionSize shouldBe 2
 
-      await(repository.getAll(Seq.empty)) should contain only (att1, att2)
+      await(repository.get(Seq.empty)) should contain only (att1, att2)
     }
 
     "return None when there are no documents in the collection" in {
-      await(repository.getAll(Seq(att1.id, att2.id))) shouldBe Seq.empty
+      await(repository.get(Seq(att1.id, att2.id))) shouldBe Seq.empty
     }
 
   }
