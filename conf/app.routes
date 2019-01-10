@@ -5,3 +5,6 @@ GET        /file/:id                @uk.gov.hmrc.bindingtarifffilestore.controll
 POST       /file/:id/notify         @uk.gov.hmrc.bindingtarifffilestore.controllers.FileStoreController.notification(id: String)
 POST       /file/:id/publish        @uk.gov.hmrc.bindingtarifffilestore.controllers.FileStoreController.publish(id: String)
 GET        /file                    @uk.gov.hmrc.bindingtarifffilestore.controllers.FileStoreController.getFiles(id: Option[Seq[String]])
+
+# admin/test endpoints
+DELETE     /file                    @uk.gov.hmrc.bindingtarifffilestore.controllers.FileStoreController.deleteAll()

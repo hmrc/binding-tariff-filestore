@@ -42,6 +42,13 @@ class AppConfig @Inject()(val runModeConfiguration: Configuration, environment: 
   private def base64Decode(text: String) = new String(java.util.Base64.getDecoder.decode(text))
 
   lazy val mongoTTL: Int = getInt("mongodb.timeToLiveInSeconds")
+
+  lazy val isTestMode: Boolean = getBooleanConfig("testMode", default = false)
+
+  private def getBooleanConfig(key: String, default: Boolean): Boolean = {
+    runModeConfiguration.getBoolean(key).getOrElse(default)
+  }
+
 }
 
 case class S3Configuration
@@ -55,4 +62,3 @@ case class S3Configuration
 
   def baseUrl: String = endpoint.getOrElse(s"https://s3-$region.amazonaws.com")
 }
-

@@ -23,6 +23,7 @@ import java.time.Instant
 
 import com.github.tomakehurst.wiremock.client.WireMock._
 import org.apache.commons.io.IOUtils
+import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
 import play.api.Application
 import play.api.http.{ContentTypes, HeaderNames, HttpVerbs, Status}
 import play.api.inject.guice.GuiceApplicationBuilder
@@ -31,17 +32,31 @@ import play.api.libs.json._
 import scalaj.http.{Http, HttpResponse, MultiPart}
 import uk.gov.hmrc.bindingtarifffilestore.model.upscan.ScanResult.format
 import uk.gov.hmrc.bindingtarifffilestore.model.upscan._
+import uk.gov.hmrc.bindingtarifffilestore.repository.FileMetadataMongoRepository
 import uk.gov.hmrc.bindingtarifffilestore.util.{ResourceFiles, WiremockFeatureTestServer}
 
 import scala.collection.Map
+import scala.concurrent.Await.result
+import scala.concurrent.duration._
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.Try
 
-class FileStoreSpec extends WiremockFeatureTestServer with ResourceFiles {
+class FileStoreSpec extends WiremockFeatureTestServer with ResourceFiles with BeforeAndAfterEach {
 
   override lazy val port = 14681
-  protected val serviceUrl = s"http://localhost:$port/binding-tariff-filestore"
+
+  private val timeout: FiniteDuration = 2.seconds
+  private val serviceUrl = s"http://localhost:$port/binding-tariff-filestore"
 
   private val filePath = "test/resources/file.txt"
+
+  private lazy val fileStore: FileMetadataMongoRepository = app.injector.instanceOf[FileMetadataMongoRepository]
+
+  override protected def beforeEach(): Unit = {
+    super.beforeEach()
+    dropFileStore()
+    ensureFileStoreIndexes()
+  }
 
   override def fakeApplication(): Application = new GuiceApplicationBuilder()
     .configure(
@@ -49,6 +64,32 @@ class FileStoreSpec extends WiremockFeatureTestServer with ResourceFiles {
       "microservice.services.upscan-initiate.port" -> s"$wirePort"
     )
     .build()
+
+  feature("Delete All") {
+    scenario("Clear Collection") {
+
+      val storeSize = fileStoreSize
+      Given("There are some documents in the collection")
+      upload("some-file1.txt", "text/plain")
+      upload("some-file2.txt", "text/plain")
+      fileStoreSize shouldBe 2 + storeSize
+
+      When("I delete all documents")
+      val deleteResult = Http(s"$serviceUrl/file")
+        .method(HttpVerbs.DELETE)
+        .asString
+
+      Then("The response code should be 204")
+      deleteResult.code shouldEqual Status.NO_CONTENT
+
+      And("The response body is empty")
+      deleteResult.body shouldBe ""
+
+      And("No documents exist in the mongo collection")
+      fileStoreSize shouldBe 0
+    }
+
+  }
 
   feature("Upload") {
     scenario("Should persist") {
@@ -324,6 +365,18 @@ class FileStoreSpec extends WiremockFeatureTestServer with ResourceFiles {
     val body = IOUtils.toString(is)
     Try(Json.parse(body))
       .getOrElse(throw new AssertionError(s"The response was not valid JSON array:\n $body"))
+  }
+
+  private def fileStoreSize: Int = {
+    result(fileStore.collection.count(), timeout)
+  }
+
+  private def dropFileStore(): Unit = {
+    result(fileStore.drop, timeout)
+  }
+
+  private def ensureFileStoreIndexes(): Unit = {
+    result(fileStore.ensureIndexes, timeout)
   }
 
 }

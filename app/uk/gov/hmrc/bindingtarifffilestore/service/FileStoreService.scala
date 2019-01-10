@@ -106,4 +106,8 @@ class FileStoreService @Inject()(appConfig: AppConfig,
     case other => other
   }
 
+  def deleteAll(): Future[Unit] = {
+    repository.deleteAll()
+  }
+
 }

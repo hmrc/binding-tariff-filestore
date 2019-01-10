@@ -20,18 +20,26 @@ import javax.inject.{Inject, Singleton}
 import play.api.libs.Files
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc._
+import uk.gov.hmrc.bindingtarifffilestore.config.AppConfig
 import uk.gov.hmrc.bindingtarifffilestore.model.FileMetadataREST._
+import uk.gov.hmrc.bindingtarifffilestore.model.ErrorCode.NOTFOUND
 import uk.gov.hmrc.bindingtarifffilestore.model._
 import uk.gov.hmrc.bindingtarifffilestore.model.upscan.ScanResult
 import uk.gov.hmrc.bindingtarifffilestore.service.FileStoreService
-import uk.gov.hmrc.play.bootstrap.controller.BaseController
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.concurrent.Future.successful
 
 @Singleton
-class FileStoreController @Inject()(service: FileStoreService) extends BaseController {
+class FileStoreController @Inject()(appConfig: AppConfig,
+                                    service: FileStoreService) extends CommonController {
+
+  lazy private val testModeFilter = TestMode.actionFilter(appConfig)
+
+  def deleteAll(): Action[AnyContent] = testModeFilter.async { implicit request =>
+    service.deleteAll() map (_ => NoContent) recover recovery
+  }
 
   def upload: Action[MultipartFormData[Files.TemporaryFile]] = Action.async(parse.multipartFormData) { implicit request =>
     val attachment: Option[FileWithMetadata] = request.body.file("file") map { file =>
@@ -61,9 +69,9 @@ class FileStoreController @Inject()(service: FileStoreService) extends BaseContr
 
   def publish(id: String): Action[AnyContent] = Action.async { implicit request =>
     handleNotFound(id, (att: FileMetadata) =>
-      service.publish(att).map {
+      service.publish(att) map {
         case Some(metadata) => Accepted(Json.toJson(metadata))
-        case None => NotFound(JsErrorResponse(ErrorCode.NOT_FOUND, "File Not Found"))
+        case None => NotFound(JsErrorResponse(NOTFOUND, "File Not Found"))
       }
     )
   }
@@ -77,7 +85,7 @@ class FileStoreController @Inject()(service: FileStoreService) extends BaseContr
   private def handleNotFound(id: String, result: FileMetadata => Future[Result]): Future[Result] = {
     service.getById(id) flatMap {
       case Some(att: FileMetadata) => result(att)
-      case _ => successful(NotFound(JsErrorResponse(ErrorCode.NOT_FOUND, "File Not Found")))
+      case _ => successful(NotFound(JsErrorResponse(NOTFOUND, "File Not Found")))
     }
   }
 
