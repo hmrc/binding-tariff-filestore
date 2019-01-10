@@ -95,7 +95,6 @@ class FileStoreSpec extends WiremockFeatureTestServer with ResourceFiles {
       Given("Files have been uploaded")
       val id1 = upload("some-file1.txt", "text/plain").body("id").as[JsString].value
       val id2 = upload("some-file2.txt", "text/plain").body("id").as[JsString].value
-      val id3 = upload("some-file3.txt", "text/plain").body("id").as[JsString].value
 
       When("I request the file details")
       val response = getFiles(id1, id2)
