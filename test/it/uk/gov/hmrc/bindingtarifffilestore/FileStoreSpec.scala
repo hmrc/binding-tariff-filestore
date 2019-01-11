@@ -46,7 +46,7 @@ class FileStoreSpec extends WiremockFeatureTestServer with ResourceFiles with Be
   override lazy val port = 14681
 
   private val timeout: FiniteDuration = 2.seconds
-  private val serviceUrl = s"http://localhost:$port/binding-tariff-filestore"
+  private val serviceUrl = s"http://localhost:$port"
 
   private val filePath = "test/resources/file.txt"
 
