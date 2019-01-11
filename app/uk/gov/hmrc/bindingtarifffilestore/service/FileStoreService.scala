@@ -107,6 +107,7 @@ class FileStoreService @Inject()(appConfig: AppConfig,
   }
 
   def deleteAll(): Future[Unit] = {
+    // TODO: we need to delete also all files from the S3 bucket
     repository.deleteAll()
   }
 
