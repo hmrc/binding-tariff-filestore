@@ -18,7 +18,7 @@ package uk.gov.hmrc.bindingtarifffilestore.service
 
 import org.mockito.ArgumentMatchers.any
 import org.mockito.BDDMockito.given
-import org.mockito.Mockito.{never, reset, verify}
+import org.mockito.Mockito.{never, reset, verify, when}
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.mockito.MockitoSugar
 import play.api.libs.Files.TemporaryFile
@@ -40,14 +40,34 @@ class FileStoreServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfte
   private val upscanConnector = mock[UpscanConnector]
   private implicit val headerCarrier: HeaderCarrier = HeaderCarrier()
 
-  val service = new FileStoreService(config, s3Connector, repository, upscanConnector)
+  private val service = new FileStoreService(config, s3Connector, repository, upscanConnector)
+
+  private final val emulatedFailure = new RuntimeException("Emulated failure.")
 
   override protected def afterEach(): Unit = {
     super.afterEach()
     reset(repository, s3Connector)
   }
 
+  "deleteAll()" should {
+
+    "return () and clear the database collection" in {
+      when(repository.deleteAll()).thenReturn(successful(()))
+      await(service.deleteAll()) shouldBe ((): Unit)
+    }
+
+    "propagate any error" in {
+      when(repository.deleteAll()).thenThrow(emulatedFailure)
+
+      val caught = intercept[RuntimeException] {
+        await(service.deleteAll())
+      }
+      caught shouldBe emulatedFailure
+    }
+  }
+
   "Service 'get by id'" should {
+
     "Delegate to Connector" in {
       val attachment = mock[FileMetadata]
       val attachmentSigned = mock[FileMetadata]

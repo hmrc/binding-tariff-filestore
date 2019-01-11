@@ -25,34 +25,71 @@ import org.mockito.Mockito.when
 import org.scalatest.mockito.MockitoSugar
 import org.scalatest.{BeforeAndAfterEach, Matchers}
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
-import play.api.http.Status
+import play.api.http.Status._
 import play.api.libs.Files.TemporaryFile
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.MultipartFormData.FilePart
 import play.api.mvc.{MultipartFormData, Result}
 import play.api.test.FakeRequest
+import uk.gov.hmrc.bindingtarifffilestore.config.AppConfig
 import uk.gov.hmrc.bindingtarifffilestore.model.FileMetadataREST.format
 import uk.gov.hmrc.bindingtarifffilestore.model.upscan.{ScanResult, SuccessfulScanResult, UploadDetails}
 import uk.gov.hmrc.bindingtarifffilestore.model.{FileMetadata, FileWithMetadata, ScanStatus}
 import uk.gov.hmrc.bindingtarifffilestore.service.FileStoreService
-import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.http.{HeaderCarrier, HttpVerbs}
 import uk.gov.hmrc.play.test.UnitSpec
 
-import scala.concurrent.Future.successful
+import scala.concurrent.Future.{failed, successful}
 
 class FileStoreControllerSpec extends UnitSpec with Matchers
   with GuiceOneAppPerSuite with MockitoSugar with BeforeAndAfterEach {
 
   private implicit val mat: Materializer = fakeApplication.materializer
 
+  private val appConfig = mock[AppConfig]
   private val service = mock[FileStoreService]
-  private val controller = new FileStoreController(service)
+  private val controller = new FileStoreController(appConfig, service)
 
   private val fakeRequest = FakeRequest()
 
-  override protected def beforeEach(): Unit = {
+  override protected def afterEach(): Unit = {
     super.beforeEach()
     Mockito.reset(service)
+  }
+
+  "deleteAll()" should {
+
+    val req = FakeRequest(method = HttpVerbs.DELETE, path = "/cases")
+
+    "return 403 if the test mode is disabled" in {
+
+      val result = await(controller.deleteAll()(req))
+
+      status(result) shouldEqual FORBIDDEN
+      jsonBodyOf(result).toString() shouldEqual s"""{"code":"FORBIDDEN","message":"You are not allowed to call ${req.method} ${req.path}"}"""
+    }
+
+    "return 204 if the test mode is enabled" in {
+      when(appConfig.isTestMode).thenReturn(true)
+      when(service.deleteAll()).thenReturn(successful(()))
+
+      val result = await(controller.deleteAll()(req))
+
+      status(result) shouldEqual NO_CONTENT
+    }
+
+    "return 500 when an error occurred" in {
+      val error = new RuntimeException
+
+      when(appConfig.isTestMode).thenReturn(true)
+      when(service.deleteAll()).thenReturn(failed(error))
+
+      val result = await(controller.deleteAll()(req))
+
+      status(result) shouldEqual INTERNAL_SERVER_ERROR
+      jsonBodyOf(result).toString() shouldEqual """{"code":"UNKNOWN_ERROR","message":"An unexpected error occurred"}"""
+    }
+
   }
 
   "Get By ID" should {
@@ -62,7 +99,7 @@ class FileStoreControllerSpec extends UnitSpec with Matchers
 
       val result = await(controller.get("id")(fakeRequest))
 
-      status(result) shouldBe Status.OK
+      status(result) shouldBe OK
       bodyOf(result) shouldEqual Json.toJson(attachment).toString()
     }
 
@@ -71,7 +108,7 @@ class FileStoreControllerSpec extends UnitSpec with Matchers
 
       val result = await(controller.get("id")(fakeRequest))
 
-      status(result) shouldBe Status.NOT_FOUND
+      status(result) shouldBe NOT_FOUND
     }
   }
 
@@ -81,7 +118,7 @@ class FileStoreControllerSpec extends UnitSpec with Matchers
 
       val result = await(controller.getFiles(Some(Seq.empty))(fakeRequest))
 
-      status(result) shouldBe Status.OK
+      status(result) shouldBe OK
       bodyOf(result) shouldEqual Json.toJson(Seq.empty).toString()
     }
 
@@ -90,7 +127,7 @@ class FileStoreControllerSpec extends UnitSpec with Matchers
 
       val result = await(controller.getFiles(None)(fakeRequest))
 
-      status(result) shouldBe Status.OK
+      status(result) shouldBe OK
       bodyOf(result) shouldEqual Json.toJson(Seq.empty).toString()
     }
 
@@ -102,7 +139,7 @@ class FileStoreControllerSpec extends UnitSpec with Matchers
 
       val result = await(controller.getFiles(Some(Seq("id1", "id2")))(fakeRequest))
 
-      status(result) shouldBe Status.OK
+      status(result) shouldBe OK
       bodyOf(result) shouldEqual Json.toJson(Seq(attachment1, attachment2)).toString()
     }
   }
@@ -118,7 +155,7 @@ class FileStoreControllerSpec extends UnitSpec with Matchers
       val request: FakeRequest[JsValue] = fakeRequest.withBody(Json.toJson[ScanResult](scanResult))
       val result: Result = await(controller.notification("id")(request))
 
-      status(result) shouldBe Status.CREATED
+      status(result) shouldBe CREATED
       jsonBodyOf(result) shouldBe Json.toJson(attachmentUpdated)
     }
 
@@ -129,7 +166,7 @@ class FileStoreControllerSpec extends UnitSpec with Matchers
       val request: FakeRequest[JsValue] = fakeRequest.withBody(Json.toJson[ScanResult](scanResult))
       val result: Result = await(controller.notification("id")(request))
 
-      status(result) shouldBe Status.NOT_FOUND
+      status(result) shouldBe NOT_FOUND
     }
   }
 
@@ -142,7 +179,7 @@ class FileStoreControllerSpec extends UnitSpec with Matchers
 
       val result: Result = await(controller.publish("id")(fakeRequest))
 
-      status(result) shouldBe Status.ACCEPTED
+      status(result) shouldBe ACCEPTED
       jsonBodyOf(result) shouldBe Json.toJson(attachmentUpdated)
     }
 
@@ -151,7 +188,7 @@ class FileStoreControllerSpec extends UnitSpec with Matchers
 
       val result: Result = await(controller.publish("id")(fakeRequest))
 
-      status(result) shouldBe Status.NOT_FOUND
+      status(result) shouldBe NOT_FOUND
     }
 
     "return 404 when publish returns not found" in {
@@ -161,7 +198,7 @@ class FileStoreControllerSpec extends UnitSpec with Matchers
 
       val result: Result = await(controller.publish("id")(fakeRequest))
 
-      status(result) shouldBe Status.NOT_FOUND
+      status(result) shouldBe NOT_FOUND
     }
   }
 
@@ -181,7 +218,7 @@ class FileStoreControllerSpec extends UnitSpec with Matchers
       val result: Result = await(controller.upload(fakeRequest.withBody(form)))
 
       // Then
-      status(result) shouldBe Status.ACCEPTED
+      status(result) shouldBe ACCEPTED
     }
 
     "Throw exception on missing mime type" in {
@@ -199,7 +236,7 @@ class FileStoreControllerSpec extends UnitSpec with Matchers
 
       val result: Result = await(controller.upload(fakeRequest.withBody(form)))
 
-      status(result) shouldBe Status.BAD_REQUEST
+      status(result) shouldBe BAD_REQUEST
     }
 
   }

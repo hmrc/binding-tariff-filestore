@@ -73,6 +73,21 @@ class FileMetadataRepositorySpec extends BaseMongoIndexSpec
     await(repository.collection.count())
   }
 
+  "deleteAll()" should {
+
+    "clear the collection" in {
+      val size = collectionSize
+
+      await(repository.insert(att1))
+      await(repository.insert(att2))
+      collectionSize shouldBe 2 + size
+
+      await(repository.deleteAll()) shouldBe ((): Unit)
+      collectionSize shouldBe 0
+    }
+
+  }
+
   "insert" should {
 
     "insert a new document in the collection" in {

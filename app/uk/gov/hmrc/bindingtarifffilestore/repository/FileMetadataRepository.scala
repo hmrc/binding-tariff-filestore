@@ -43,6 +43,7 @@ trait FileMetadataRepository {
 
   def update(att: FileMetadata): Future[Option[FileMetadata]]
 
+  def deleteAll(): Future[Unit]
 }
 
 @Singleton
@@ -94,6 +95,10 @@ class FileMetadataMongoRepository @Inject()(config: AppConfig,
 
   private def byId(id: String) = {
     Json.obj("id" -> id)
+  }
+
+  override def deleteAll(): Future[Unit] = {
+    removeAll().map(_ => ())
   }
 
 }

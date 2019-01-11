@@ -32,7 +32,7 @@ object ErrorCode extends Enumeration {
   type ErrorCode = Value
 
   val FORBIDDEN = Value("FORBIDDEN")
-  val NOT_FOUND = Value("NOT_FOUND")
+  val NOTFOUND = Value("NOT_FOUND")
   val UNKNOWN_ERROR = Value("UNKNOWN_ERROR")
   val INVALID_REQUEST_PAYLOAD = Value("INVALID_REQUEST_PAYLOAD")
 }
