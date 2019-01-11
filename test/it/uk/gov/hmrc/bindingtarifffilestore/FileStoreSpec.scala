@@ -39,7 +39,7 @@ import scala.util.Try
 class FileStoreSpec extends WiremockFeatureTestServer with ResourceFiles {
 
   override lazy val port = 14681
-  protected val serviceUrl = s"http://localhost:$port/binding-tariff-filestore"
+  protected val serviceUrl = s"http://localhost:$port"
 
   private val filePath = "test/resources/file.txt"
 
