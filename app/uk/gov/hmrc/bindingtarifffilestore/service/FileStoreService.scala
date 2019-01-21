@@ -107,7 +107,7 @@ class FileStoreService @Inject()(appConfig: AppConfig,
   }
 
   def deleteAll(): Future[Unit] = {
-    fileStoreConnector.delete()
+    fileStoreConnector.deleteAll()
     repository.deleteAll()
   }
 

@@ -57,7 +57,7 @@ class FileStoreServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfte
       await(service.deleteAll()) shouldBe ((): Unit)
 
       verify(repository).deleteAll()
-      verify(s3Connector).delete()
+      verify(s3Connector).deleteAll()
     }
 
     "Propagate any error" in {

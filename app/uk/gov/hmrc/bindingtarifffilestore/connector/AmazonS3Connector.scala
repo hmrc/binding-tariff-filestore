@@ -87,7 +87,7 @@ class AmazonS3Connector @Inject()(config: AppConfig) {
     s3client.deleteObject(s3Config.bucket, id)
   }
 
-  def delete(): Unit = {
+  def deleteAll(): Unit = {
     val keys: Seq[KeyVersion] = getAll.map(new KeyVersion(_))
     val request = new DeleteObjectsRequest(s3Config.bucket)
         .withKeys(JavaConversions.seqAsJavaList(keys))

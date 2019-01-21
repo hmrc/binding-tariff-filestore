@@ -141,7 +141,7 @@ class AmazonS3ConnectorSpec extends UnitSpec with WiremockTestServer
           )
       )
 
-      connector.delete()
+      connector.deleteAll()
 
       verify(
         postRequestedFor(urlEqualTo("/bucket/?delete"))
