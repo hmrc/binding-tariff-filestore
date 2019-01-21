@@ -97,6 +97,16 @@ class FileStoreService @Inject()(appConfig: AppConfig,
 
   }
 
+  def deleteAll(): Future[Unit] = {
+    fileStoreConnector.deleteAll()
+    repository.deleteAll()
+  }
+
+  def delete(id: String): Future[Unit] = {
+    fileStoreConnector.delete(id)
+    repository.delete(id)
+  }
+
   private def signingPermanentURL: Option[FileMetadata] => Option[FileMetadata] = _ map signingIfPublished
 
   private def signingPermanentURLs: Seq[FileMetadata] => Seq[FileMetadata] = _ map signingIfPublished
@@ -106,9 +116,6 @@ class FileStoreService @Inject()(appConfig: AppConfig,
     case other => other
   }
 
-  def deleteAll(): Future[Unit] = {
-    fileStoreConnector.deleteAll()
-    repository.deleteAll()
-  }
+
 
 }

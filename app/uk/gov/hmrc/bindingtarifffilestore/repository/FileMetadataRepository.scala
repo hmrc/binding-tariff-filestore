@@ -43,6 +43,8 @@ trait FileMetadataRepository {
 
   def update(att: FileMetadata): Future[Option[FileMetadata]]
 
+  def delete(id: String): Future[Unit]
+
   def deleteAll(): Future[Unit]
 }
 
@@ -93,12 +95,16 @@ class FileMetadataMongoRepository @Inject()(config: AppConfig,
     ).map(_.value.map(_.as[FileMetadata]))
   }
 
-  private def byId(id: String) = {
-    Json.obj("id" -> id)
+  override def delete(id: String): Future[Unit] = {
+    collection.findAndRemove(byId(id)).map(_ => Unit)
   }
 
   override def deleteAll(): Future[Unit] = {
     removeAll().map(_ => ())
+  }
+
+  private def byId(id: String) = {
+    Json.obj("id" -> id)
   }
 
 }

@@ -70,7 +70,29 @@ class FileStoreServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfte
     }
   }
 
-  "Service 'get by id'" should {
+  "Service 'delete one'" should {
+
+    "Clear the Database & File Store" in {
+      when(repository.delete("id")).thenReturn(successful(()))
+
+      await(service.delete("id")) shouldBe ((): Unit)
+
+      verify(repository).delete("id")
+      verify(s3Connector).delete("id")
+    }
+
+    "Propagate any error" in {
+      when(repository.deleteAll()).thenThrow(emulatedFailure)
+
+      val caught = intercept[RuntimeException] {
+        await(service.deleteAll())
+      }
+      caught shouldBe emulatedFailure
+    }
+  }
+
+
+  "Service 'getAll by id'" should {
 
     "Delegate to Connector" in {
       val attachment = mock[FileMetadata]
@@ -92,7 +114,7 @@ class FileStoreServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfte
     }
   }
 
-  "Service 'get by id list'" should {
+  "Service 'getAll by id list'" should {
 
     "return empty when no ids are requested" in {
       given(repository.get(Seq.empty)).willReturn(successful(Seq.empty))

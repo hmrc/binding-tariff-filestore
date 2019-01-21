@@ -131,6 +131,20 @@ class FileStoreSpec extends WiremockFeatureTestServer with ResourceFiles with Be
     }
   }
 
+  feature("Delete") {
+    scenario("Delete the file") {
+      Given("A file has been uploaded")
+      val id = upload("some-file.txt", "text/plain")
+        .body("id").as[JsString].value
+
+      When("I request the file details")
+      val response = deleteFile(id)
+
+      Then("The response code should be Ok")
+      response.code shouldBe Status.NO_CONTENT
+    }
+  }
+
   feature("Get files") {
     scenario("Should show the files are persisted") {
       Given("Files have been uploaded")
@@ -268,6 +282,13 @@ class FileStoreSpec extends WiremockFeatureTestServer with ResourceFiles with Be
       .execute(convertingResponseToJS)
   }
 
+  private def deleteFile(id: String): HttpResponse[Unit] = {
+    stubS3DeleteOne(id)
+    Http(s"$serviceUrl/file/$id")
+      .method(HttpVerbs.DELETE)
+      .execute(_ => Unit)
+  }
+
   private def getFiles(ids: String*): HttpResponse[JsValue] = {
 
     val queryParams = ids.map(id => s"id=$id").mkString("&")
@@ -372,6 +393,16 @@ class FileStoreSpec extends WiremockFeatureTestServer with ResourceFiles with Be
           aResponse()
             .withStatus(Status.OK)
             .withBody(fromFile("aws/delete-objects_response.xml"))
+        )
+    )
+  }
+
+  private def stubS3DeleteOne(id: String) = {
+    stubFor(
+      delete(s"/digital-tariffs-local/$id")
+        .willReturn(
+          aResponse()
+            .withStatus(Status.OK)
         )
     )
   }
