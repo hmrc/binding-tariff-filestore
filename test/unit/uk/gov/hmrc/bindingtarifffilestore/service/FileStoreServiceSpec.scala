@@ -49,14 +49,18 @@ class FileStoreServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfte
     reset(repository, s3Connector)
   }
 
-  "deleteAll()" should {
+  "Service 'delete all'" should {
 
-    "return () and clear the database collection" in {
+    "Clear the Database & File Store" in {
       when(repository.deleteAll()).thenReturn(successful(()))
+
       await(service.deleteAll()) shouldBe ((): Unit)
+
+      verify(repository).deleteAll()
+      verify(s3Connector).deleteAll()
     }
 
-    "propagate any error" in {
+    "Propagate any error" in {
       when(repository.deleteAll()).thenThrow(emulatedFailure)
 
       val caught = intercept[RuntimeException] {
