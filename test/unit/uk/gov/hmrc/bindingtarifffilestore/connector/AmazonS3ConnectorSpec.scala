@@ -17,7 +17,6 @@
 package uk.gov.hmrc.bindingtarifffilestore.connector
 
 import com.github.tomakehurst.wiremock.client.WireMock._
-import com.github.tomakehurst.wiremock.matching.{EqualToPattern, RegexPattern}
 import org.mockito.BDDMockito.given
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.mockito.MockitoSugar
@@ -47,7 +46,7 @@ class AmazonS3ConnectorSpec extends UnitSpec with WiremockTestServer
       // Given
       stubFor(
         get("/bucket/?encoding-type=url")
-          .withHeader("Authorization", new RegexPattern(s"AWS4-HMAC-SHA256 Credential=${s3Config.key}/\\d+/${s3Config.region}/s3/aws4_request, .*"))
+          .withHeader("Authorization", matching(s"AWS4-HMAC-SHA256 Credential=${s3Config.key}/\\d+/${s3Config.region}/s3/aws4_request, .*"))
           .willReturn(
             aResponse()
               .withStatus(Status.OK)
@@ -56,11 +55,11 @@ class AmazonS3ConnectorSpec extends UnitSpec with WiremockTestServer
       )
 
       // When
-      val all: Seq[FileMetadata] = connector.getAll
+      val all: Seq[String] = connector.getAll
 
       // Then
       all should have size 1
-      all.head.fileName shouldBe "image.jpg"
+      all.head shouldBe "image.jpg"
     }
 
   }
@@ -71,8 +70,8 @@ class AmazonS3ConnectorSpec extends UnitSpec with WiremockTestServer
       // Given
       stubFor(
         put("/bucket/id")
-          .withHeader("Authorization", new RegexPattern(s"AWS4-HMAC-SHA256 Credential=${s3Config.key}/\\d+/${s3Config.region}/s3/aws4_request, .*"))
-          .withHeader("Content-Type", new EqualToPattern("text/plain"))
+          .withHeader("Authorization", matching(s"AWS4-HMAC-SHA256 Credential=${s3Config.key}/\\d+/${s3Config.region}/s3/aws4_request, .*"))
+          .withHeader("Content-Type", equalTo("text/plain"))
           .willReturn(
             aResponse()
               .withStatus(Status.OK)
@@ -118,6 +117,53 @@ class AmazonS3ConnectorSpec extends UnitSpec with WiremockTestServer
 
       // When
       connector.sign(file).url shouldBe None
+    }
+  }
+
+  "Delete All" should {
+    "Delegate to S3" in {
+      stubFor(
+        get("/bucket/?encoding-type=url")
+          .withHeader("Authorization", matching(s"AWS4-HMAC-SHA256 Credential=${s3Config.key}/\\d+/${s3Config.region}/s3/aws4_request, .*"))
+          .willReturn(
+            aResponse()
+              .withStatus(Status.OK)
+              .withBody(fromFile("aws/list-objects_response.xml"))
+          )
+      )
+      stubFor(
+        post("/bucket/?delete")
+          .withHeader("Authorization", matching(s"AWS4-HMAC-SHA256 Credential=${s3Config.key}/\\d+/${s3Config.region}/s3/aws4_request, .*"))
+          .willReturn(
+            aResponse()
+              .withStatus(Status.OK)
+              .withBody(fromFile("aws/delete-objects_response.xml"))
+          )
+      )
+
+      connector.delete()
+
+      verify(
+        postRequestedFor(urlEqualTo("/bucket/?delete"))
+          .withRequestBody(equalToXml(fromFile("aws/delete-objects_request.xml")))
+      )
+    }
+  }
+
+  "Delete One" should {
+    "Delegate to S3" in {
+      stubFor(
+        delete("/bucket/image.jpg")
+          .withHeader("Authorization", matching(s"AWS4-HMAC-SHA256 Credential=${s3Config.key}/\\d+/${s3Config.region}/s3/aws4_request, .*"))
+          .willReturn(
+            aResponse()
+              .withStatus(Status.OK)
+          )
+      )
+
+      connector.delete("image.jpg")
+
+      verify(deleteRequestedFor(urlEqualTo("/bucket/image.jpg")))
     }
   }
 

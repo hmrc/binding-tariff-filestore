@@ -23,7 +23,8 @@ import java.util
 import com.amazonaws.HttpMethod
 import com.amazonaws.auth.{AWSStaticCredentialsProvider, BasicAWSCredentials}
 import com.amazonaws.client.builder.AwsClientBuilder.EndpointConfiguration
-import com.amazonaws.services.s3.model.{CannedAccessControlList, GeneratePresignedUrlRequest, ObjectMetadata, PutObjectRequest}
+import com.amazonaws.services.s3.model.DeleteObjectsRequest.KeyVersion
+import com.amazonaws.services.s3.model._
 import com.amazonaws.services.s3.{AmazonS3, AmazonS3ClientBuilder}
 import com.google.inject.Inject
 import javax.inject.Singleton
@@ -31,7 +32,7 @@ import play.api.Logger
 import uk.gov.hmrc.bindingtarifffilestore.config.AppConfig
 import uk.gov.hmrc.bindingtarifffilestore.model.FileMetadata
 
-import scala.collection.JavaConverters
+import scala.collection.{JavaConversions, JavaConverters}
 import scala.util.{Failure, Success, Try}
 
 @Singleton
@@ -56,10 +57,10 @@ class AmazonS3Connector @Inject()(config: AppConfig) {
     builder.build()
   }
 
-  def getAll: Seq[FileMetadata] = {
+  def getAll: Seq[String] = {
     sequenceOf(
       s3client.listObjects(s3Config.bucket).getObjectSummaries
-    ).map(obj => FileMetadata(fileName = obj.getKey, mimeType = ""))
+    ).map(_.getKey)
   }
 
   def upload(fileMetaData: FileMetadata): FileMetadata = {
@@ -80,6 +81,17 @@ class AmazonS3Connector @Inject()(config: AppConfig) {
         Logger.error("Failing to upload to the S3 bucket.", e)
         throw e
     }
+  }
+
+  def delete(id: String): Unit = {
+    s3client.deleteObject(s3Config.bucket, id)
+  }
+
+  def delete(): Unit = {
+    val keys: Seq[KeyVersion] = getAll.map(new KeyVersion(_))
+    val request = new DeleteObjectsRequest(s3Config.bucket)
+        .withKeys(JavaConversions.seqAsJavaList(keys))
+    s3client.deleteObjects(request)
   }
 
   def sign(fileMetaData: FileMetadata): FileMetadata = {
