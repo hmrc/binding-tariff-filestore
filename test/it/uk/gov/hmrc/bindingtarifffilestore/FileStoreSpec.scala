@@ -23,7 +23,7 @@ import java.time.Instant
 
 import com.github.tomakehurst.wiremock.client.WireMock._
 import org.apache.commons.io.IOUtils
-import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
+import org.scalatest.BeforeAndAfterEach
 import play.api.Application
 import play.api.http.{ContentTypes, HeaderNames, HttpVerbs, Status}
 import play.api.inject.guice.GuiceApplicationBuilder
@@ -37,8 +37,8 @@ import uk.gov.hmrc.bindingtarifffilestore.util.{ResourceFiles, WiremockFeatureTe
 
 import scala.collection.Map
 import scala.concurrent.Await.result
-import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.duration._
 import scala.util.Try
 
 class FileStoreSpec extends WiremockFeatureTestServer with ResourceFiles with BeforeAndAfterEach {
@@ -67,12 +67,12 @@ class FileStoreSpec extends WiremockFeatureTestServer with ResourceFiles with Be
 
   feature("Delete All") {
     scenario("Clear Collection") {
-
-      val storeSize = fileStoreSize
       Given("There are some documents in the collection")
       upload("some-file1.txt", "text/plain")
       upload("some-file2.txt", "text/plain")
-      fileStoreSize shouldBe 2 + storeSize
+      fileStoreSize shouldBe 2
+      stubS3ListAll()
+      stubS3DeleteAll()
 
       When("I delete all documents")
       val deleteResult = Http(s"$serviceUrl/file")
@@ -350,6 +350,28 @@ class FileStoreSpec extends WiremockFeatureTestServer with ResourceFiles with Be
         .willReturn(
           aResponse()
             .withStatus(Status.OK)
+        )
+    )
+  }
+
+  private def stubS3ListAll() = {
+    stubFor(
+      get(s"/digital-tariffs-local/?encoding-type=url")
+        .willReturn(
+          aResponse()
+            .withStatus(Status.OK)
+            .withBody(fromFile("aws/list-objects_response.xml"))
+        )
+    )
+  }
+
+  private def stubS3DeleteAll() = {
+    stubFor(
+      post(s"/digital-tariffs-local/?delete")
+        .willReturn(
+          aResponse()
+            .withStatus(Status.OK)
+            .withBody(fromFile("aws/delete-objects_response.xml"))
         )
     )
   }
