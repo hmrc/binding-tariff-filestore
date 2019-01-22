@@ -89,7 +89,7 @@ class AmazonS3Connector @Inject()(config: AppConfig) {
 
   def deleteAll(): Unit = {
     val keys: Seq[KeyVersion] = getAll.map(new KeyVersion(_))
-    Logger.debug(s"Removing [${keys.length}] files from S3")
+    Logger.info(s"Removing [${keys.length}] files from S3")
     val request = new DeleteObjectsRequest(s3Config.bucket)
         .withKeys(JavaConversions.seqAsJavaList(keys))
         .withQuiet(false)
