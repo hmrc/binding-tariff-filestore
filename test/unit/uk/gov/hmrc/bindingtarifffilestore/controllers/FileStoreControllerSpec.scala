@@ -20,8 +20,8 @@ import java.time.Instant
 
 import akka.stream.Materializer
 import org.mockito.ArgumentMatchers.any
-import org.mockito.Mockito
-import org.mockito.Mockito.when
+import org.mockito.Mockito.{verify, when}
+import org.mockito.{ArgumentCaptor, Mockito}
 import org.scalatest.mockito.MockitoSugar
 import org.scalatest.{BeforeAndAfterEach, Matchers}
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
@@ -216,20 +216,66 @@ class FileStoreControllerSpec extends UnitSpec with Matchers
   "Upload" should {
 
     val fileName = "file.txt"
+    val mimeType = "text/plain"
 
     "return 202 on valid file" in {
       // Given
-      val metadataUploaded = FileMetadata(id = "id", fileName = "name", mimeType = "text/plain")
+      val metadataUploaded = FileMetadata(id = "id", fileName = fileName, mimeType = mimeType)
       when(service.upload(any[FileWithMetadata])(any[HeaderCarrier])).thenReturn(successful(metadataUploaded))
 
       // When=
-      val filePart = FilePart[TemporaryFile](key = "file", fileName, contentType = Some("text/plain"), ref = TemporaryFile("example-file.txt"))
+      val filePart = FilePart[TemporaryFile](key = "file", fileName, contentType = Some(mimeType), ref = TemporaryFile("example-file.txt"))
       val form = MultipartFormData[TemporaryFile](dataParts = Map(), files = Seq(filePart), badParts = Seq.empty)
 
       val result: Result = await(controller.upload(fakeRequest.withBody(form)))
 
       // Then
       status(result) shouldBe ACCEPTED
+
+      val metadata = theFileUploaded.metadata
+      metadata.published shouldBe false
+      metadata.fileName shouldBe "file.txt"
+      metadata.mimeType shouldBe "text/plain"
+    }
+
+    "return 202 on valid file with publish=true" in {
+      // Given
+      val metadataUploaded = FileMetadata(id = "id", fileName = "name", mimeType = mimeType, published = true)
+      when(service.upload(any[FileWithMetadata])(any[HeaderCarrier])).thenReturn(successful(metadataUploaded))
+
+      // When=
+      val filePart = FilePart[TemporaryFile](key = "file", fileName, contentType = Some(mimeType), ref = TemporaryFile("example-file.txt"))
+      val form = MultipartFormData[TemporaryFile](dataParts = Map("publish" -> Seq("true")), files = Seq(filePart), badParts = Seq.empty)
+
+      val result: Result = await(controller.upload(fakeRequest.withBody(form)))
+
+      // Then
+      status(result) shouldBe ACCEPTED
+
+      val metadata = theFileUploaded.metadata
+      metadata.published shouldBe true
+      metadata.fileName shouldBe "file.txt"
+      metadata.mimeType shouldBe "text/plain"
+    }
+
+    "return 202 on valid file with publish=false" in {
+      // Given
+      val metadataUploaded = FileMetadata(id = "id", fileName = "name", mimeType = mimeType, published = true)
+      when(service.upload(any[FileWithMetadata])(any[HeaderCarrier])).thenReturn(successful(metadataUploaded))
+
+      // When=
+      val filePart = FilePart[TemporaryFile](key = "file", fileName, contentType = Some(mimeType), ref = TemporaryFile("example-file.txt"))
+      val form = MultipartFormData[TemporaryFile](dataParts = Map("publish" -> Seq("false")), files = Seq(filePart), badParts = Seq.empty)
+
+      val result: Result = await(controller.upload(fakeRequest.withBody(form)))
+
+      // Then
+      status(result) shouldBe ACCEPTED
+
+      val metadata = theFileUploaded.metadata
+      metadata.published shouldBe false
+      metadata.fileName shouldBe "file.txt"
+      metadata.mimeType shouldBe "text/plain"
     }
 
     "Throw exception on missing mime type" in {
@@ -248,6 +294,12 @@ class FileStoreControllerSpec extends UnitSpec with Matchers
       val result: Result = await(controller.upload(fakeRequest.withBody(form)))
 
       status(result) shouldBe BAD_REQUEST
+    }
+
+    def theFileUploaded: FileWithMetadata = {
+      val captor = ArgumentCaptor.forClass(classOf[FileWithMetadata])
+      verify(service).upload(captor.capture())(any[HeaderCarrier])
+      captor.getValue
     }
 
   }

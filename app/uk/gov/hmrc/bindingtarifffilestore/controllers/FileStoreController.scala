@@ -42,12 +42,16 @@ class FileStoreController @Inject()(appConfig: AppConfig,
   }
 
   def upload: Action[MultipartFormData[Files.TemporaryFile]] = Action.async(parse.multipartFormData) { implicit request =>
-    val attachment: Option[FileWithMetadata] = request.body.file("file") map { file =>
+    val formFile = request.body.file("file")
+    val published = request.body.dataParts.getOrElse("publish", Seq.empty).contains("true")
+
+    val attachment: Option[FileWithMetadata] = formFile map { file =>
       FileWithMetadata(
         file.ref,
         FileMetadata(
           fileName = file.filename,
-          mimeType = file.contentType.getOrElse(throw new RuntimeException("Missing file type"))
+          mimeType = file.contentType.getOrElse(throw new RuntimeException("Missing file type")),
+          published = published
         )
       )
     }
