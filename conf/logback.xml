@@ -49,10 +49,13 @@
 
     <logger name="application" level="DEBUG"/>
 
-    <logger name="com.amazonaws.request" level="DEBUG"/>
-    <logger name="org.apache.http.wire" level="DEBUG"/>
+    <!--AWS Request Logging (URLS & Headers only)-->
+    <!--<logger name="com.amazonaws.request" level="DEBUG"/>-->
 
-    <logger name="reactivemongo" level="ERROR"/>
+    <!--Log AWS Full Requests-->
+    <!--<logger name="org.apache.http.wire" level="DEBUG"/>-->
+
+    <!--<logger name="reactivemongo" level="ERROR"/>-->
 
     <logger name="connector" level="TRACE">
         <appender-ref ref="STDOUT"/>
