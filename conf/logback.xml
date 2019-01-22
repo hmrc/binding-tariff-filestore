@@ -49,6 +49,9 @@
 
     <logger name="application" level="DEBUG"/>
 
+    <logger name="com.amazonaws.request" level="DEBUG"/>
+    <logger name="org.apache.http.wire" level="DEBUG"/>
+
     <logger name="connector" level="TRACE">
         <appender-ref ref="STDOUT"/>
     </logger>
