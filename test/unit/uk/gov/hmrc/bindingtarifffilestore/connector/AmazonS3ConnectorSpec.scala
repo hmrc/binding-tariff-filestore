@@ -148,6 +148,25 @@ class AmazonS3ConnectorSpec extends UnitSpec with WiremockTestServer
           .withRequestBody(equalToXml(fromFile("aws/delete-objects_request.xml")))
       )
     }
+
+    "Do nothing for no files" in {
+      stubFor(
+        get("/bucket/?encoding-type=url")
+          .withHeader("Authorization", matching(s"AWS4-HMAC-SHA256 Credential=${s3Config.key}/\\d+/${s3Config.region}/s3/aws4_request, .*"))
+          .willReturn(
+            aResponse()
+              .withStatus(Status.OK)
+              .withBody(fromFile("aws/empty-list-objects_response.xml"))
+          )
+      )
+
+      connector.deleteAll()
+
+      verify(
+        postRequestedFor(urlEqualTo("/bucket/?delete"))
+          .withRequestBody(equalToXml(fromFile("aws/delete-objects_request.xml")))
+      )
+    }
   }
 
   "Delete One" should {

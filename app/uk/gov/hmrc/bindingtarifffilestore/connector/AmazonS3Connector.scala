@@ -89,11 +89,15 @@ class AmazonS3Connector @Inject()(config: AppConfig) {
 
   def deleteAll(): Unit = {
     val keys: Seq[KeyVersion] = getAll.map(new KeyVersion(_))
-    Logger.info(s"Removing [${keys.length}] files from S3")
-    val request = new DeleteObjectsRequest(s3Config.bucket)
+    if(keys.nonEmpty) {
+      Logger.info(s"Removing [${keys.length}] files from S3")
+      val request = new DeleteObjectsRequest(s3Config.bucket)
         .withKeys(JavaConversions.seqAsJavaList(keys))
         .withQuiet(false)
-    s3client.deleteObjects(request)
+      s3client.deleteObjects(request)
+    } else {
+      Logger.info(s"No files to remove from S3")
+    }
   }
 
   def sign(fileMetaData: FileMetadata): FileMetadata = {
