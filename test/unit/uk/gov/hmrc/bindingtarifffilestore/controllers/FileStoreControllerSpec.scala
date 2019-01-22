@@ -57,7 +57,7 @@ class FileStoreControllerSpec extends UnitSpec with Matchers
     Mockito.reset(service)
   }
 
-  "deleteAll()" should {
+  "Delete All" should {
 
     val req = FakeRequest(method = HttpVerbs.DELETE, path = "/cases")
 
@@ -92,6 +92,17 @@ class FileStoreControllerSpec extends UnitSpec with Matchers
 
   }
 
+  "Delete By ID" should {
+    "return 204" in {
+      when(service.delete("id")).thenReturn(successful((): Unit))
+
+      val result = await(controller.delete("id")(fakeRequest))
+
+      status(result) shouldBe NO_CONTENT
+    }
+
+  }
+
   "Get By ID" should {
     "return 200 when found" in {
       val attachment = FileMetadata(id="id", fileName = "file", mimeType = "type")
@@ -116,7 +127,7 @@ class FileStoreControllerSpec extends UnitSpec with Matchers
     "return 200 with empty array when empty id array are provided" in {
       when(service.getByIds(Seq.empty)).thenReturn(successful(Seq.empty))
 
-      val result = await(controller.getFiles(Some(Seq.empty))(fakeRequest))
+      val result = await(controller.getAll(Some(Seq.empty))(fakeRequest))
 
       status(result) shouldBe OK
       bodyOf(result) shouldEqual Json.toJson(Seq.empty).toString()
@@ -125,7 +136,7 @@ class FileStoreControllerSpec extends UnitSpec with Matchers
     "return 200 with empty array when no ids are provided" in {
       when(service.getByIds(Seq.empty)).thenReturn(successful(Seq.empty))
 
-      val result = await(controller.getFiles(None)(fakeRequest))
+      val result = await(controller.getAll(None)(fakeRequest))
 
       status(result) shouldBe OK
       bodyOf(result) shouldEqual Json.toJson(Seq.empty).toString()
@@ -137,7 +148,7 @@ class FileStoreControllerSpec extends UnitSpec with Matchers
 
       when(service.getByIds(Seq("id1", "id2"))).thenReturn(successful(Seq(attachment1, attachment2)))
 
-      val result = await(controller.getFiles(Some(Seq("id1", "id2")))(fakeRequest))
+      val result = await(controller.getAll(Some(Seq("id1", "id2")))(fakeRequest))
 
       status(result) shouldBe OK
       bodyOf(result) shouldEqual Json.toJson(Seq(attachment1, attachment2)).toString()

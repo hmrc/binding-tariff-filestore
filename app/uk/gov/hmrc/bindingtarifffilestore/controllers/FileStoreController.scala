@@ -21,8 +21,8 @@ import play.api.libs.Files
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc._
 import uk.gov.hmrc.bindingtarifffilestore.config.AppConfig
-import uk.gov.hmrc.bindingtarifffilestore.model.FileMetadataREST._
 import uk.gov.hmrc.bindingtarifffilestore.model.ErrorCode.NOTFOUND
+import uk.gov.hmrc.bindingtarifffilestore.model.FileMetadataREST._
 import uk.gov.hmrc.bindingtarifffilestore.model._
 import uk.gov.hmrc.bindingtarifffilestore.model.upscan.ScanResult
 import uk.gov.hmrc.bindingtarifffilestore.service.FileStoreService
@@ -76,10 +76,14 @@ class FileStoreController @Inject()(appConfig: AppConfig,
     )
   }
 
-  def getFiles(ids: Option[Seq[String]]): Action[AnyContent] = Action.async { implicit request =>
+  def getAll(ids: Option[Seq[String]]): Action[AnyContent] = Action.async { implicit request =>
     service.getByIds(ids.getOrElse(Seq.empty)) map {
       fileMetadataObjects: Seq[FileMetadata] => Ok(Json.toJson(fileMetadataObjects))
     }
+  }
+
+  def delete(id: String): Action[AnyContent] = Action.async { implicit request =>
+    service.delete(id).map(_ => NoContent)
   }
 
   private def handleNotFound(id: String, result: FileMetadata => Future[Result]): Future[Result] = {

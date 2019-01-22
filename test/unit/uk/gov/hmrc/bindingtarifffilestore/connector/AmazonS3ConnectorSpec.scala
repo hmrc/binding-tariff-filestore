@@ -153,7 +153,7 @@ class AmazonS3ConnectorSpec extends UnitSpec with WiremockTestServer
   "Delete One" should {
     "Delegate to S3" in {
       stubFor(
-        delete("/bucket/image.jpg")
+        delete("/bucket/id")
           .withHeader("Authorization", matching(s"AWS4-HMAC-SHA256 Credential=${s3Config.key}/\\d+/${s3Config.region}/s3/aws4_request, .*"))
           .willReturn(
             aResponse()
@@ -161,9 +161,9 @@ class AmazonS3ConnectorSpec extends UnitSpec with WiremockTestServer
           )
       )
 
-      connector.delete("image.jpg")
+      connector.delete("id")
 
-      verify(deleteRequestedFor(urlEqualTo("/bucket/image.jpg")))
+      verify(deleteRequestedFor(urlEqualTo("/bucket/id")))
     }
   }
 

@@ -150,6 +150,20 @@ class FileMetadataRepositorySpec extends BaseMongoIndexSpec
 
   }
 
+  "delete" should {
+
+    "delete the expected document from the collection" in {
+      await(repository.insert(att1))
+      await(repository.insert(att2))
+      collectionSize shouldBe 2
+
+      await(repository.delete(att1.id))
+      collectionSize shouldBe 1
+      await(repository.get(att1.id)) shouldBe None
+    }
+
+  }
+
   "The collection" should {
 
     "have a unique index based on the field 'id' " in {
@@ -190,7 +204,7 @@ class FileMetadataRepositorySpec extends BaseMongoIndexSpec
     }
   }
 
-  "get by id list" should {
+  "getAll by id list" should {
 
     "retrieve the expected documents from the collection" in {
 
