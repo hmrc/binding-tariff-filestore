@@ -42,7 +42,7 @@ class FileStoreController @Inject()(appConfig: AppConfig,
   }
 
   def upload: Action[MultipartFormData[Files.TemporaryFile]] = Action.async(parse.multipartFormData) { implicit request =>
-    val formFile = request.body.file("file")
+    val formFile = request.body.file("file").filter(_.filename.nonEmpty)
     val published = request.body.dataParts.getOrElse("publish", Seq.empty).contains("true")
 
     val attachment: Option[FileWithMetadata] = formFile map { file =>

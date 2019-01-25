@@ -296,6 +296,15 @@ class FileStoreControllerSpec extends UnitSpec with Matchers
       status(result) shouldBe BAD_REQUEST
     }
 
+    "return 400 on missing filename" in {
+      val filePart = FilePart[TemporaryFile](key = "file", "", contentType = Some("text/plain"), ref = TemporaryFile("example-file.txt"))
+      val form = MultipartFormData[TemporaryFile](dataParts = Map(), files = Seq(filePart), badParts = Seq.empty)
+
+      val result: Result = await(controller.upload(fakeRequest.withBody(form)))
+
+      status(result) shouldBe BAD_REQUEST
+    }
+
     def theFileUploaded: FileWithMetadata = {
       val captor = ArgumentCaptor.forClass(classOf[FileWithMetadata])
       verify(service).upload(captor.capture())(any[HeaderCarrier])
