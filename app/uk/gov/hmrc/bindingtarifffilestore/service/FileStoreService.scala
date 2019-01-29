@@ -36,6 +36,7 @@ class FileStoreService @Inject()(appConfig: AppConfig,
                                  repository: FileMetadataRepository,
                                  upscanConnector: UpscanConnector) {
 
+  // when UpScan is initially contacted
   def upload(fileWithMetadata: FileWithMetadata)(implicit headerCarrier: HeaderCarrier): Future[FileMetadata] = {
     Logger.info(s"Uploading file [${fileWithMetadata.metadata.id}]")
     val settings = UploadSettings(
@@ -60,6 +61,7 @@ class FileStoreService @Inject()(appConfig: AppConfig,
     repository.get(ids) map (signingPermanentURLs(_))
   }
 
+  // when UpScan comes back to us with the scan result
   def notify(attachment: FileMetadata, scanResult: ScanResult): Future[Option[FileMetadata]] = {
     Logger.info(s"Scan completed for file [${attachment.id}] with status [${scanResult.fileStatus}] and Upscan reference [${scanResult.reference}]")
     scanResult.fileStatus match {
@@ -83,6 +85,7 @@ class FileStoreService @Inject()(appConfig: AppConfig,
     }
   }
 
+  // when the file is uploaded to our S3 bucket
   def publish(att: FileMetadata): Future[Option[FileMetadata]] = {
     Logger.info(s"Publishing file [${att.id}]")
     att.scanStatus match {
