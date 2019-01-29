@@ -41,6 +41,10 @@ class FileStoreController @Inject()(appConfig: AppConfig,
     service.deleteAll() map (_ => NoContent) recover recovery
   }
 
+  def delete(id: String): Action[AnyContent] = testModeFilter.async { implicit request =>
+    service.delete(id) map (_ => NoContent) recover recovery
+  }
+
   def upload: Action[MultipartFormData[Files.TemporaryFile]] = Action.async(parse.multipartFormData) { implicit request =>
     val formFile = request.body.file("file").filter(_.filename.nonEmpty)
     val published = request.body.dataParts.getOrElse("publish", Seq.empty).contains("true")
@@ -84,10 +88,6 @@ class FileStoreController @Inject()(appConfig: AppConfig,
     service.getByIds(ids.getOrElse(Seq.empty)) map {
       fileMetadataObjects: Seq[FileMetadata] => Ok(Json.toJson(fileMetadataObjects))
     }
-  }
-
-  def delete(id: String): Action[AnyContent] = Action.async { implicit request =>
-    service.delete(id).map(_ => NoContent)
   }
 
   private def handleNotFound(id: String, result: FileMetadata => Future[Result]): Future[Result] = {
