@@ -93,7 +93,7 @@ class FileStoreSpec extends WiremockFeatureTestServer with ResourceFiles with Be
         .method(HttpVerbs.GET)
         .execute(convertingArrayResponseToJS)
       files.code shouldBe 200
-      files.body shouldBe "[]"
+      files.body.toString() shouldBe "[]"
     }
 
   }
