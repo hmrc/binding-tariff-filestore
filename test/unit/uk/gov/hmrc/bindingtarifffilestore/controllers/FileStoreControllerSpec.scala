@@ -20,8 +20,8 @@ import java.time.Instant
 
 import akka.stream.Materializer
 import org.mockito.ArgumentMatchers.any
-import org.mockito.Mockito.{verify, when}
-import org.mockito.{ArgumentCaptor, Mockito}
+import org.mockito.Mockito.{reset, verify, when}
+import org.mockito.ArgumentCaptor
 import org.scalatest.mockito.MockitoSugar
 import org.scalatest.{BeforeAndAfterEach, Matchers}
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
@@ -53,15 +53,16 @@ class FileStoreControllerSpec extends UnitSpec with Matchers
   private val fakeRequest = FakeRequest()
 
   override protected def afterEach(): Unit = {
-    super.beforeEach()
-    Mockito.reset(service)
+    super.afterEach()
+    reset(service)
   }
 
   "Delete All" should {
 
-    val req = FakeRequest(method = HttpVerbs.DELETE, path = "/cases")
+    val req = FakeRequest(method = HttpVerbs.DELETE, path = "/file")
 
     "return 403 if the test mode is disabled" in {
+      when(appConfig.isTestMode).thenReturn(false)
 
       val result = await(controller.deleteAll()(req))
 
@@ -93,12 +94,38 @@ class FileStoreControllerSpec extends UnitSpec with Matchers
   }
 
   "Delete By ID" should {
-    "return 204" in {
-      when(service.delete("id")).thenReturn(successful((): Unit))
 
-      val result = await(controller.delete("id")(fakeRequest))
+    val id = "ABC-123_000"
+    val req = FakeRequest(method = HttpVerbs.DELETE, path = s"/file/$id")
+
+    "return 403 if the test mode is disabled" in {
+      when(appConfig.isTestMode).thenReturn(false)
+
+      val result = await(controller.delete(id)(req))
+
+      status(result) shouldEqual FORBIDDEN
+      jsonBodyOf(result).toString() shouldEqual s"""{"code":"FORBIDDEN","message":"You are not allowed to call ${req.method} ${req.path}"}"""
+    }
+
+    "return 204 if the test mode is enabled" in {
+      when(appConfig.isTestMode).thenReturn(true)
+      when(service.delete(id)).thenReturn(successful((): Unit))
+
+      val result = await(controller.delete(id)(req))
 
       status(result) shouldBe NO_CONTENT
+    }
+
+    "return 500 when an error occurred" in {
+      val error = new RuntimeException
+
+      when(appConfig.isTestMode).thenReturn(true)
+      when(service.delete(id)).thenReturn(failed(error))
+
+      val result = await(controller.delete(id)(req))
+
+      status(result) shouldEqual INTERNAL_SERVER_ERROR
+      jsonBodyOf(result).toString() shouldEqual """{"code":"UNKNOWN_ERROR","message":"An unexpected error occurred"}"""
     }
 
   }

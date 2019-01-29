@@ -1,11 +1,12 @@
 # microservice specific routes
 
-POST       /file                    @uk.gov.hmrc.bindingtarifffilestore.controllers.FileStoreController.upload
 GET        /file                    @uk.gov.hmrc.bindingtarifffilestore.controllers.FileStoreController.getAll(id: Option[Seq[String]])
 GET        /file/:id                @uk.gov.hmrc.bindingtarifffilestore.controllers.FileStoreController.get(id: String)
-DELETE     /file/:id                @uk.gov.hmrc.bindingtarifffilestore.controllers.FileStoreController.delete(id: String)
+
+POST       /file                    @uk.gov.hmrc.bindingtarifffilestore.controllers.FileStoreController.upload
 POST       /file/:id/notify         @uk.gov.hmrc.bindingtarifffilestore.controllers.FileStoreController.notification(id: String)
 POST       /file/:id/publish        @uk.gov.hmrc.bindingtarifffilestore.controllers.FileStoreController.publish(id: String)
 
 # admin/test endpoints
 DELETE     /file                    @uk.gov.hmrc.bindingtarifffilestore.controllers.FileStoreController.deleteAll()
+DELETE     /file/:id                @uk.gov.hmrc.bindingtarifffilestore.controllers.FileStoreController.delete(id: String)

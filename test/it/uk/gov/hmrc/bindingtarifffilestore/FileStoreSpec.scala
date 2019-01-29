@@ -50,12 +50,12 @@ class FileStoreSpec extends WiremockFeatureTestServer with ResourceFiles with Be
 
   private val filePath = "test/resources/file.txt"
 
-  private lazy val fileStore: FileMetadataMongoRepository = app.injector.instanceOf[FileMetadataMongoRepository]
+  private lazy val dbFileStore: FileMetadataMongoRepository = app.injector.instanceOf[FileMetadataMongoRepository]
 
   override protected def beforeEach(): Unit = {
     super.beforeEach()
-    dropFileStore()
-    ensureFileStoreIndexes()
+    dropDbFileStore()
+    ensureDbFileStoreIndexes()
   }
 
   override def fakeApplication(): Application = new GuiceApplicationBuilder()
@@ -66,11 +66,11 @@ class FileStoreSpec extends WiremockFeatureTestServer with ResourceFiles with Be
     .build()
 
   feature("Delete All") {
-    scenario("Clear Collection") {
+    scenario("Clear collections & files") {
       Given("There are some documents in the collection")
       upload("some-file1.txt", "text/plain")
       upload("some-file2.txt", "text/plain")
-      fileStoreSize shouldBe 2
+      dbFileStoreSize shouldBe 2
       stubS3ListAll()
       stubS3DeleteAll()
 
@@ -86,9 +86,37 @@ class FileStoreSpec extends WiremockFeatureTestServer with ResourceFiles with Be
       deleteResult.body shouldBe ""
 
       And("No documents exist in the mongo collection")
-      fileStoreSize shouldBe 0
+      dbFileStoreSize shouldBe 0
+
+      And("the are no files")
+      val files = Http(s"$serviceUrl/file")
+        .method(HttpVerbs.GET)
+        .execute(convertingArrayResponseToJS)
+      files.code shouldBe 200
+      files.body shouldBe "[]"
     }
 
+  }
+
+  feature("Delete") {
+    scenario("Delete the file") {
+      Given("A file has been uploaded")
+      val id = upload("some-file.txt", "text/plain")
+        .body("id").as[JsString].value
+      dbFileStoreSize shouldBe 1
+
+      When("I request the file details")
+      val response = deleteFile(id)
+
+      Then("The response code should be Ok")
+      response.code shouldBe Status.NO_CONTENT
+
+      And("The response body is empty")
+      response.body shouldBe ""
+
+      And("No documents exist in the mongo collection")
+      dbFileStoreSize shouldBe 0
+    }
   }
 
   feature("Upload") {
@@ -128,20 +156,6 @@ class FileStoreSpec extends WiremockFeatureTestServer with ResourceFiles with Be
       response.body("mimeType") shouldBe JsString("text/plain")
       response.body.contains("url") shouldBe false
       response.body.contains("scanStatus") shouldBe false
-    }
-  }
-
-  feature("Delete") {
-    scenario("Delete the file") {
-      Given("A file has been uploaded")
-      val id = upload("some-file.txt", "text/plain")
-        .body("id").as[JsString].value
-
-      When("I request the file details")
-      val response = deleteFile(id)
-
-      Then("The response code should be Ok")
-      response.code shouldBe Status.NO_CONTENT
     }
   }
 
@@ -282,11 +296,12 @@ class FileStoreSpec extends WiremockFeatureTestServer with ResourceFiles with Be
       .execute(convertingResponseToJS)
   }
 
-  private def deleteFile(id: String): HttpResponse[Unit] = {
+  private def deleteFile(id: String): HttpResponse[String] = {
     stubS3DeleteOne(id)
+
     Http(s"$serviceUrl/file/$id")
       .method(HttpVerbs.DELETE)
-      .execute(_ => Unit)
+      .asString
   }
 
   private def getFiles(ids: String*): HttpResponse[JsValue] = {
@@ -377,7 +392,7 @@ class FileStoreSpec extends WiremockFeatureTestServer with ResourceFiles with Be
 
   private def stubS3ListAll() = {
     stubFor(
-      get(s"/digital-tariffs-local/?encoding-type=url")
+      get("/digital-tariffs-local/?encoding-type=url")
         .willReturn(
           aResponse()
             .withStatus(Status.OK)
@@ -420,16 +435,16 @@ class FileStoreSpec extends WiremockFeatureTestServer with ResourceFiles with Be
       .getOrElse(throw new AssertionError(s"The response was not valid JSON array:\n $body"))
   }
 
-  private def fileStoreSize: Int = {
-    result(fileStore.collection.count(), timeout)
+  private def dbFileStoreSize: Int = {
+    result(dbFileStore.collection.count(), timeout)
   }
 
-  private def dropFileStore(): Unit = {
-    result(fileStore.drop, timeout)
+  private def dropDbFileStore(): Unit = {
+    result(dbFileStore.drop, timeout)
   }
 
-  private def ensureFileStoreIndexes(): Unit = {
-    result(fileStore.ensureIndexes, timeout)
+  private def ensureDbFileStoreIndexes(): Unit = {
+    result(dbFileStore.ensureIndexes, timeout)
   }
 
 }
