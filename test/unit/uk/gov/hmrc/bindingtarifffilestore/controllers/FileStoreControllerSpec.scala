@@ -19,7 +19,7 @@ package uk.gov.hmrc.bindingtarifffilestore.controllers
 import java.time.Instant
 
 import akka.stream.Materializer
-import org.mockito.ArgumentMatchers.any
+import org.mockito.ArgumentMatchers.{any, refEq}
 import org.mockito.Mockito.{reset, verify, when}
 import org.mockito.ArgumentCaptor
 import org.scalatest.mockito.MockitoSugar
@@ -133,7 +133,7 @@ class FileStoreControllerSpec extends UnitSpec with Matchers
   "Get By ID" should {
     "return 200 when found" in {
       val attachment = FileMetadata(id="id", fileName = "file", mimeType = "type")
-      when(service.getById("id")).thenReturn(successful(Some(attachment)))
+      when(service.getById(id = "id")).thenReturn(successful(Some(attachment)))
 
       val result = await(controller.get("id")(fakeRequest))
 
@@ -142,7 +142,7 @@ class FileStoreControllerSpec extends UnitSpec with Matchers
     }
 
     "return 404 when not found" in {
-      when(service.getById("id")).thenReturn(successful(None))
+      when(service.getById(id = "id")).thenReturn(successful(None))
 
       val result = await(controller.get("id")(fakeRequest))
 
@@ -170,10 +170,10 @@ class FileStoreControllerSpec extends UnitSpec with Matchers
     }
 
     "return 200 with file metadata array when ids are provided" in {
-      val attachment1 = FileMetadata(id="id1", fileName = "file1", mimeType = "type1")
-      val attachment2 = FileMetadata(id="id2", fileName = "file2", mimeType = "type2")
+      val attachment1 = FileMetadata(id = "id1", fileName = "file1", mimeType = "type1")
+      val attachment2 = FileMetadata(id = "id2", fileName = "file2", mimeType = "type2")
 
-      when(service.getByIds(Seq("id1", "id2"))).thenReturn(successful(Seq(attachment1, attachment2)))
+      when(service.getByIds(ids = Seq("id1", "id2"))).thenReturn(successful(Seq(attachment1, attachment2)))
 
       val result = await(controller.getAll(Some(Seq("id1", "id2")))(fakeRequest))
 
@@ -185,13 +185,13 @@ class FileStoreControllerSpec extends UnitSpec with Matchers
   "Notify" should {
     "return 201 when found" in {
       val scanResult = SuccessfulScanResult("ref", "url", UploadDetails(Instant.now(), "checksum"))
-      val attachment = FileMetadata(id="id", fileName = "file", mimeType = "type")
-      val attachmentUpdated = FileMetadata(id="id", fileName = "file", mimeType = "type", url = Some("url"))
-      when(service.getById("id")).thenReturn(successful(Some(attachment)))
-      when(service.notify(attachment, scanResult)).thenReturn(successful(Some(attachmentUpdated)))
+      val attachment = FileMetadata(id = "id", fileName = "file", mimeType = "type")
+      val attachmentUpdated = FileMetadata(id = "id", fileName = "file", mimeType = "type", url = Some("url"))
+      when(service.getById(id = "id")).thenReturn(successful(Some(attachment)))
+      when(service.notify(refEq(attachment), refEq(scanResult))(any[HeaderCarrier])).thenReturn(successful(Some(attachmentUpdated)))
 
       val request: FakeRequest[JsValue] = fakeRequest.withBody(Json.toJson[ScanResult](scanResult))
-      val result: Result = await(controller.notification("id")(request))
+      val result: Result = await(controller.notification(id = "id")(request))
 
       status(result) shouldBe CREATED
       jsonBodyOf(result) shouldBe Json.toJson(attachmentUpdated)
@@ -202,7 +202,7 @@ class FileStoreControllerSpec extends UnitSpec with Matchers
       when(service.getById("id")).thenReturn(successful(None))
 
       val request: FakeRequest[JsValue] = fakeRequest.withBody(Json.toJson[ScanResult](scanResult))
-      val result: Result = await(controller.notification("id")(request))
+      val result: Result = await(controller.notification(id = "id")(request))
 
       status(result) shouldBe NOT_FOUND
     }
@@ -210,31 +210,31 @@ class FileStoreControllerSpec extends UnitSpec with Matchers
 
   "Publish" should {
     "return 201 when found" in {
-      val attachmentExisting = FileMetadata(id="id", fileName = "file", mimeType = "type", scanStatus = Some(ScanStatus.READY))
-      val attachmentUpdated = FileMetadata(id="id", fileName = "file", mimeType = "type", scanStatus = Some(ScanStatus.READY), url = Some("url"))
-      when(service.getById("id")).thenReturn(successful(Some(attachmentExisting)))
-      when(service.publish(attachmentExisting)).thenReturn(successful(Some(attachmentUpdated)))
+      val attachmentExisting = FileMetadata(id = "id", fileName = "file", mimeType = "type", scanStatus = Some(ScanStatus.READY))
+      val attachmentUpdated = FileMetadata(id = "id", fileName = "file", mimeType = "type", scanStatus = Some(ScanStatus.READY), url = Some("url"))
+      when(service.getById(id = "id")).thenReturn(successful(Some(attachmentExisting)))
+      when(service.publish(refEq(attachmentExisting))(any[HeaderCarrier])).thenReturn(successful(Some(attachmentUpdated)))
 
-      val result: Result = await(controller.publish("id")(fakeRequest))
+      val result: Result = await(controller.publish(id = "id")(fakeRequest))
 
       status(result) shouldBe ACCEPTED
       jsonBodyOf(result) shouldBe Json.toJson(attachmentUpdated)
     }
 
     "return 404 when not found" in {
-      when(service.getById("id")).thenReturn(successful(None))
+      when(service.getById(id = "id")).thenReturn(successful(None))
 
-      val result: Result = await(controller.publish("id")(fakeRequest))
+      val result: Result = await(controller.publish(id = "id")(fakeRequest))
 
       status(result) shouldBe NOT_FOUND
     }
 
     "return 404 when publish returns not found" in {
       val attachmentExisting = FileMetadata(id="id", fileName = "file", mimeType = "type", scanStatus = Some(ScanStatus.READY))
-      when(service.getById("id")).thenReturn(successful(Some(attachmentExisting)))
-      when(service.publish(attachmentExisting)).thenReturn(successful(None))
+      when(service.getById(id = "id")).thenReturn(successful(Some(attachmentExisting)))
+      when(service.publish(refEq(attachmentExisting))(any[HeaderCarrier])).thenReturn(successful(None))
 
-      val result: Result = await(controller.publish("id")(fakeRequest))
+      val result: Result = await(controller.publish(id = "id")(fakeRequest))
 
       status(result) shouldBe NOT_FOUND
     }
@@ -244,6 +244,7 @@ class FileStoreControllerSpec extends UnitSpec with Matchers
 
     val fileName = "file.txt"
     val mimeType = "text/plain"
+    val tmpFile = TemporaryFile("example-file.txt")
 
     "return 202 on valid file" in {
       // Given
@@ -251,7 +252,7 @@ class FileStoreControllerSpec extends UnitSpec with Matchers
       when(service.upload(any[FileWithMetadata])(any[HeaderCarrier])).thenReturn(successful(metadataUploaded))
 
       // When=
-      val filePart = FilePart[TemporaryFile](key = "file", fileName, contentType = Some(mimeType), ref = TemporaryFile("example-file.txt"))
+      val filePart = FilePart[TemporaryFile](key = "file", fileName, contentType = Some(mimeType), ref = tmpFile)
       val form = MultipartFormData[TemporaryFile](dataParts = Map(), files = Seq(filePart), badParts = Seq.empty)
 
       val result: Result = await(controller.upload(fakeRequest.withBody(form)))
@@ -271,7 +272,7 @@ class FileStoreControllerSpec extends UnitSpec with Matchers
       when(service.upload(any[FileWithMetadata])(any[HeaderCarrier])).thenReturn(successful(metadataUploaded))
 
       // When=
-      val filePart = FilePart[TemporaryFile](key = "file", fileName, contentType = Some(mimeType), ref = TemporaryFile("example-file.txt"))
+      val filePart = FilePart[TemporaryFile](key = "file", fileName, contentType = Some(mimeType), ref = tmpFile)
       val form = MultipartFormData[TemporaryFile](dataParts = Map("publish" -> Seq("true")), files = Seq(filePart), badParts = Seq.empty)
 
       val result: Result = await(controller.upload(fakeRequest.withBody(form)))
@@ -291,7 +292,7 @@ class FileStoreControllerSpec extends UnitSpec with Matchers
       when(service.upload(any[FileWithMetadata])(any[HeaderCarrier])).thenReturn(successful(metadataUploaded))
 
       // When=
-      val filePart = FilePart[TemporaryFile](key = "file", fileName, contentType = Some(mimeType), ref = TemporaryFile("example-file.txt"))
+      val filePart = FilePart[TemporaryFile](key = "file", fileName, contentType = Some(mimeType), ref = tmpFile)
       val form = MultipartFormData[TemporaryFile](dataParts = Map("publish" -> Seq("false")), files = Seq(filePart), badParts = Seq.empty)
 
       val result: Result = await(controller.upload(fakeRequest.withBody(form)))
@@ -306,7 +307,7 @@ class FileStoreControllerSpec extends UnitSpec with Matchers
     }
 
     "Throw exception on missing mime type" in {
-      val filePart = FilePart[TemporaryFile](key = "file", fileName, contentType = None, ref = TemporaryFile("example-file.txt"))
+      val filePart = FilePart[TemporaryFile](key = "file", fileName, contentType = None, ref = tmpFile)
       val form = MultipartFormData[TemporaryFile](dataParts = Map(), files = Seq(filePart), badParts = Seq.empty)
 
       val exception = intercept[RuntimeException] {
@@ -324,7 +325,7 @@ class FileStoreControllerSpec extends UnitSpec with Matchers
     }
 
     "return 400 on missing filename" in {
-      val filePart = FilePart[TemporaryFile](key = "file", "", contentType = Some("text/plain"), ref = TemporaryFile("example-file.txt"))
+      val filePart = FilePart[TemporaryFile](key = "file", filename = "", contentType = Some("text/plain"), ref = tmpFile)
       val form = MultipartFormData[TemporaryFile](dataParts = Map(), files = Seq(filePart), badParts = Seq.empty)
 
       val result: Result = await(controller.upload(fakeRequest.withBody(form)))
@@ -339,4 +340,5 @@ class FileStoreControllerSpec extends UnitSpec with Matchers
     }
 
   }
+
 }

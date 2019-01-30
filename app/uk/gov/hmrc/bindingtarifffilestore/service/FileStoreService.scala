@@ -18,6 +18,7 @@ package uk.gov.hmrc.bindingtarifffilestore.service
 
 import javax.inject.{Inject, Singleton}
 import play.api.Logger
+import uk.gov.hmrc.bindingtarifffilestore.audit.AuditService
 import uk.gov.hmrc.bindingtarifffilestore.config.AppConfig
 import uk.gov.hmrc.bindingtarifffilestore.connector.{AmazonS3Connector, UpscanConnector}
 import uk.gov.hmrc.bindingtarifffilestore.controllers.routes
@@ -34,19 +35,22 @@ import scala.concurrent.Future
 class FileStoreService @Inject()(appConfig: AppConfig,
                                  fileStoreConnector: AmazonS3Connector,
                                  repository: FileMetadataRepository,
-                                 upscanConnector: UpscanConnector) {
+                                 upscanConnector: UpscanConnector,
+                                 auditService: AuditService) {
 
   // when UpScan is initially contacted
-  def upload(fileWithMetadata: FileWithMetadata)(implicit headerCarrier: HeaderCarrier): Future[FileMetadata] = {
-    Logger.info(s"Uploading file [${fileWithMetadata.metadata.id}]")
+  def upload(fileWithMetadata: FileWithMetadata)(implicit hc: HeaderCarrier): Future[FileMetadata] = {
+    val fileId = fileWithMetadata.metadata.id
+    Logger.info(s"Uploading file [$fileId]")
     val settings = UploadSettings(
       routes.FileStoreController
-        .notification(fileWithMetadata.metadata.id)
+        .notification(fileId)
         .absoluteURL(appConfig.filestoreSSL, appConfig.filestoreUrl)
     )
 
     upscanConnector.initiate(settings).flatMap { response =>
-      Logger.info(s"Upscan-Initiated file [${fileWithMetadata.metadata.id}] with Upscan reference [${response.reference}]")
+      Logger.info(s"Upscan-Initiated file [$fileId] with Upscan reference [${response.reference}]")
+      auditService.auditUpScanInitiated(fileId, fileWithMetadata.metadata.fileName, response.reference)
       upscanConnector.upload(response.uploadRequest, fileWithMetadata)
     } recover { case t => Logger.error("Upscan error", t) }
 
@@ -62,8 +66,9 @@ class FileStoreService @Inject()(appConfig: AppConfig,
   }
 
   // when UpScan comes back to us with the scan result
-  def notify(attachment: FileMetadata, scanResult: ScanResult): Future[Option[FileMetadata]] = {
+  def notify(attachment: FileMetadata, scanResult: ScanResult)(implicit hc: HeaderCarrier): Future[Option[FileMetadata]] = {
     Logger.info(s"Scan completed for file [${attachment.id}] with status [${scanResult.fileStatus}] and Upscan reference [${scanResult.reference}]")
+    auditService.auditFileScanned(attachment.id, attachment.fileName, scanResult.reference, scanResult.fileStatus.toString)
     scanResult.fileStatus match {
       case FAILED => repository.update(attachment.copy(scanStatus = Some(FAILED)))
       case READY =>
@@ -86,11 +91,12 @@ class FileStoreService @Inject()(appConfig: AppConfig,
   }
 
   // when the file is uploaded to our S3 bucket
-  def publish(att: FileMetadata): Future[Option[FileMetadata]] = {
+  def publish(att: FileMetadata)(implicit hc: HeaderCarrier): Future[Option[FileMetadata]] = {
     Logger.info(s"Publishing file [${att.id}]")
     att.scanStatus match {
       case Some(READY) =>
         val metadata = fileStoreConnector.upload(att)
+        auditService.auditFilePublished(att.id, att.fileName)
         val update = if (metadata.published) metadata else metadata.copy(published = true)
         repository.update(update)
           .map(signingPermanentURL)
