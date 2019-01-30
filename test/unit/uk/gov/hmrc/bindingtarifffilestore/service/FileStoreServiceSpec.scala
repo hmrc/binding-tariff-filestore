@@ -22,6 +22,7 @@ import org.mockito.Mockito.{never, reset, verify, when}
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.mockito.MockitoSugar
 import play.api.libs.Files.TemporaryFile
+import uk.gov.hmrc.bindingtarifffilestore.audit.AuditService
 import uk.gov.hmrc.bindingtarifffilestore.config.AppConfig
 import uk.gov.hmrc.bindingtarifffilestore.connector.{AmazonS3Connector, UpscanConnector}
 import uk.gov.hmrc.bindingtarifffilestore.model.upscan._
@@ -38,9 +39,11 @@ class FileStoreServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfte
   private val s3Connector = mock[AmazonS3Connector]
   private val repository = mock[FileMetadataRepository]
   private val upscanConnector = mock[UpscanConnector]
-  private implicit val headerCarrier: HeaderCarrier = HeaderCarrier()
+  private val auditService = mock[AuditService]
 
-  private val service = new FileStoreService(config, s3Connector, repository, upscanConnector)
+  private implicit val hc: HeaderCarrier = HeaderCarrier()
+
+  private val service = new FileStoreService(config, s3Connector, repository, upscanConnector, auditService)
 
   private final val emulatedFailure = new RuntimeException("Emulated failure.")
 
