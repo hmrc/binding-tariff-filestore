@@ -48,6 +48,7 @@ class FileStoreService @Inject()(appConfig: AppConfig,
         .absoluteURL(appConfig.filestoreSSL, appConfig.filestoreUrl)
     )
 
+    // This future (UpScan Initiate) executes asynchronously intentionally
     upscanConnector.initiate(settings).flatMap { response =>
       Logger.info(s"Upscan-Initiated file [$fileId] with Upscan reference [${response.reference}]")
       auditService.auditUpScanInitiated(fileId, fileWithMetadata.metadata.fileName, response.reference)
@@ -107,13 +108,11 @@ class FileStoreService @Inject()(appConfig: AppConfig,
   }
 
   def deleteAll(): Future[Unit] = {
-    fileStoreConnector.deleteAll()
-    repository.deleteAll()
+    repository.deleteAll() map ( _ => fileStoreConnector.deleteAll() )
   }
 
   def delete(id: String): Future[Unit] = {
-    fileStoreConnector.delete(id)
-    repository.delete(id)
+    repository.delete(id) map ( _ => fileStoreConnector.delete(id) )
   }
 
   private def signingPermanentURL: Option[FileMetadata] => Option[FileMetadata] = _ map signingIfPublished

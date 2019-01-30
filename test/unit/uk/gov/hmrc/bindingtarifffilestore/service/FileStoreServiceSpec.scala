@@ -18,8 +18,9 @@ package uk.gov.hmrc.bindingtarifffilestore.service
 
 import org.mockito.ArgumentMatchers.any
 import org.mockito.BDDMockito.given
-import org.mockito.Mockito.{never, reset, verify, verifyNoMoreInteractions, verifyZeroInteractions, times, when}
+import org.mockito.Mockito.{never, reset, times, verify, verifyNoMoreInteractions, verifyZeroInteractions, when}
 import org.scalatest.BeforeAndAfterEach
+import org.scalatest.concurrent.Eventually
 import org.scalatest.mockito.MockitoSugar
 import play.api.libs.Files.TemporaryFile
 import uk.gov.hmrc.bindingtarifffilestore.audit.AuditService
@@ -31,9 +32,10 @@ import uk.gov.hmrc.bindingtarifffilestore.repository.FileMetadataRepository
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.test.UnitSpec
 
+import scala.concurrent.duration._
 import scala.concurrent.Future.successful
 
-class FileStoreServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfterEach {
+class FileStoreServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfterEach with Eventually {
 
   private val config = mock[AppConfig]
   private val s3Connector = mock[AmazonS3Connector]
@@ -165,8 +167,10 @@ class FileStoreServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfte
 
       await(service.upload(fileWithMetadata)) shouldBe fileMetaDataCreated
 
-      verify(auditService, times(1)).auditUpScanInitiated(fileId = "id", fileName = "file", upScanRef = "ref")
-      verifyNoMoreInteractions(auditService)
+      eventually(timeout(2.seconds), interval(10.milliseconds)) {
+        verify(auditService, times(1)).auditUpScanInitiated(fileId = "id", fileName = "file", upScanRef = "ref")
+        verifyNoMoreInteractions(auditService)
+      }
     }
   }
 
