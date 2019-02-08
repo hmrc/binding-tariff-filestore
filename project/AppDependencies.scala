@@ -3,7 +3,7 @@ import sbt._
 object AppDependencies {
 
   val compile = Seq(
-    "com.amazonaws"               %  "aws-java-sdk-s3"            % "1.11.492",
+    "com.amazonaws"               %  "aws-java-sdk-s3"            % "1.11.494",
     "uk.gov.hmrc"                 %% "bootstrap-play-25"          % "4.8.0",
     "uk.gov.hmrc"                 %% "play-json-union-formatter"  % "1.5.0",
     "uk.gov.hmrc"                 %% "simple-reactivemongo"       % "7.12.0-play-25",
