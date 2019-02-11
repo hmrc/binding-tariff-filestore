@@ -27,7 +27,6 @@ import uk.gov.hmrc.bindingtarifffilestore.model.FileMetadataMongo.format
 import uk.gov.hmrc.bindingtarifffilestore.model.{FileMetadata, FileMetadataMongo}
 import uk.gov.hmrc.bindingtarifffilestore.repository.MongoIndexCreator.{createSingleFieldAscendingIndex, createTTLIndex}
 import uk.gov.hmrc.mongo.ReactiveRepository
-import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
@@ -54,8 +53,7 @@ class FileMetadataMongoRepository @Inject()(config: AppConfig,
   extends ReactiveRepository[FileMetadata, BSONObjectID](
     collectionName = "fileMetadata",
     mongo = mongoDbProvider.mongo,
-    domainFormat = FileMetadataMongo.format,
-    idFormat = ReactiveMongoFormats.objectIdFormats) with FileMetadataRepository {
+    domainFormat = FileMetadataMongo.format) with FileMetadataRepository {
 
   override lazy val indexes = Seq(
     createSingleFieldAscendingIndex("id", isUnique = true),
