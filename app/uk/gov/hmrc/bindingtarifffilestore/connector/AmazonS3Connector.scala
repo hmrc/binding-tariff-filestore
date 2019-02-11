@@ -17,15 +17,16 @@
 package uk.gov.hmrc.bindingtarifffilestore.connector
 
 import java.io.BufferedInputStream
-import java.net.URL
+import java.net.{URI, URL}
 import java.util
 
 import com.amazonaws.HttpMethod
 import com.amazonaws.auth.{AWSStaticCredentialsProvider, BasicAWSCredentials}
 import com.amazonaws.client.builder.AwsClientBuilder.EndpointConfiguration
+import com.amazonaws.services.s3.internal.SSEResultBase
 import com.amazonaws.services.s3.model.DeleteObjectsRequest.KeyVersion
 import com.amazonaws.services.s3.model._
-import com.amazonaws.services.s3.{AmazonS3, AmazonS3ClientBuilder}
+import com.amazonaws.services.s3.{AmazonS3, AmazonS3ClientBuilder, AmazonS3URI}
 import com.google.inject.Inject
 import javax.inject.Singleton
 import play.api.Logger
@@ -64,8 +65,29 @@ class AmazonS3Connector @Inject()(config: AppConfig) {
   }
 
   def upload(fileMetaData: FileMetadata): FileMetadata = {
-    val url: URL = new URL(fileMetaData.url.getOrElse(throw new IllegalArgumentException("Missing URL")))
+    val uri: URI = new URI(fileMetaData.url.getOrElse(throw new IllegalArgumentException("Missing URL")))
+    val response: Try[SSEResultBase] = Try(new AmazonS3URI(uri)) match {
+      case Success(s3URI) => Try(copy(fileMetaData, s3URI))
+      case Failure(_) => Try(downloadThenUpload(fileMetaData, uri))
+    }
+    response match {
+      case Success(_) =>
+        fileMetaData.copy(url = Some(s"${s3Config.baseUrl}/${s3Config.bucket}/${fileMetaData.id}"))
+      case Failure(e: Throwable) =>
+        Logger.error("Failed to copy/upload to S3", e)
+        throw e
+    }
+  }
 
+  private def copy(fileMetaData: FileMetadata, amazonS3URI: AmazonS3URI): SSEResultBase = {
+    val request = new CopyObjectRequest(amazonS3URI.getBucket, amazonS3URI.getKey, s3Config.bucket, fileMetaData.id)
+      .withCannedAccessControlList(CannedAccessControlList.Private)
+
+    s3client.copyObject(request)
+  }
+
+  private def downloadThenUpload(fileMetaData: FileMetadata, uri: URI): SSEResultBase = {
+    val url = uri.toURL
     val metadata = new ObjectMetadata
     metadata.setContentType(fileMetaData.mimeType)
     metadata.setContentLength(contentLengthOf(url))
@@ -74,13 +96,7 @@ class AmazonS3Connector @Inject()(config: AppConfig) {
       s3Config.bucket, fileMetaData.id, new BufferedInputStream(url.openStream()), metadata
     ).withCannedAcl(CannedAccessControlList.Private)
 
-    Try(s3client.putObject(request)) match {
-      case Success(_) =>
-        fileMetaData.copy(url = Some(s"${s3Config.baseUrl}/${s3Config.bucket}/${fileMetaData.id}"))
-      case Failure(e: Throwable) =>
-        Logger.error("Failing to upload to the S3 bucket.", e)
-        throw e
-    }
+    s3client.putObject(request)
   }
 
   def delete(id: String): Unit = {
@@ -89,7 +105,7 @@ class AmazonS3Connector @Inject()(config: AppConfig) {
 
   def deleteAll(): Unit = {
     val keys: Seq[KeyVersion] = getAll.map(new KeyVersion(_))
-    if(keys.nonEmpty) {
+    if (keys.nonEmpty) {
       Logger.info(s"Removing [${keys.length}] files from S3")
       val request = new DeleteObjectsRequest(s3Config.bucket)
         .withKeys(JavaConversions.seqAsJavaList(keys))
