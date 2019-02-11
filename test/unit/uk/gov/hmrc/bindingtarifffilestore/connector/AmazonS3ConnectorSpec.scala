@@ -21,6 +21,7 @@ import org.mockito.BDDMockito.given
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.mockito.MockitoSugar
 import play.api.http.Status
+import play.api.libs.Files.TemporaryFile
 import uk.gov.hmrc.bindingtarifffilestore.config.{AppConfig, S3Configuration}
 import uk.gov.hmrc.bindingtarifffilestore.model.FileMetadata
 import uk.gov.hmrc.bindingtarifffilestore.util.{ResourceFiles, WiremockTestServer}
@@ -65,7 +66,7 @@ class AmazonS3ConnectorSpec extends UnitSpec with WiremockTestServer
 
   "Upload" should {
 
-    "Delegate to S3" in {
+    "Delegate to S3 - Copy" in {
       // Given
       stubFor(
         put("/bucket/id")
@@ -81,6 +82,29 @@ class AmazonS3ConnectorSpec extends UnitSpec with WiremockTestServer
       )
 
       val fileUploading = FileMetadata("id", "file.txt", "text/plain", Some("https://bucket.s3.amazonaws.com/some-key"))
+
+      // Then
+      val result = connector.upload(fileUploading)
+      result.id shouldBe "id"
+      result.fileName shouldBe "file.txt"
+      result.mimeType shouldBe "text/plain"
+      result.url.get shouldBe s"$wireMockUrl/bucket/id"
+    }
+
+    "Delegate to S3 - PUT" in {
+      // Given
+      stubFor(
+        put("/bucket/id")
+          .withHeader("Authorization", matching(s"AWS4-HMAC-SHA256 Credential=${s3Config.key}/\\d+/${s3Config.region}/s3/aws4_request, .*"))
+          .withHeader("Content-Type", equalTo("text/plain"))
+          .willReturn(
+            aResponse()
+              .withStatus(Status.OK)
+          )
+      )
+
+      val url = TemporaryFile("example.txt").file.toURI.toURL.toString
+      val fileUploading = FileMetadata("id", "file.txt", "text/plain", Some(url))
 
       // Then
       val result = connector.upload(fileUploading)
