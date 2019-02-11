@@ -66,32 +66,7 @@ class AmazonS3ConnectorSpec extends UnitSpec with WiremockTestServer
 
   "Upload" should {
 
-    "Delegate to S3 - Copy" in {
-      // Given
-      stubFor(
-        put("/bucket/id")
-          .withHeader("Authorization", matching(s"AWS4-HMAC-SHA256 Credential=${s3Config.key}/\\d+/${s3Config.region}/s3/aws4_request, .*"))
-          .withHeader("Content-Type", equalTo("application/octet-stream"))
-          .withHeader("x-amz-copy-source", equalTo("/bucket/some-key"))
-          .willReturn(
-            aResponse()
-              .withStatus(Status.OK)
-              .withHeader("Content-Type", "application/xml")
-              .withBody(fromFile("aws/copy-objects_response.xml"))
-          )
-      )
-
-      val fileUploading = FileMetadata("id", "file.txt", "text/plain", Some("https://bucket.s3.amazonaws.com/some-key"))
-
-      // Then
-      val result = connector.upload(fileUploading)
-      result.id shouldBe "id"
-      result.fileName shouldBe "file.txt"
-      result.mimeType shouldBe "text/plain"
-      result.url.get shouldBe s"$wireMockUrl/bucket/id"
-    }
-
-    "Delegate to S3 - PUT" in {
+    "Delegate to S3" in {
       // Given
       stubFor(
         put("/bucket/id")
