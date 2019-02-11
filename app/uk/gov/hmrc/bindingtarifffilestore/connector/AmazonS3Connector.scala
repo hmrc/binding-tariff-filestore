@@ -16,8 +16,7 @@
 
 package uk.gov.hmrc.bindingtarifffilestore.connector
 
-import java.io.BufferedInputStream
-import java.net.URL
+import java.net.{URI, URL}
 import java.util
 
 import com.amazonaws.HttpMethod
@@ -25,7 +24,7 @@ import com.amazonaws.auth.{AWSStaticCredentialsProvider, BasicAWSCredentials}
 import com.amazonaws.client.builder.AwsClientBuilder.EndpointConfiguration
 import com.amazonaws.services.s3.model.DeleteObjectsRequest.KeyVersion
 import com.amazonaws.services.s3.model._
-import com.amazonaws.services.s3.{AmazonS3, AmazonS3ClientBuilder}
+import com.amazonaws.services.s3.{AmazonS3, AmazonS3ClientBuilder, AmazonS3URI}
 import com.google.inject.Inject
 import javax.inject.Singleton
 import play.api.Logger
@@ -64,21 +63,17 @@ class AmazonS3Connector @Inject()(config: AppConfig) {
   }
 
   def upload(fileMetaData: FileMetadata): FileMetadata = {
-    val url: URL = new URL(fileMetaData.url.getOrElse(throw new IllegalArgumentException("Missing URL")))
+    val url: URI = new URI(fileMetaData.url.getOrElse(throw new IllegalArgumentException("Missing URL")))
+    val s3URL = new AmazonS3URI(url)
 
-    val metadata = new ObjectMetadata
-    metadata.setContentType(fileMetaData.mimeType)
-    metadata.setContentLength(contentLengthOf(url))
+    val request = new CopyObjectRequest(s3URL.getBucket, s3URL.getKey, s3Config.bucket, fileMetaData.id)
+      .withCannedAccessControlList(CannedAccessControlList.Private)
 
-    val request = new PutObjectRequest(
-      s3Config.bucket, fileMetaData.id, new BufferedInputStream(url.openStream()), metadata
-    ).withCannedAcl(CannedAccessControlList.Private)
-
-    Try(s3client.putObject(request)) match {
+    Try(s3client.copyObject(request)) match {
       case Success(_) =>
         fileMetaData.copy(url = Some(s"${s3Config.baseUrl}/${s3Config.bucket}/${fileMetaData.id}"))
       case Failure(e: Throwable) =>
-        Logger.error("Failing to upload to the S3 bucket.", e)
+        Logger.error("Failed to copy to S3", e)
         throw e
     }
   }

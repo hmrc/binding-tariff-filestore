@@ -21,7 +21,6 @@ import org.mockito.BDDMockito.given
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.mockito.MockitoSugar
 import play.api.http.Status
-import play.api.libs.Files.TemporaryFile
 import uk.gov.hmrc.bindingtarifffilestore.config.{AppConfig, S3Configuration}
 import uk.gov.hmrc.bindingtarifffilestore.model.FileMetadata
 import uk.gov.hmrc.bindingtarifffilestore.util.{ResourceFiles, WiremockTestServer}
@@ -71,15 +70,17 @@ class AmazonS3ConnectorSpec extends UnitSpec with WiremockTestServer
       stubFor(
         put("/bucket/id")
           .withHeader("Authorization", matching(s"AWS4-HMAC-SHA256 Credential=${s3Config.key}/\\d+/${s3Config.region}/s3/aws4_request, .*"))
-          .withHeader("Content-Type", equalTo("text/plain"))
+          .withHeader("Content-Type", equalTo("application/octet-stream"))
+          .withHeader("x-amz-copy-source", equalTo("/bucket/some-key"))
           .willReturn(
             aResponse()
               .withStatus(Status.OK)
+              .withHeader("Content-Type", "application/xml")
+              .withBody(fromFile("aws/copy-objects_response.xml"))
           )
       )
 
-      val url = TemporaryFile("example.txt").file.toURI.toURL.toString
-      val fileUploading = FileMetadata("id", "file.txt", "text/plain", Some(url))
+      val fileUploading = FileMetadata("id", "file.txt", "text/plain", Some("https://bucket.s3.amazonaws.com/some-key"))
 
       // Then
       val result = connector.upload(fileUploading)
