@@ -24,7 +24,7 @@ import org.scalatest.concurrent.Eventually
 import org.scalatest.mockito.MockitoSugar
 import play.api.libs.Files.TemporaryFile
 import uk.gov.hmrc.bindingtarifffilestore.audit.AuditService
-import uk.gov.hmrc.bindingtarifffilestore.config.AppConfig
+import uk.gov.hmrc.bindingtarifffilestore.config.{AppConfig, UpScanFileSizeConfiguration}
 import uk.gov.hmrc.bindingtarifffilestore.connector.{AmazonS3Connector, UpscanConnector}
 import uk.gov.hmrc.bindingtarifffilestore.model.upscan._
 import uk.gov.hmrc.bindingtarifffilestore.model.{FileMetadata, FileWithMetadata, ScanStatus}
@@ -51,7 +51,7 @@ class FileStoreServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfte
 
   override protected def afterEach(): Unit = {
     super.afterEach()
-    reset(s3Connector, repository, upscanConnector, auditService)
+    reset(config, s3Connector, repository, upscanConnector, auditService)
   }
 
   "Service 'delete all' " should {
@@ -134,19 +134,19 @@ class FileStoreServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfte
     }
 
     "return all attachment requested already signed" in {
-      val attatchment1 = mock[FileMetadata]
+      val attachment1 = mock[FileMetadata]
       val attSigned1 = mock[FileMetadata]
 
-      val attatchment2 = mock[FileMetadata]
+      val attachment2 = mock[FileMetadata]
       val attSigned2 = mock[FileMetadata]
 
-      given(attatchment1.published).willReturn(true)
-      given(s3Connector.sign(attatchment1)).willReturn(attSigned1)
+      given(attachment1.published).willReturn(true)
+      given(s3Connector.sign(attachment1)).willReturn(attSigned1)
 
-      given(attatchment2.published).willReturn(true)
-      given(s3Connector.sign(attatchment2)).willReturn(attSigned2)
+      given(attachment2.published).willReturn(true)
+      given(s3Connector.sign(attachment2)).willReturn(attSigned2)
 
-      given(repository.get(Seq("filename_1","filename_2"))).willReturn(successful(Seq(attatchment1,attatchment2)))
+      given(repository.get(Seq("filename_1","filename_2"))).willReturn(successful(Seq(attachment1,attachment2)))
 
       await(service.getByIds(Seq("filename_1","filename_2"))) shouldBe Seq(attSigned1,attSigned2)
     }
@@ -162,6 +162,7 @@ class FileStoreServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfte
       val uploadTemplate = mock[UploadRequestTemplate]
       val initiateResponse = UpscanInitiateResponse("ref", uploadTemplate)
 
+      given(config.upScanFileSizeConfiguration).willReturn(UpScanFileSizeConfiguration(1, 1000))
       given(repository.insert(fileMetadata)).willReturn(successful(fileMetaDataCreated))
       given(upscanConnector.initiate(any[UploadSettings])(any[HeaderCarrier])).willReturn(successful(initiateResponse))
 

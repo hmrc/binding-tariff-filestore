@@ -43,9 +43,11 @@ class FileStoreService @Inject()(appConfig: AppConfig,
     val fileId = fileWithMetadata.metadata.id
     Logger.info(s"Uploading file [$fileId]")
     val settings = UploadSettings(
-      routes.FileStoreController
+      callbackUrl = routes.FileStoreController
         .notification(fileId)
-        .absoluteURL(appConfig.filestoreSSL, appConfig.filestoreUrl)
+        .absoluteURL(appConfig.filestoreSSL, appConfig.filestoreUrl),
+      minimumFileSize = appConfig.upScanFileSizeConfiguration.minFileSize,
+      maximumFileSize = appConfig.upScanFileSizeConfiguration.maxFileSize
     )
 
     // This future (UpScan Initiate) executes asynchronously intentionally

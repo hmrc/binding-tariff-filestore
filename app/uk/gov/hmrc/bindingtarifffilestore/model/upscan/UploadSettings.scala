@@ -21,8 +21,8 @@ import play.api.libs.json.{Format, Json}
 case class UploadSettings
 (
   callbackUrl: String,
-  minimumFileSize: Int = 1,
-  maximumFileSize: Int = 10485760 //10 MB
+  minimumFileSize: Int,
+  maximumFileSize: Int
 )
 
 object UploadSettings {

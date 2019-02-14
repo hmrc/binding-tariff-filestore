@@ -22,6 +22,15 @@ import uk.gov.hmrc.play.test.UnitSpec
 
 class AppConfigSpec extends UnitSpec with GuiceOneAppPerSuite {
 
+  private def upscanFileSizeConfigWith(pairs: (String, Int)*): UpScanFileSizeConfiguration = {
+    var config = Map[String, Int](
+      "upscan.minFileSize" -> 0,
+      "upscan.maxFileSize" -> 0
+    )
+    pairs.foreach(e => config = config + e)
+    new AppConfig(Configuration.from(config), Environment.simple()).upScanFileSizeConfiguration
+  }
+
   private def s3ConfigWith(pairs: (String, String)*): S3Configuration = {
     var config = Map(
       "s3.secretKeyId" -> "",
@@ -86,6 +95,18 @@ class AppConfigSpec extends UnitSpec with GuiceOneAppPerSuite {
         "microservice.services.upscan-initiate.host" -> "host",
         "microservice.services.upscan-initiate.port" -> "123"
       ).upscanInitiateUrl shouldBe "http://host:123"
+    }
+
+    "return upscan min file size" in {
+      upscanFileSizeConfigWith(
+        "upscan.minFileSize" -> 12
+      ).minFileSize shouldBe 12
+    }
+
+    "return upscan max file size" in {
+      upscanFileSizeConfigWith(
+        "upscan.maxFileSize" -> 123456
+      ).maxFileSize shouldBe 123456
     }
   }
 
