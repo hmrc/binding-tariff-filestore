@@ -65,7 +65,7 @@ class UpscanConnectorSpec extends UnitSpec with WithFakeApplication with Wiremoc
           )
       )
 
-      val response = await(connector.initiate(UploadSettings("callback")))
+      val response = await(connector.initiate(UploadSettings("callback", 1, 1000)))
       response shouldBe UpscanInitiateResponse(
         reference = "reference",
         uploadRequest = UploadRequestTemplate(
