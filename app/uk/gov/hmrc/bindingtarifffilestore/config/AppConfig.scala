@@ -35,7 +35,7 @@ class AppConfig @Inject()(val runModeConfiguration: Configuration, environment: 
   )
 
   lazy val upscanInitiateUrl: String = baseUrl("upscan-initiate")
-  lazy val upScanFileSizeConfiguration = UpScanFileSizeConfiguration(
+  lazy val fileStoreSizeConfiguration = FileStoreSizeConfiguration(
     maxFileSize = getInt("upscan.maxFileSize"),
     minFileSize = getInt("upscan.minFileSize")
   )
@@ -67,7 +67,7 @@ case class S3Configuration
   def baseUrl: String = endpoint.getOrElse(s"https://s3-$region.amazonaws.com")
 }
 
-case class UpScanFileSizeConfiguration
+case class FileStoreSizeConfiguration
 (
   minFileSize: Int,
   maxFileSize: Int

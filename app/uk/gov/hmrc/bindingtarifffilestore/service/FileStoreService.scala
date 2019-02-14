@@ -46,8 +46,8 @@ class FileStoreService @Inject()(appConfig: AppConfig,
       callbackUrl = routes.FileStoreController
         .notification(fileId)
         .absoluteURL(appConfig.filestoreSSL, appConfig.filestoreUrl),
-      minimumFileSize = appConfig.upScanFileSizeConfiguration.minFileSize,
-      maximumFileSize = appConfig.upScanFileSizeConfiguration.maxFileSize
+      minimumFileSize = appConfig.fileStoreSizeConfiguration.minFileSize,
+      maximumFileSize = appConfig.fileStoreSizeConfiguration.maxFileSize
     )
 
     // This future (UpScan Initiate) executes asynchronously intentionally

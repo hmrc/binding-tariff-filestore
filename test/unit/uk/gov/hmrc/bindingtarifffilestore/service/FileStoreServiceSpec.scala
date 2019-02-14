@@ -24,7 +24,7 @@ import org.scalatest.concurrent.Eventually
 import org.scalatest.mockito.MockitoSugar
 import play.api.libs.Files.TemporaryFile
 import uk.gov.hmrc.bindingtarifffilestore.audit.AuditService
-import uk.gov.hmrc.bindingtarifffilestore.config.{AppConfig, UpScanFileSizeConfiguration}
+import uk.gov.hmrc.bindingtarifffilestore.config.{AppConfig, FileStoreSizeConfiguration}
 import uk.gov.hmrc.bindingtarifffilestore.connector.{AmazonS3Connector, UpscanConnector}
 import uk.gov.hmrc.bindingtarifffilestore.model.upscan._
 import uk.gov.hmrc.bindingtarifffilestore.model.{FileMetadata, FileWithMetadata, ScanStatus}
@@ -162,7 +162,7 @@ class FileStoreServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfte
       val uploadTemplate = mock[UploadRequestTemplate]
       val initiateResponse = UpscanInitiateResponse("ref", uploadTemplate)
 
-      given(config.upScanFileSizeConfiguration).willReturn(UpScanFileSizeConfiguration(1, 1000))
+      given(config.fileStoreSizeConfiguration).willReturn(FileStoreSizeConfiguration(1, 1000))
       given(repository.insert(fileMetadata)).willReturn(successful(fileMetaDataCreated))
       given(upscanConnector.initiate(any[UploadSettings])(any[HeaderCarrier])).willReturn(successful(initiateResponse))
 
