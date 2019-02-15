@@ -23,7 +23,7 @@ import uk.gov.hmrc.bindingtarifffilestore.config.AppConfig
 import uk.gov.hmrc.bindingtarifffilestore.connector.{AmazonS3Connector, UpscanConnector}
 import uk.gov.hmrc.bindingtarifffilestore.controllers.routes
 import uk.gov.hmrc.bindingtarifffilestore.model.ScanStatus.{FAILED, READY}
-import uk.gov.hmrc.bindingtarifffilestore.model.upscan.{ScanResult, SuccessfulScanResult, UploadSettings}
+import uk.gov.hmrc.bindingtarifffilestore.model.upscan.{ScanResult, SuccessfulScanResult, UploadRequestTemplate, UploadSettings}
 import uk.gov.hmrc.bindingtarifffilestore.model.{FileMetadata, FileWithMetadata}
 import uk.gov.hmrc.bindingtarifffilestore.repository.FileMetadataRepository
 import uk.gov.hmrc.http.HeaderCarrier
@@ -38,7 +38,26 @@ class FileStoreService @Inject()(appConfig: AppConfig,
                                  upscanConnector: UpscanConnector,
                                  auditService: AuditService) {
 
-  // when UpScan is initially contacted
+  // Initiates an upload for a POST direct to Upscan
+  def initiate(metadata: FileMetadata)(implicit hc: HeaderCarrier): Future[UploadRequestTemplate] = {
+    val fileId = metadata.id
+    Logger.info(s"Uploading file [$fileId]")
+    val settings = UploadSettings(
+      callbackUrl = routes.FileStoreController
+        .notification(fileId)
+        .absoluteURL(appConfig.filestoreSSL, appConfig.filestoreUrl),
+      minimumFileSize = appConfig.fileStoreSizeConfiguration.minFileSize,
+      maximumFileSize = appConfig.fileStoreSizeConfiguration.maxFileSize
+    )
+
+    for {
+      initiateResponse <- upscanConnector.initiate(settings)
+      _ = auditService.auditUpScanInitiated(fileId, metadata.fileName, initiateResponse.reference)
+      _ <- repository.insert(metadata)
+    } yield initiateResponse.uploadRequest
+  }
+
+  // Initiates an upload and Uploads the file direct
   def upload(fileWithMetadata: FileWithMetadata)(implicit hc: HeaderCarrier): Future[FileMetadata] = {
     val fileId = fileWithMetadata.metadata.id
     Logger.info(s"Uploading file [$fileId]")
@@ -50,14 +69,14 @@ class FileStoreService @Inject()(appConfig: AppConfig,
       maximumFileSize = appConfig.fileStoreSizeConfiguration.maxFileSize
     )
 
-    // This future (UpScan Initiate) executes asynchronously intentionally
-    upscanConnector.initiate(settings).flatMap { response =>
-      Logger.info(s"Upscan-Initiated file [$fileId] with Upscan reference [${response.reference}]")
-      auditService.auditUpScanInitiated(fileId, fileWithMetadata.metadata.fileName, response.reference)
-      upscanConnector.upload(response.uploadRequest, fileWithMetadata)
-    } recover { case t => Logger.error("Upscan error", t) }
-
-    repository.insert(fileWithMetadata.metadata)
+    for {
+      initiateResponse <- upscanConnector.initiate(settings)
+      _ = Logger.info(s"Upscan-Initiated file [$fileId] with Upscan reference [${initiateResponse.reference}]")
+      _ = auditService.auditUpScanInitiated(fileId, fileWithMetadata.metadata.fileName, initiateResponse.reference)
+      // This future (Upload) executes asynchronously intentionally
+      _ = upscanConnector.upload(initiateResponse.uploadRequest, fileWithMetadata)
+      update <- repository.insert(fileWithMetadata.metadata)
+    } yield update
   }
 
   def getById(id: String): Future[Option[FileMetadata]] = {

@@ -152,6 +152,25 @@ class FileStoreServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfte
     }
   }
 
+  "Service 'initiate'" should {
+
+    "Delegate to Connector" in {
+      val fileMetadata = FileMetadata(id = "id", fileName = "file", mimeType = "text/plain")
+      val fileMetaDataCreated = mock[FileMetadata]
+      val uploadTemplate = mock[UploadRequestTemplate]
+      val initiateResponse = UpscanInitiateResponse("ref", uploadTemplate)
+
+      given(config.fileStoreSizeConfiguration).willReturn(FileStoreSizeConfiguration(1, 1000))
+      given(repository.insert(fileMetadata)).willReturn(successful(fileMetaDataCreated))
+      given(upscanConnector.initiate(any[UploadSettings])(any[HeaderCarrier])).willReturn(successful(initiateResponse))
+
+      await(service.initiate(fileMetadata)) shouldBe uploadTemplate
+
+      verify(auditService, times(1)).auditUpScanInitiated(fileId = "id", fileName = "file", upScanRef = "ref")
+      verifyNoMoreInteractions(auditService)
+    }
+  }
+
   "Service 'upload' " should {
 
     "Delegate to Connector" in {
@@ -168,10 +187,8 @@ class FileStoreServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfte
 
       await(service.upload(fileWithMetadata)) shouldBe fileMetaDataCreated
 
-      eventually(timeout(2.seconds), interval(10.milliseconds)) {
-        verify(auditService, times(1)).auditUpScanInitiated(fileId = "id", fileName = "file", upScanRef = "ref")
-        verifyNoMoreInteractions(auditService)
-      }
+      verify(auditService, times(1)).auditUpScanInitiated(fileId = "id", fileName = "file", upScanRef = "ref")
+      verifyNoMoreInteractions(auditService)
     }
   }
 
