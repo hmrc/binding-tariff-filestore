@@ -18,14 +18,16 @@ package uk.gov.hmrc.bindingtarifffilestore.controllers
 
 import javax.inject.{Inject, Singleton}
 import play.api.libs.Files
+import play.api.libs.Files.TemporaryFile
 import play.api.libs.json.{JsValue, Json}
-import play.api.mvc._
+import play.api.mvc.{MultipartFormData, _}
 import uk.gov.hmrc.bindingtarifffilestore.config.AppConfig
 import uk.gov.hmrc.bindingtarifffilestore.model.ErrorCode.NOTFOUND
 import uk.gov.hmrc.bindingtarifffilestore.model.FileMetadataREST._
 import uk.gov.hmrc.bindingtarifffilestore.model._
 import uk.gov.hmrc.bindingtarifffilestore.model.upscan.ScanResult
 import uk.gov.hmrc.bindingtarifffilestore.service.FileStoreService
+import uk.gov.hmrc.http.HeaderCarrier
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -45,24 +47,16 @@ class FileStoreController @Inject()(appConfig: AppConfig,
     service.delete(id) map (_ => NoContent) recover recovery
   }
 
-  def upload: Action[MultipartFormData[Files.TemporaryFile]] = Action.async(parse.multipartFormData) { implicit request =>
-    val formFile = request.body.file("file").filter(_.filename.nonEmpty)
-    val published = request.body.dataParts.getOrElse("publish", Seq.empty).contains("true")
-
-    val attachment: Option[FileWithMetadata] = formFile map { file =>
-      FileWithMetadata(
-        file.ref,
-        FileMetadata(
-          fileName = file.filename,
-          mimeType = file.contentType.getOrElse(throw new RuntimeException("Missing file type")),
-          published = published
-        )
-      )
+  def upload: Action[AnyContent] = Action.async { implicit request: Request[AnyContent] =>
+    if(request.contentType.contains("application/json")) {
+      asJson[UploadInitiateTemplate](initiate)
+    } else if(request.contentType.contains("multipart/form-data")) {
+      request.body
+        .asMultipartFormData.map(upload)
+        .getOrElse(successful(BadRequest))
+    } else {
+      successful(BadRequest("Content-Type must be one of [application/json, multipart/form-data]"))
     }
-
-    attachment
-      .map( service.upload(_).map(f => Accepted(Json.toJson(f))) )
-      .getOrElse(successful(BadRequest(JsErrorResponse(ErrorCode.INVALID_REQUEST_PAYLOAD, "Invalid File"))))
   }
 
   def get(id: String): Action[AnyContent] = Action.async { implicit request =>
@@ -88,6 +82,30 @@ class FileStoreController @Inject()(appConfig: AppConfig,
     service.getByIds(ids.getOrElse(Seq.empty)) map {
       fileMetadataObjects: Seq[FileMetadata] => Ok(Json.toJson(fileMetadataObjects))
     }
+  }
+
+  private def initiate(template: UploadInitiateTemplate)(implicit hc: HeaderCarrier): Future[Result] = {
+    service.initiate(template.toMetaData).map(t => Accepted(Json.toJson(t)))
+  }
+
+  private def upload(body: MultipartFormData[TemporaryFile])(implicit hc: HeaderCarrier): Future[Result] = {
+    val formFile = body.file("file").filter(_.filename.nonEmpty)
+    val published = body.dataParts.getOrElse("publish", Seq.empty).contains("true")
+
+    val attachment: Option[FileWithMetadata] = formFile map { file =>
+      FileWithMetadata(
+        file.ref,
+        FileMetadata(
+          fileName = file.filename,
+          mimeType = file.contentType.getOrElse(throw new RuntimeException("Missing file type")),
+          published = published
+        )
+      )
+    }
+
+    attachment
+      .map( service.upload(_).map(f => Accepted(Json.toJson(f))) )
+      .getOrElse(successful(BadRequest(JsErrorResponse(ErrorCode.INVALID_REQUEST_PAYLOAD, "Invalid File"))))
   }
 
   private def handleNotFound(id: String, result: FileMetadata => Future[Result]): Future[Result] = {

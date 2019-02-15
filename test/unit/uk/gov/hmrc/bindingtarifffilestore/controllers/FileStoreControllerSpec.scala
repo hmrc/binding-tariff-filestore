@@ -27,17 +27,18 @@ import org.scalatest.{BeforeAndAfterEach, Matchers}
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.http.Status._
 import play.api.libs.Files.TemporaryFile
-import play.api.libs.json.{JsValue, Json}
+import play.api.libs.json.{JsValue, Json, Writes}
 import play.api.mvc.MultipartFormData.FilePart
-import play.api.mvc.{MultipartFormData, Result}
+import play.api.mvc.{AnyContent, MultipartFormData, Request, Result}
 import play.api.test.FakeRequest
 import uk.gov.hmrc.bindingtarifffilestore.config.AppConfig
 import uk.gov.hmrc.bindingtarifffilestore.model.FileMetadataREST.format
-import uk.gov.hmrc.bindingtarifffilestore.model.upscan.{ScanResult, SuccessfulScanResult, UploadDetails}
-import uk.gov.hmrc.bindingtarifffilestore.model.{FileMetadata, FileWithMetadata, ScanStatus}
+import uk.gov.hmrc.bindingtarifffilestore.model.upscan.{ScanResult, SuccessfulScanResult, UploadDetails, UploadRequestTemplate}
+import uk.gov.hmrc.bindingtarifffilestore.model.{FileMetadata, FileWithMetadata, ScanStatus, UploadInitiateTemplate}
 import uk.gov.hmrc.bindingtarifffilestore.service.FileStoreService
 import uk.gov.hmrc.http.{HeaderCarrier, HttpVerbs}
 import uk.gov.hmrc.play.test.UnitSpec
+import views.html.helper.form
 
 import scala.concurrent.Future.{failed, successful}
 
@@ -246,16 +247,44 @@ class FileStoreControllerSpec extends UnitSpec with Matchers
     val mimeType = "text/plain"
     val tmpFile = TemporaryFile("example-file.txt")
 
+    def multipartRequest(body: MultipartFormData[TemporaryFile]): Request[AnyContent] = {
+      fakeRequest.withMultipartFormDataBody(body)
+        .withHeaders("Content-Type" -> "multipart/form-data")
+    }
+
+    def jsonRequest[T](body: T)(implicit writes: Writes[T]): Request[AnyContent] = {
+      fakeRequest.withJsonBody(Json.toJson(body))
+        .withHeaders("Content-Type" -> "application/json")
+    }
+
+    "return 202 on valid json" in {
+      // Given
+      val response = UploadRequestTemplate("href", Map())
+      when(service.initiate(any[FileMetadata])(any[HeaderCarrier])).thenReturn(successful(response))
+
+      // When
+      val request = UploadInitiateTemplate("file.txt", "text/plain", published = true)
+      val result: Result = await(controller.upload(jsonRequest(request)))
+
+      // Then
+      status(result) shouldBe ACCEPTED
+
+      val metadata = theFileInitiated
+      metadata.published shouldBe true
+      metadata.fileName shouldBe "file.txt"
+      metadata.mimeType shouldBe "text/plain"
+    }
+
     "return 202 on valid file" in {
       // Given
       val metadataUploaded = FileMetadata(id = "id", fileName = fileName, mimeType = mimeType)
       when(service.upload(any[FileWithMetadata])(any[HeaderCarrier])).thenReturn(successful(metadataUploaded))
 
-      // When=
+      // When
       val filePart = FilePart[TemporaryFile](key = "file", fileName, contentType = Some(mimeType), ref = tmpFile)
       val form = MultipartFormData[TemporaryFile](dataParts = Map(), files = Seq(filePart), badParts = Seq.empty)
 
-      val result: Result = await(controller.upload(fakeRequest.withBody(form)))
+      val result: Result = await(controller.upload(multipartRequest(form)))
 
       // Then
       status(result) shouldBe ACCEPTED
@@ -275,7 +304,7 @@ class FileStoreControllerSpec extends UnitSpec with Matchers
       val filePart = FilePart[TemporaryFile](key = "file", fileName, contentType = Some(mimeType), ref = tmpFile)
       val form = MultipartFormData[TemporaryFile](dataParts = Map("publish" -> Seq("true")), files = Seq(filePart), badParts = Seq.empty)
 
-      val result: Result = await(controller.upload(fakeRequest.withBody(form)))
+      val result: Result = await(controller.upload(multipartRequest(form)))
 
       // Then
       status(result) shouldBe ACCEPTED
@@ -295,7 +324,7 @@ class FileStoreControllerSpec extends UnitSpec with Matchers
       val filePart = FilePart[TemporaryFile](key = "file", fileName, contentType = Some(mimeType), ref = tmpFile)
       val form = MultipartFormData[TemporaryFile](dataParts = Map("publish" -> Seq("false")), files = Seq(filePart), badParts = Seq.empty)
 
-      val result: Result = await(controller.upload(fakeRequest.withBody(form)))
+      val result: Result = await(controller.upload(multipartRequest(form)))
 
       // Then
       status(result) shouldBe ACCEPTED
@@ -311,7 +340,7 @@ class FileStoreControllerSpec extends UnitSpec with Matchers
       val form = MultipartFormData[TemporaryFile](dataParts = Map(), files = Seq(filePart), badParts = Seq.empty)
 
       val exception = intercept[RuntimeException] {
-        controller.upload(fakeRequest.withBody(form))
+        controller.upload(multipartRequest(form))
       }
       exception.getMessage shouldBe "Missing file type"
     }
@@ -319,7 +348,7 @@ class FileStoreControllerSpec extends UnitSpec with Matchers
     "return 400 on missing file" in {
       val form = MultipartFormData[TemporaryFile](dataParts = Map(), files = Seq(), badParts = Seq.empty)
 
-      val result: Result = await(controller.upload(fakeRequest.withBody(form)))
+      val result: Result = await(controller.upload(multipartRequest(form)))
 
       status(result) shouldBe BAD_REQUEST
     }
@@ -328,7 +357,21 @@ class FileStoreControllerSpec extends UnitSpec with Matchers
       val filePart = FilePart[TemporaryFile](key = "file", filename = "", contentType = Some("text/plain"), ref = tmpFile)
       val form = MultipartFormData[TemporaryFile](dataParts = Map(), files = Seq(filePart), badParts = Seq.empty)
 
-      val result: Result = await(controller.upload(fakeRequest.withBody(form)))
+      val result: Result = await(controller.upload(multipartRequest(form)))
+
+      status(result) shouldBe BAD_REQUEST
+    }
+
+    "return 400 on invalid json" in {
+      // When
+      val result: Result = await(controller.upload(jsonRequest(Json.obj())))
+
+      // Then
+      status(result) shouldBe BAD_REQUEST
+    }
+
+    "return 400 on missing content type" in {
+      val result: Result = await(controller.upload(FakeRequest()))
 
       status(result) shouldBe BAD_REQUEST
     }
@@ -336,6 +379,12 @@ class FileStoreControllerSpec extends UnitSpec with Matchers
     def theFileUploaded: FileWithMetadata = {
       val captor = ArgumentCaptor.forClass(classOf[FileWithMetadata])
       verify(service).upload(captor.capture())(any[HeaderCarrier])
+      captor.getValue
+    }
+
+    def theFileInitiated: FileMetadata = {
+      val captor = ArgumentCaptor.forClass(classOf[FileMetadata])
+      verify(service).initiate(captor.capture())(any[HeaderCarrier])
       captor.getValue
     }
 

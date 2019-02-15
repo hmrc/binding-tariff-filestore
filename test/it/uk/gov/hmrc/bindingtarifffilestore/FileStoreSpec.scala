@@ -30,6 +30,7 @@ import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.Files.TemporaryFile
 import play.api.libs.json._
 import scalaj.http.{Http, HttpResponse, MultiPart}
+import uk.gov.hmrc.bindingtarifffilestore.model.UploadInitiateTemplate
 import uk.gov.hmrc.bindingtarifffilestore.model.upscan.ScanResult.format
 import uk.gov.hmrc.bindingtarifffilestore.model.upscan._
 import uk.gov.hmrc.bindingtarifffilestore.repository.FileMetadataMongoRepository
@@ -136,6 +137,24 @@ class FileStoreSpec extends WiremockFeatureTestServer with ResourceFiles with Be
       response.body("mimeType") shouldBe JsString(contentType)
       response.body.contains("url") shouldBe false
       response.body.contains("scanStatus") shouldBe false
+    }
+  }
+
+  feature("Initiate") {
+    scenario("Should persist") {
+      Given("A Client of the FileStore has a file")
+      val filename = "some-file.txt"
+      val contentType = "text/plain"
+
+      When("It is initiated")
+      val response: HttpResponse[Map[String, JsValue]] = initiate(filename, contentType)
+
+      Then("The response code should be Accepted")
+      response.code shouldBe Status.ACCEPTED
+
+      And("The response body contains the file upload template")
+      response.body("href") shouldBe JsString("http://localhost:20001/upscan/upload")
+      response.body("fields") shouldBe Json.obj("key" -> "value")
     }
   }
 
@@ -357,6 +376,15 @@ class FileStoreSpec extends WiremockFeatureTestServer with ResourceFiles with Be
     )
     Http(s"$serviceUrl/file")
       .postMulti(form)
+      .execute(convertingResponseToJS)
+  }
+
+  private def initiate(filename: String, contentType: String): HttpResponse[Map[String, JsValue]] = {
+    stubUpscanInitiate
+
+    Http(s"$serviceUrl/file")
+      .header("Content-Type", "application/json")
+      .postData(Json.toJson(UploadInitiateTemplate(filename, contentType, false)).toString())
       .execute(convertingResponseToJS)
   }
 
