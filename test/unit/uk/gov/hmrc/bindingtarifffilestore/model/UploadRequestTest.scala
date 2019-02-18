@@ -22,8 +22,15 @@ class UploadRequestTest extends UnitSpec {
 
   "Upload Request" should {
     "map to metadata" in {
-      val metadata = UploadRequest("id", "file-name", "type", published = true).toMetaData
+      val metadata = UploadRequest(id = Some("id"), fileName = "file-name", mimeType = "type", published = true).toMetaData
       metadata.id shouldBe "id"
+      metadata.fileName shouldBe "file-name"
+      metadata.mimeType shouldBe "type"
+      metadata.published shouldBe true
+    }
+
+    "map to metadata with ID" in {
+      val metadata = UploadRequest(fileName = "file-name", mimeType = "type", published = true).toMetaData
       metadata.fileName shouldBe "file-name"
       metadata.mimeType shouldBe "type"
       metadata.published shouldBe true

@@ -263,7 +263,7 @@ class FileStoreControllerSpec extends UnitSpec with Matchers
       when(service.initiate(any[FileMetadata])(any[HeaderCarrier])).thenReturn(successful(response))
 
       // When
-      val request = UploadRequest(id = "id", fileName = "file.txt", mimeType = "text/plain", published = true)
+      val request = UploadRequest(fileName = "file.txt", mimeType = "text/plain", published = true)
       val result: Result = await(controller.upload(jsonRequest(request)))
 
       // Then

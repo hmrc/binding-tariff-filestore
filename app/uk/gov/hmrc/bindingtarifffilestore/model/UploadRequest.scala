@@ -22,13 +22,13 @@ import play.api.libs.json._
 
 case class UploadRequest
 (
-  id: String = UUID.randomUUID().toString,
+  id: Option[String] = None,
   fileName: String,
   mimeType: String,
   published: Boolean = false
 ) {
   def toMetaData: FileMetadata = {
-    FileMetadata(id = id, fileName = fileName, mimeType = mimeType, published = published)
+    FileMetadata(id = id.getOrElse(UUID.randomUUID().toString), fileName = fileName, mimeType = mimeType, published = published)
   }
 }
 
