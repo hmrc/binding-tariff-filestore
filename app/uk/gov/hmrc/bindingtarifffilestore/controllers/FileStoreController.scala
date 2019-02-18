@@ -17,7 +17,6 @@
 package uk.gov.hmrc.bindingtarifffilestore.controllers
 
 import javax.inject.{Inject, Singleton}
-import play.api.libs.Files
 import play.api.libs.Files.TemporaryFile
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.{MultipartFormData, _}
@@ -49,7 +48,7 @@ class FileStoreController @Inject()(appConfig: AppConfig,
 
   def upload: Action[AnyContent] = Action.async { implicit request: Request[AnyContent] =>
     if(request.contentType.contains("application/json")) {
-      asJson[UploadInitiateTemplate](initiate)
+      asJson[UploadRequest](initiate)
     } else if(request.contentType.contains("multipart/form-data")) {
       request.body
         .asMultipartFormData.map(upload)
@@ -84,7 +83,7 @@ class FileStoreController @Inject()(appConfig: AppConfig,
     }
   }
 
-  private def initiate(template: UploadInitiateTemplate)(implicit hc: HeaderCarrier): Future[Result] = {
+  private def initiate(template: UploadRequest)(implicit hc: HeaderCarrier): Future[Result] = {
     service.initiate(template.toMetaData).map(t => Accepted(Json.toJson(t)))
   }
 

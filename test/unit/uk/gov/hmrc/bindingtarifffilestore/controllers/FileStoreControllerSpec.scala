@@ -33,8 +33,8 @@ import play.api.mvc.{AnyContent, MultipartFormData, Request, Result}
 import play.api.test.FakeRequest
 import uk.gov.hmrc.bindingtarifffilestore.config.AppConfig
 import uk.gov.hmrc.bindingtarifffilestore.model.FileMetadataREST.format
-import uk.gov.hmrc.bindingtarifffilestore.model.upscan.{ScanResult, SuccessfulScanResult, UploadDetails, UploadRequestTemplate}
-import uk.gov.hmrc.bindingtarifffilestore.model.{FileMetadata, FileWithMetadata, ScanStatus, UploadInitiateTemplate}
+import uk.gov.hmrc.bindingtarifffilestore.model.upscan.{ScanResult, SuccessfulScanResult, UploadDetails, UploadTemplate}
+import uk.gov.hmrc.bindingtarifffilestore.model.{FileMetadata, FileWithMetadata, ScanStatus, UploadRequest}
 import uk.gov.hmrc.bindingtarifffilestore.service.FileStoreService
 import uk.gov.hmrc.http.{HeaderCarrier, HttpVerbs}
 import uk.gov.hmrc.play.test.UnitSpec
@@ -259,11 +259,11 @@ class FileStoreControllerSpec extends UnitSpec with Matchers
 
     "return 202 on valid json" in {
       // Given
-      val response = UploadRequestTemplate("href", Map())
+      val response = UploadTemplate("href", Map())
       when(service.initiate(any[FileMetadata])(any[HeaderCarrier])).thenReturn(successful(response))
 
       // When
-      val request = UploadInitiateTemplate("file.txt", "text/plain", published = true)
+      val request = UploadRequest("file.txt", "text/plain", published = true)
       val result: Result = await(controller.upload(jsonRequest(request)))
 
       // Then

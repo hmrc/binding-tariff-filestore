@@ -157,7 +157,7 @@ class FileStoreServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfte
     "Delegate to Connector" in {
       val fileMetadata = FileMetadata(id = "id", fileName = "file", mimeType = "text/plain")
       val fileMetaDataCreated = mock[FileMetadata]
-      val uploadTemplate = mock[UploadRequestTemplate]
+      val uploadTemplate = mock[UploadTemplate]
       val initiateResponse = UpscanInitiateResponse("ref", uploadTemplate)
 
       given(config.fileStoreSizeConfiguration).willReturn(FileStoreSizeConfiguration(1, 1000))
@@ -178,7 +178,7 @@ class FileStoreServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfte
       val fileMetadata = FileMetadata(id = "id", fileName = "file", mimeType = "text/plain")
       val fileWithMetadata = FileWithMetadata(file, fileMetadata)
       val fileMetaDataCreated = mock[FileMetadata]
-      val uploadTemplate = mock[UploadRequestTemplate]
+      val uploadTemplate = mock[UploadTemplate]
       val initiateResponse = UpscanInitiateResponse("ref", uploadTemplate)
 
       given(config.fileStoreSizeConfiguration).willReturn(FileStoreSizeConfiguration(1, 1000))

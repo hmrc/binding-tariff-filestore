@@ -30,7 +30,7 @@ import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.Files.TemporaryFile
 import play.api.libs.json._
 import scalaj.http.{Http, HttpResponse, MultiPart}
-import uk.gov.hmrc.bindingtarifffilestore.model.UploadInitiateTemplate
+import uk.gov.hmrc.bindingtarifffilestore.model.UploadRequest
 import uk.gov.hmrc.bindingtarifffilestore.model.upscan.ScanResult.format
 import uk.gov.hmrc.bindingtarifffilestore.model.upscan._
 import uk.gov.hmrc.bindingtarifffilestore.repository.FileMetadataMongoRepository
@@ -384,7 +384,7 @@ class FileStoreSpec extends WiremockFeatureTestServer with ResourceFiles with Be
 
     Http(s"$serviceUrl/file")
       .header("Content-Type", "application/json")
-      .postData(Json.toJson(UploadInitiateTemplate(filename, contentType, false)).toString())
+      .postData(Json.toJson(UploadRequest(filename, contentType, false)).toString())
       .execute(convertingResponseToJS)
   }
 

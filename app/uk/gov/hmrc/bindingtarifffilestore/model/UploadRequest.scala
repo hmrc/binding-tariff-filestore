@@ -18,7 +18,7 @@ package uk.gov.hmrc.bindingtarifffilestore.model
 
 import play.api.libs.json._
 
-case class UploadInitiateTemplate
+case class UploadRequest
 (
   fileName: String,
   mimeType: String,
@@ -29,6 +29,6 @@ case class UploadInitiateTemplate
   }
 }
 
-object UploadInitiateTemplate {
-  implicit val format: OFormat[UploadInitiateTemplate] = Json.format[UploadInitiateTemplate]
+object UploadRequest {
+  implicit val format: OFormat[UploadRequest] = Json.format[UploadRequest]
 }

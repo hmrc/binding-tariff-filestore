@@ -21,7 +21,7 @@ import play.api.libs.json.{Json, OFormat}
 case class UpscanInitiateResponse
 (
   reference: String,
-  uploadRequest: UploadRequestTemplate
+  uploadRequest: UploadTemplate
 )
 
 object UpscanInitiateResponse {

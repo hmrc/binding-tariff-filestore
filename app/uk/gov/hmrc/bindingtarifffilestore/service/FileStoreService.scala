@@ -23,7 +23,7 @@ import uk.gov.hmrc.bindingtarifffilestore.config.AppConfig
 import uk.gov.hmrc.bindingtarifffilestore.connector.{AmazonS3Connector, UpscanConnector}
 import uk.gov.hmrc.bindingtarifffilestore.controllers.routes
 import uk.gov.hmrc.bindingtarifffilestore.model.ScanStatus.{FAILED, READY}
-import uk.gov.hmrc.bindingtarifffilestore.model.upscan.{ScanResult, SuccessfulScanResult, UploadRequestTemplate, UploadSettings}
+import uk.gov.hmrc.bindingtarifffilestore.model.upscan.{ScanResult, SuccessfulScanResult, UploadTemplate, UploadSettings}
 import uk.gov.hmrc.bindingtarifffilestore.model.{FileMetadata, FileWithMetadata}
 import uk.gov.hmrc.bindingtarifffilestore.repository.FileMetadataRepository
 import uk.gov.hmrc.http.HeaderCarrier
@@ -39,7 +39,7 @@ class FileStoreService @Inject()(appConfig: AppConfig,
                                  auditService: AuditService) {
 
   // Initiates an upload for a POST direct to Upscan
-  def initiate(metadata: FileMetadata)(implicit hc: HeaderCarrier): Future[UploadRequestTemplate] = {
+  def initiate(metadata: FileMetadata)(implicit hc: HeaderCarrier): Future[UploadTemplate] = {
     val fileId = metadata.id
     Logger.info(s"Uploading file [$fileId]")
     val settings = UploadSettings(
