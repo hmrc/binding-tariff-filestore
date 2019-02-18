@@ -16,16 +16,19 @@
 
 package uk.gov.hmrc.bindingtarifffilestore.model
 
+import java.util.UUID
+
 import play.api.libs.json._
 
 case class UploadRequest
 (
+  id: String = UUID.randomUUID().toString,
   fileName: String,
   mimeType: String,
   published: Boolean = false
 ) {
   def toMetaData: FileMetadata = {
-    FileMetadata(fileName = fileName, mimeType = mimeType, published = published)
+    FileMetadata(id = id, fileName = fileName, mimeType = mimeType, published = published)
   }
 }
 
