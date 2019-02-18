@@ -384,7 +384,7 @@ class FileStoreSpec extends WiremockFeatureTestServer with ResourceFiles with Be
 
     Http(s"$serviceUrl/file")
       .header("Content-Type", "application/json")
-      .postData(Json.toJson(UploadRequest(filename, contentType, false)).toString())
+      .postData(Json.toJson(UploadRequest(fileName = filename, mimeType = contentType, published = false)).toString())
       .execute(convertingResponseToJS)
   }
 
