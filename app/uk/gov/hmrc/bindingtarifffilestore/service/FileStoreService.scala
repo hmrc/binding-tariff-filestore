@@ -41,7 +41,7 @@ class FileStoreService @Inject()(appConfig: AppConfig,
   // Initiates an upload for a POST direct to Upscan
   def initiate(metadata: FileMetadata)(implicit hc: HeaderCarrier): Future[UploadTemplate] = {
     val fileId = metadata.id
-    Logger.info(s"Uploading file [$fileId]")
+    Logger.info(s"Initiating file [$fileId]")
     val settings = UploadSettings(
       callbackUrl = routes.FileStoreController
         .notification(fileId)
