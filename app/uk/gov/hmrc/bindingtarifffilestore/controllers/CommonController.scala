@@ -18,7 +18,7 @@ package uk.gov.hmrc.bindingtarifffilestore.controllers
 
 import play.api.Logger
 import play.api.libs.json._
-import play.api.mvc.{Request, Result}
+import play.api.mvc.{AnyContent, Request, Result}
 import uk.gov.hmrc.bindingtarifffilestore.model.JsErrorResponse
 import uk.gov.hmrc.bindingtarifffilestore.model.ErrorCode._
 import uk.gov.hmrc.play.bootstrap.controller.BaseController
@@ -34,6 +34,16 @@ trait CommonController extends BaseController {
     Try(request.body.validate[T]) match {
       case Success(JsSuccess(payload, _)) => f(payload)
       case Success(JsError(errs)) => successful(BadRequest(JsErrorResponse(INVALID_REQUEST_PAYLOAD, JsError.toJson(errs))))
+      case Failure(e) => successful(BadRequest(JsErrorResponse(UNKNOWN_ERROR, e.getMessage)))
+    }
+  }
+
+  protected def asJson[T]
+  (f: T => Future[Result])(implicit request: Request[AnyContent], m: Manifest[T], reads: Reads[T]): Future[Result] = {
+    Try(request.body.asJson.map(_.validate[T])) match {
+      case Success(Some(JsSuccess(payload, _))) => f(payload)
+      case Success(Some(JsError(errs))) => successful(BadRequest(JsErrorResponse(INVALID_REQUEST_PAYLOAD, JsError.toJson(errs))))
+      case Success(None) => successful(BadRequest)
       case Failure(e) => successful(BadRequest(JsErrorResponse(UNKNOWN_ERROR, e.getMessage)))
     }
   }

@@ -24,7 +24,7 @@ import uk.gov.hmrc.bindingtarifffilestore.model.ScanStatus._
 
 case class FileMetadata
 (
-  id: String = UUID.randomUUID().toString,
+  id: String,
   fileName: String,
   mimeType: String,
   url: Option[String] = None,

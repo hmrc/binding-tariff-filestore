@@ -26,7 +26,7 @@ import play.api.http.Status
 import play.api.libs.Files.TemporaryFile
 import play.api.libs.ws.WSClient
 import uk.gov.hmrc.bindingtarifffilestore.config.AppConfig
-import uk.gov.hmrc.bindingtarifffilestore.model.upscan.{UploadRequestTemplate, UploadSettings, UpscanInitiateResponse}
+import uk.gov.hmrc.bindingtarifffilestore.model.upscan.{UploadTemplate, UploadSettings, UpscanInitiateResponse}
 import uk.gov.hmrc.bindingtarifffilestore.model.{FileMetadata, FileWithMetadata}
 import uk.gov.hmrc.bindingtarifffilestore.util.{ResourceFiles, WiremockTestServer}
 import uk.gov.hmrc.http.HeaderCarrier
@@ -68,7 +68,7 @@ class UpscanConnectorSpec extends UnitSpec with WithFakeApplication with Wiremoc
       val response = await(connector.initiate(UploadSettings("callback", 1, 1000)))
       response shouldBe UpscanInitiateResponse(
         reference = "reference",
-        uploadRequest = UploadRequestTemplate(
+        uploadRequest = UploadTemplate(
           href = "href",
           fields = Map(
             "key" -> "value"
@@ -86,7 +86,7 @@ class UpscanConnectorSpec extends UnitSpec with WithFakeApplication with Wiremoc
           )
       )
 
-      val templateUploading = UploadRequestTemplate(
+      val templateUploading = UploadTemplate(
         href = s"$wireMockUrl/path",
         fields = Map(
           "key" -> "value"
@@ -110,7 +110,7 @@ class UpscanConnectorSpec extends UnitSpec with WithFakeApplication with Wiremoc
           )
       )
 
-      val templateUploading = UploadRequestTemplate(
+      val templateUploading = UploadTemplate(
         href = s"$wireMockUrl/path",
         fields = Map(
           "key" -> "value"

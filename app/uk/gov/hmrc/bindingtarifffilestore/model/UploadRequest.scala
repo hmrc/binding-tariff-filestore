@@ -14,12 +14,18 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.bindingtarifffilestore.model.upscan
+package uk.gov.hmrc.bindingtarifffilestore.model
 
-import play.api.libs.json.{Json, OFormat}
+import play.api.libs.json._
 
-case class UploadRequestTemplate(href: String, fields: Map[String, String])
+case class UploadRequest
+(
+  id: Option[String] = None,
+  fileName: String,
+  mimeType: String,
+  published: Boolean = false
+)
 
-object UploadRequestTemplate {
-  implicit val format: OFormat[UploadRequestTemplate] = Json.format
+object UploadRequest {
+  implicit val format: OFormat[UploadRequest] = Json.format[UploadRequest]
 }

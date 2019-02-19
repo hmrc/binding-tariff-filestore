@@ -231,6 +231,7 @@ class FileMetadataRepositorySpec extends BaseMongoIndexSpec
   }
 
   private def generateAttachment = FileMetadata(
+    id = generateString,
     fileName = generateString,
     mimeType = generateString
   )
