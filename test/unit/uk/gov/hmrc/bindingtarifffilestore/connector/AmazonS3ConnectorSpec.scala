@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.bindingtarifffilestore.connector
 
+import com.amazonaws.services.s3.model.AmazonS3Exception
 import com.github.tomakehurst.wiremock.client.WireMock._
 import org.mockito.BDDMockito.given
 import org.scalatest.BeforeAndAfterEach
@@ -100,6 +101,26 @@ class AmazonS3ConnectorSpec extends UnitSpec with WiremockTestServer
       exception.getMessage shouldBe "Missing URL"
     }
 
+    "Throw Exception on upload failure" in {
+      // Given
+      stubFor(
+        put("/bucket/id")
+          .withHeader("Authorization", matching(s"AWS4-HMAC-SHA256 Credential=${s3Config.key}/\\d+/${s3Config.region}/s3/aws4_request, .*"))
+          .withHeader("Content-Type", equalTo("text/plain"))
+          .willReturn(
+            aResponse()
+              .withStatus(Status.BAD_GATEWAY)
+          )
+      )
+      val url = TemporaryFile("example.txt").file.toURI.toURL.toString
+      val fileUploading = FileMetadata("id", "file.txt", "text/plain", Some(url))
+
+      // Then
+      val exception = intercept[AmazonS3Exception] {
+        connector.upload(fileUploading)
+      }
+      exception.getMessage shouldBe "Bad Gateway (Service: Amazon S3; Status Code: 502; Error Code: 502 Bad Gateway; Request ID: null; S3 Extended Request ID: null)"
+    }
   }
 
   "Sign" should {
@@ -162,10 +183,7 @@ class AmazonS3ConnectorSpec extends UnitSpec with WiremockTestServer
 
       connector.deleteAll()
 
-      verify(
-        postRequestedFor(urlEqualTo("/bucket/?delete"))
-          .withRequestBody(equalToXml(fromFile("aws/delete-objects_request.xml")))
-      )
+      verify(0, postRequestedFor(urlEqualTo("/bucket/?delete")))
     }
   }
 

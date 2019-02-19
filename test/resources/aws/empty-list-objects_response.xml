@@ -5,6 +5,4 @@
     <KeyCount>205</KeyCount>
     <MaxKeys>1000</MaxKeys>
     <IsTruncated>false</IsTruncated>
-    <Contents>
-    </Contents>
 </ListBucketResult>

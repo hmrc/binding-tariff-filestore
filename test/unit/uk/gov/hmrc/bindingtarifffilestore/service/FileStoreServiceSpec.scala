@@ -245,6 +245,35 @@ class FileStoreServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfte
       verifyNoMoreInteractions(auditService)
     }
 
+    "Skip publishing when the file no longer exists" in {
+      val attachment = mock[FileMetadata]("Attachment")
+      val scanResult = SuccessfulScanResult("ref", "url", mock[UploadDetails])
+      val attachmentUpdating = mock[FileMetadata]("AttachmentUpdating")
+      val attachmentUpdated = mock[FileMetadata]("AttachmentUpdated")
+
+      given(attachment.copy(scanStatus = Some(ScanStatus.READY), url = Some("url"))).willReturn(attachmentUpdating)
+      given(attachment.published).willReturn(true)
+      given(attachment.id).willReturn("id")
+      given(attachment.fileName).willReturn("file")
+
+      given(attachmentUpdating.published).willReturn(true)
+
+      given(attachmentUpdated.published).willReturn(true)
+      given(attachmentUpdated.scanStatus).willReturn(Some(ScanStatus.READY))
+      given(attachmentUpdated.id).willReturn("id")
+      given(attachmentUpdated.fileName).willReturn("file")
+
+      given(repository.update(attachmentUpdating)).willReturn(successful(None))
+
+      await(service.notify(attachment, scanResult)) shouldBe None
+
+      verify(s3Connector, never()).upload(any[FileMetadata])
+      verify(s3Connector, never()).sign(any[FileMetadata])
+      verify(auditService, times(1)).auditFileScanned(fileId = "id", fileName = "file", upScanRef = "ref", upScanStatus = "READY")
+      verify(auditService, never()).auditFilePublished(fileId = "id", fileName = "file")
+      verifyNoMoreInteractions(auditService)
+    }
+
     "Update the attachment for Failed Scan and Delegate to Connector" in {
       val attachment = FileMetadata(id = "id", fileName = "file", mimeType = "type")
       val scanResult = FailedScanResult("ref", mock[FailureDetails])

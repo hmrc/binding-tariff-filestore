@@ -42,6 +42,7 @@ trait WiremockTestServer extends UnitSpec with BeforeAndAfterEach {
 
   override protected def afterEach(): Unit = {
     super.afterEach()
+    wireMockServer.resetAll()
     wireMockServer.stop()
   }
 
