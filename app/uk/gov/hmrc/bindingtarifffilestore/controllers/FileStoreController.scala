@@ -16,10 +16,12 @@
 
 package uk.gov.hmrc.bindingtarifffilestore.controllers
 
+import java.util.UUID
+
 import javax.inject.{Inject, Singleton}
 import play.api.libs.Files.TemporaryFile
 import play.api.libs.json.{JsValue, Json}
-import play.api.mvc.{MultipartFormData, _}
+import play.api.mvc._
 import uk.gov.hmrc.bindingtarifffilestore.config.AppConfig
 import uk.gov.hmrc.bindingtarifffilestore.model.ErrorCode.NOTFOUND
 import uk.gov.hmrc.bindingtarifffilestore.model.FileMetadataREST._
@@ -47,9 +49,9 @@ class FileStoreController @Inject()(appConfig: AppConfig,
   }
 
   def upload: Action[AnyContent] = Action.async { implicit request: Request[AnyContent] =>
-    if(request.contentType.contains("application/json")) {
+    if (request.contentType.contains("application/json")) {
       asJson[UploadRequest](initiate)
-    } else if(request.contentType.contains("multipart/form-data")) {
+    } else if (request.contentType.contains("multipart/form-data")) {
       request.body
         .asMultipartFormData.map(upload)
         .getOrElse(successful(BadRequest))
@@ -84,17 +86,26 @@ class FileStoreController @Inject()(appConfig: AppConfig,
   }
 
   private def initiate(template: UploadRequest)(implicit hc: HeaderCarrier): Future[Result] = {
-    service.initiate(template.toMetaData).map(t => Accepted(Json.toJson(t)))
+    service.initiate(
+      FileMetadata(
+        id = template.id.getOrElse(UUID.randomUUID().toString),
+        fileName = template.fileName,
+        mimeType = template.mimeType,
+        published = template.published
+      )
+    ).map(t => Accepted(Json.toJson(t)))
   }
 
   private def upload(body: MultipartFormData[TemporaryFile])(implicit hc: HeaderCarrier): Future[Result] = {
     val formFile = body.file("file").filter(_.filename.nonEmpty)
-    val published = body.dataParts.getOrElse("publish", Seq.empty).contains("true")
+    val published: Boolean = body.dataParts.getOrElse("publish", Seq.empty).contains("true")
+    val id: String = body.dataParts.getOrElse("id", Seq.empty).headOption.getOrElse(UUID.randomUUID().toString)
 
     val attachment: Option[FileWithMetadata] = formFile map { file =>
       FileWithMetadata(
         file.ref,
         FileMetadata(
+          id = id,
           fileName = file.filename,
           mimeType = file.contentType.getOrElse(throw new RuntimeException("Missing file type")),
           published = published
@@ -103,7 +114,7 @@ class FileStoreController @Inject()(appConfig: AppConfig,
     }
 
     attachment
-      .map( service.upload(_).map(f => Accepted(Json.toJson(f))) )
+      .map(service.upload(_).map(f => Accepted(Json.toJson(f))))
       .getOrElse(successful(BadRequest(JsErrorResponse(ErrorCode.INVALID_REQUEST_PAYLOAD, "Invalid File"))))
   }
 

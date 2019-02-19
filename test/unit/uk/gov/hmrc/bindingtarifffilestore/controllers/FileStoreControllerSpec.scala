@@ -19,9 +19,9 @@ package uk.gov.hmrc.bindingtarifffilestore.controllers
 import java.time.Instant
 
 import akka.stream.Materializer
+import org.mockito.ArgumentCaptor
 import org.mockito.ArgumentMatchers.{any, refEq}
 import org.mockito.Mockito.{reset, verify, when}
-import org.mockito.ArgumentCaptor
 import org.scalatest.mockito.MockitoSugar
 import org.scalatest.{BeforeAndAfterEach, Matchers}
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
@@ -38,7 +38,6 @@ import uk.gov.hmrc.bindingtarifffilestore.model.{FileMetadata, FileWithMetadata,
 import uk.gov.hmrc.bindingtarifffilestore.service.FileStoreService
 import uk.gov.hmrc.http.{HeaderCarrier, HttpVerbs}
 import uk.gov.hmrc.play.test.UnitSpec
-import views.html.helper.form
 
 import scala.concurrent.Future.{failed, successful}
 
@@ -275,6 +274,25 @@ class FileStoreControllerSpec extends UnitSpec with Matchers
       metadata.mimeType shouldBe "text/plain"
     }
 
+    "return 202 on valid json with ID" in {
+      // Given
+      val response = UploadTemplate("href", Map())
+      when(service.initiate(any[FileMetadata])(any[HeaderCarrier])).thenReturn(successful(response))
+
+      // When
+      val request = UploadRequest(id = Some("id"), fileName = "file.txt", mimeType = "text/plain", published = true)
+      val result: Result = await(controller.upload(jsonRequest(request)))
+
+      // Then
+      status(result) shouldBe ACCEPTED
+
+      val metadata = theFileInitiated
+      metadata.id shouldBe "id"
+      metadata.published shouldBe true
+      metadata.fileName shouldBe "file.txt"
+      metadata.mimeType shouldBe "text/plain"
+    }
+
     "return 202 on valid file" in {
       // Given
       val metadataUploaded = FileMetadata(id = "id", fileName = fileName, mimeType = mimeType)
@@ -290,6 +308,27 @@ class FileStoreControllerSpec extends UnitSpec with Matchers
       status(result) shouldBe ACCEPTED
 
       val metadata = theFileUploaded.metadata
+      metadata.published shouldBe false
+      metadata.fileName shouldBe "file.txt"
+      metadata.mimeType shouldBe "text/plain"
+    }
+
+    "return 202 on valid file with id" in {
+      // Given
+      val metadataUploaded = FileMetadata(id = "id", fileName = fileName, mimeType = mimeType)
+      when(service.upload(any[FileWithMetadata])(any[HeaderCarrier])).thenReturn(successful(metadataUploaded))
+
+      // When
+      val filePart = FilePart[TemporaryFile](key = "file", fileName, contentType = Some(mimeType), ref = tmpFile)
+      val form = MultipartFormData[TemporaryFile](dataParts = Map("id" -> Seq("id")), files = Seq(filePart), badParts = Seq.empty)
+
+      val result: Result = await(controller.upload(multipartRequest(form)))
+
+      // Then
+      status(result) shouldBe ACCEPTED
+
+      val metadata = theFileUploaded.metadata
+      metadata.id shouldBe "id"
       metadata.published shouldBe false
       metadata.fileName shouldBe "file.txt"
       metadata.mimeType shouldBe "text/plain"
