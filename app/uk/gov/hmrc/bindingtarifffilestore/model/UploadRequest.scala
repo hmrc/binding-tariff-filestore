@@ -17,6 +17,7 @@
 package uk.gov.hmrc.bindingtarifffilestore.model
 
 import play.api.libs.json._
+import play.json.extra.Jsonx
 
 case class UploadRequest
 (
@@ -27,5 +28,5 @@ case class UploadRequest
 )
 
 object UploadRequest {
-  implicit val format: OFormat[UploadRequest] = Json.format[UploadRequest]
+  implicit val format: Format[UploadRequest] = Jsonx.formatCaseClass[UploadRequest]
 }
