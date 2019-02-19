@@ -19,7 +19,8 @@ package uk.gov.hmrc.bindingtarifffilestore.controllers
 import play.api.Logger
 import play.api.libs.json._
 import play.api.mvc.{AnyContent, Request, Result}
-import uk.gov.hmrc.bindingtarifffilestore.model.JsErrorResponse
+import reactivemongo.core.errors.DatabaseException
+import uk.gov.hmrc.bindingtarifffilestore.model.{ErrorCode, JsErrorResponse}
 import uk.gov.hmrc.bindingtarifffilestore.model.ErrorCode._
 import uk.gov.hmrc.play.bootstrap.controller.BaseController
 
@@ -49,6 +50,7 @@ trait CommonController extends BaseController {
   }
 
   private[controllers] def recovery: PartialFunction[Throwable, Result] = {
+    case e: DatabaseException if e.code.contains(11000) => Conflict(JsErrorResponse(ErrorCode.CONFLICT, "Entity already exists"))
     case e: Throwable => handleException(e)
   }
 

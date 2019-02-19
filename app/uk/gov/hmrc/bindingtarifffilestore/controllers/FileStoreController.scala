@@ -66,7 +66,7 @@ class FileStoreController @Inject()(appConfig: AppConfig,
 
   def notification(id: String): Action[JsValue] = Action.async(parse.json) { implicit request =>
     withJsonBody[ScanResult] { scanResult =>
-      handleNotFound(id, (att: FileMetadata) => service.notify(att, scanResult).map(f => Created(Json.toJson(f))))
+      handleNotFound(id, (att: FileMetadata) => service.notify(att, scanResult).map(f => Created(Json.toJson(f)))) recover recovery
     }
   }
 
@@ -76,13 +76,13 @@ class FileStoreController @Inject()(appConfig: AppConfig,
         case Some(metadata) => Accepted(Json.toJson(metadata))
         case None => NotFound(JsErrorResponse(NOTFOUND, "File Not Found"))
       }
-    )
+    ) recover recovery
   }
 
   def getAll(ids: Option[Seq[String]]): Action[AnyContent] = Action.async { implicit request =>
     service.getByIds(ids.getOrElse(Seq.empty)) map {
       fileMetadataObjects: Seq[FileMetadata] => Ok(Json.toJson(fileMetadataObjects))
-    }
+    } recover recovery
   }
 
   private def initiate(template: UploadRequest)(implicit hc: HeaderCarrier): Future[Result] = {
@@ -93,7 +93,7 @@ class FileStoreController @Inject()(appConfig: AppConfig,
         mimeType = template.mimeType,
         published = template.published
       )
-    ).map(t => Accepted(Json.toJson(t)))
+    ).map(t => Accepted(Json.toJson(t))) recover recovery
   }
 
   private def upload(body: MultipartFormData[TemporaryFile])(implicit hc: HeaderCarrier): Future[Result] = {
@@ -115,7 +115,7 @@ class FileStoreController @Inject()(appConfig: AppConfig,
 
     attachment
       .map(service.upload(_).map(f => Accepted(Json.toJson(f))))
-      .getOrElse(successful(BadRequest(JsErrorResponse(ErrorCode.INVALID_REQUEST_PAYLOAD, "Invalid File"))))
+      .getOrElse(successful(BadRequest(JsErrorResponse(ErrorCode.INVALID_REQUEST_PAYLOAD, "Invalid File")))) recover recovery
   }
 
   private def handleNotFound(id: String, result: FileMetadata => Future[Result]): Future[Result] = {
