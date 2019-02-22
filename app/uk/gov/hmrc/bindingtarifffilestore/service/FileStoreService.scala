@@ -23,7 +23,7 @@ import uk.gov.hmrc.bindingtarifffilestore.config.AppConfig
 import uk.gov.hmrc.bindingtarifffilestore.connector.{AmazonS3Connector, UpscanConnector}
 import uk.gov.hmrc.bindingtarifffilestore.controllers.routes
 import uk.gov.hmrc.bindingtarifffilestore.model.ScanStatus.{FAILED, READY}
-import uk.gov.hmrc.bindingtarifffilestore.model.upscan.{ScanResult, SuccessfulScanResult, UploadTemplate, UploadSettings}
+import uk.gov.hmrc.bindingtarifffilestore.model.upscan._
 import uk.gov.hmrc.bindingtarifffilestore.model.{FileMetadata, FileWithMetadata}
 import uk.gov.hmrc.bindingtarifffilestore.repository.FileMetadataRepository
 import uk.gov.hmrc.http.HeaderCarrier
@@ -92,7 +92,10 @@ class FileStoreService @Inject()(appConfig: AppConfig,
     Logger.info(s"Scan completed for file [${attachment.id}] with status [${scanResult.fileStatus}] and Upscan reference [${scanResult.reference}]")
     auditService.auditFileScanned(attachment.id, attachment.fileName, scanResult.reference, scanResult.fileStatus.toString)
     scanResult.fileStatus match {
-      case FAILED => repository.update(attachment.copy(scanStatus = Some(FAILED)))
+      case FAILED =>
+        val details = scanResult.asInstanceOf[FailedScanResult].failureDetails
+        Logger.info(s"Scan for file [${attachment.id}] failed because it was [${details.failureReason}] with message [${details.message}]")
+        repository.update(attachment.copy(scanStatus = Some(FAILED)))
       case READY =>
         val result = scanResult.asInstanceOf[SuccessfulScanResult]
         val update = attachment.copy(url = Some(result.downloadUrl), scanStatus = Some(READY))
