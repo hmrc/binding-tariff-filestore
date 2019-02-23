@@ -18,7 +18,7 @@ package uk.gov.hmrc.bindingtarifffilestore.service
 
 import org.mockito.ArgumentMatchers.any
 import org.mockito.BDDMockito.given
-import org.mockito.Mockito.{never, reset, times, verify, verifyNoMoreInteractions, verifyZeroInteractions, when}
+import org.mockito.Mockito._
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.concurrent.Eventually
 import org.scalatest.mockito.MockitoSugar
@@ -27,12 +27,11 @@ import uk.gov.hmrc.bindingtarifffilestore.audit.AuditService
 import uk.gov.hmrc.bindingtarifffilestore.config.{AppConfig, FileStoreSizeConfiguration}
 import uk.gov.hmrc.bindingtarifffilestore.connector.{AmazonS3Connector, UpscanConnector}
 import uk.gov.hmrc.bindingtarifffilestore.model.upscan._
-import uk.gov.hmrc.bindingtarifffilestore.model.{FileMetadata, FileWithMetadata, ScanStatus}
+import uk.gov.hmrc.bindingtarifffilestore.model.{FileMetadata, FileWithMetadata, ScanStatus, UploadTemplate}
 import uk.gov.hmrc.bindingtarifffilestore.repository.FileMetadataRepository
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.test.UnitSpec
 
-import scala.concurrent.duration._
 import scala.concurrent.Future.successful
 
 class FileStoreServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfterEach with Eventually {
@@ -157,14 +156,14 @@ class FileStoreServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfte
     "Delegate to Connector" in {
       val fileMetadata = FileMetadata(id = "id", fileName = "file", mimeType = "text/plain")
       val fileMetaDataCreated = mock[FileMetadata]
-      val uploadTemplate = mock[UploadTemplate]
+      val uploadTemplate = UpscanTemplate(href = "href", fields = Map("key" -> "value"))
       val initiateResponse = UpscanInitiateResponse("ref", uploadTemplate)
 
       given(config.fileStoreSizeConfiguration).willReturn(FileStoreSizeConfiguration(1, 1000))
       given(repository.insert(fileMetadata)).willReturn(successful(fileMetaDataCreated))
       given(upscanConnector.initiate(any[UploadSettings])(any[HeaderCarrier])).willReturn(successful(initiateResponse))
 
-      await(service.initiate(fileMetadata)) shouldBe uploadTemplate
+      await(service.initiate(fileMetadata)) shouldBe UploadTemplate(id = "id", href = "href", fields = Map("key" -> "value"))
 
       verify(auditService, times(1)).auditUpScanInitiated(fileId = "id", fileName = "file", upScanRef = "ref")
       verifyNoMoreInteractions(auditService)
@@ -178,7 +177,7 @@ class FileStoreServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfte
       val fileMetadata = FileMetadata(id = "id", fileName = "file", mimeType = "text/plain")
       val fileWithMetadata = FileWithMetadata(file, fileMetadata)
       val fileMetaDataCreated = mock[FileMetadata]
-      val uploadTemplate = mock[UploadTemplate]
+      val uploadTemplate = mock[UpscanTemplate]
       val initiateResponse = UpscanInitiateResponse("ref", uploadTemplate)
 
       given(config.fileStoreSizeConfiguration).willReturn(FileStoreSizeConfiguration(1, 1000))

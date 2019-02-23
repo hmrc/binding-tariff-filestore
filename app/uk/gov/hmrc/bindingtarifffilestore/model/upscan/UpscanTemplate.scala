@@ -18,8 +18,8 @@ package uk.gov.hmrc.bindingtarifffilestore.model.upscan
 
 import play.api.libs.json.{Json, OFormat}
 
-case class UploadTemplate(href: String, fields: Map[String, String])
+case class UpscanTemplate(href: String, fields: Map[String, String])
 
-object UploadTemplate {
-  implicit val format: OFormat[UploadTemplate] = Json.format
+object UpscanTemplate {
+  implicit val format: OFormat[UpscanTemplate] = Json.format
 }

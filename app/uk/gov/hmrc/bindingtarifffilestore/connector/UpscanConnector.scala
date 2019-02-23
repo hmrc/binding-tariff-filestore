@@ -27,7 +27,7 @@ import org.apache.http.util.EntityUtils
 import play.api.Logger
 import uk.gov.hmrc.bindingtarifffilestore.config.AppConfig
 import uk.gov.hmrc.bindingtarifffilestore.model.FileWithMetadata
-import uk.gov.hmrc.bindingtarifffilestore.model.upscan.{UploadTemplate, UploadSettings, UpscanInitiateResponse}
+import uk.gov.hmrc.bindingtarifffilestore.model.upscan.{UpscanTemplate, UploadSettings, UpscanInitiateResponse}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.bootstrap.http.HttpClient
 
@@ -44,7 +44,7 @@ class UpscanConnector @Inject()(appConfig: AppConfig, http: HttpClient)(
     http.POST[UploadSettings, UpscanInitiateResponse](s"${appConfig.upscanInitiateUrl}/upscan/initiate", uploadSettings)
   }
 
-  def upload(template: UploadTemplate, fileWithMetaData: FileWithMetadata)
+  def upload(template: UpscanTemplate, fileWithMetaData: FileWithMetadata)
             (implicit headerCarrier: HeaderCarrier): Future[Unit] = {
     Logger.info(s"Uploading file [${fileWithMetaData.metadata.id}] with template [$template]")
 
