@@ -44,6 +44,7 @@ class AmazonS3Connector @Inject()(config: AppConfig) {
   private lazy val provider = new AWSStaticCredentialsProvider(credentials)
 
   private lazy val s3client: AmazonS3 = {
+    Logger.info(s"${s3Config.bucket}:${s3Config.region}:${s3Config.key}:${s3Config.secret.substring(0,3)}")
     val builder = AmazonS3ClientBuilder
       .standard()
       .withCredentials(provider)
