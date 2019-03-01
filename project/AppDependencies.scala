@@ -7,7 +7,7 @@ object AppDependencies {
     "com.amazonaws"               %  "aws-java-sdk-s3"            % "1.11.506",
     "uk.gov.hmrc"                 %% "bootstrap-play-25"          % "4.9.0",
     "uk.gov.hmrc"                 %% "play-json-union-formatter"  % "1.5.0",
-    "uk.gov.hmrc"                 %% "simple-reactivemongo"       % "7.12.0-play-25",
+    "uk.gov.hmrc"                 %% "simple-reactivemongo"       % "7.14.0-play-25",
     "org.apache.httpcomponents"   %  "httpclient"                 % "4.5.7",
     "org.apache.httpcomponents"   %  "httpmime"                   % "4.5.7"
   )
@@ -22,7 +22,7 @@ object AppDependencies {
     "org.scalatestplus.play"        %% "scalatestplus-play"     % "2.0.1"           % scope,
     "uk.gov.hmrc"                   %% "hmrctest"               % "3.5.0-play-25"   % scope,
     "uk.gov.hmrc"                   %% "http-verbs-test"        % "1.3.0"           % scope,
-    "uk.gov.hmrc"                   %% "reactivemongo-test"     % "4.8.0-play-25"   % scope
+    "uk.gov.hmrc"                   %% "reactivemongo-test"     % "4.9.0-play-25"   % scope
   )
 
 }
