@@ -18,9 +18,9 @@ package uk.gov.hmrc.bindingtarifffilestore.config
 
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.{Configuration, Environment}
-import uk.gov.hmrc.play.test.UnitSpec
+import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
 
-class AppConfigSpec extends UnitSpec with GuiceOneAppPerSuite {
+class AppConfigSpec extends UnitSpec with WithFakeApplication {
 
   private def fileStoreSizeConfiguration(pairs: (String, Int)*): FileStoreSizeConfiguration = {
     var config = Map[String, Int](

@@ -37,12 +37,12 @@ import uk.gov.hmrc.bindingtarifffilestore.model._
 import uk.gov.hmrc.bindingtarifffilestore.model.upscan.{ScanResult, SuccessfulScanResult, UploadDetails}
 import uk.gov.hmrc.bindingtarifffilestore.service.FileStoreService
 import uk.gov.hmrc.http.{HeaderCarrier, HttpVerbs}
-import uk.gov.hmrc.play.test.UnitSpec
+import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
 
 import scala.concurrent.Future.{failed, successful}
 
 class FileStoreControllerSpec extends UnitSpec with Matchers
-  with GuiceOneAppPerSuite with MockitoSugar with BeforeAndAfterEach {
+  with WithFakeApplication with MockitoSugar with BeforeAndAfterEach {
 
   private implicit val mat: Materializer = fakeApplication.materializer
 
