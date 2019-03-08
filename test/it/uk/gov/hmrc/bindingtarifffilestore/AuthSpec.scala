@@ -19,38 +19,34 @@ package uk.gov.hmrc.bindingtarifffilestore
 import java.security.MessageDigest
 
 import com.google.common.io.BaseEncoding
-import org.scalatest.BeforeAndAfterEach
 import play.api.http.HttpVerbs
 import play.api.http.Status._
 import scalaj.http.Http
 import uk.gov.hmrc.bindingtarifffilestore.util.{BaseFeatureSpec, ResourceFiles}
 
-import scala.concurrent.duration.{FiniteDuration, _}
+class AuthSpec extends BaseFeatureSpec with ResourceFiles {
 
-class AuthSpec extends BaseFeatureSpec with ResourceFiles with BeforeAndAfterEach {
+  override lazy val port = 14682
 
-  override lazy val port = 14681
-
-  private val timeout: FiniteDuration = 2.seconds
   private val serviceUrl = s"http://localhost:$port"
 
   feature("Authentication") {
 
-    scenario("Calling an endpoint with auth header present with correct value is allowed") {
+    scenario("Allowing requests with expected auth header") {
 
-      When("I call an endpoint with the correct auth token")
-      val result =     Http(s"$serviceUrl/file")
+      When("I call an endpoint with the expected auth header")
+      val result = Http(s"$serviceUrl/file")
         .header(apiTokenKey, appConfig.authorization)
         .method(HttpVerbs.GET)
         .asString
 
-      Then("The response code should not be forbidden")
+      Then("The response code should not be 403")
       result.code should not be FORBIDDEN
     }
 
-    scenario("Auth header present with incorrect value") {
+    scenario("Forbidding requests with incorrect value for the auth header") {
 
-      When("I call an endpoint with an incorrect auth token")
+      When("I call an endpoint with invalid auth header")
       val result = Http(s"$serviceUrl/file")
         .header(apiTokenKey, "WRONG_TOKEN")
         .method(HttpVerbs.GET)
@@ -60,9 +56,26 @@ class AuthSpec extends BaseFeatureSpec with ResourceFiles with BeforeAndAfterEac
       result.code shouldBe FORBIDDEN
     }
 
-    scenario("Auth header not present") {
+    scenario("Forbidding requests with incorrect value for the auth header and expected auth token query param") {
 
-      When("I call an endpoint with the no auth token")
+      val hashedTokenValue = BaseEncoding.base64Url().encode(
+        MessageDigest.getInstance("SHA-256")
+          .digest(appConfig.authorization.getBytes("UTF-8"))
+      )
+
+      When("I call the notify endpoint with the auth token query param")
+      val result = Http(s"$serviceUrl/file?X-Api-Token=$hashedTokenValue")
+        .header(apiTokenKey, "WRONG_TOKEN")
+        .method(HttpVerbs.GET)
+        .asString
+
+      Then("The response code should be 403")
+      result.code shouldBe FORBIDDEN
+    }
+
+    scenario("Forbidding requests with no auth header and no auth query param") {
+
+      When("I call an endpoint with no auth token and not auth query param")
       val result = Http(s"$serviceUrl/file")
         .method(HttpVerbs.GET)
         .asString
@@ -71,31 +84,33 @@ class AuthSpec extends BaseFeatureSpec with ResourceFiles with BeforeAndAfterEac
       result.code shouldBe FORBIDDEN
     }
 
-    scenario("Correct hashed auth token value provided as query param to an endpoint is allowed") {
+    scenario("Allowing requests with no auth header and with expected auth token query param") {
 
       val hashedTokenValue = BaseEncoding.base64Url().encode(
-                                MessageDigest.getInstance("SHA-256")
-                                  .digest(appConfig.authorization.getBytes("UTF-8")))
+        MessageDigest.getInstance("SHA-256")
+          .digest(appConfig.authorization.getBytes("UTF-8"))
+      )
 
-      When("I call the notify endpoint with a hash of auth token")
+      When("I call the notify endpoint with the auth token query param")
       val result = Http(s"$serviceUrl/file?X-Api-Token=$hashedTokenValue")
         .method(HttpVerbs.GET)
         .asString
 
-      Then("The response code should not be forbidden")
+      Then("The response code should not be 403")
       result.code should not be FORBIDDEN
     }
 
-    scenario("Incorrect hashed auth token value provided as query param to an endpoint is forbidden") {
+    scenario("Forbidding requests with incorrect value for the auth token query param") {
 
-      When("I call the notify endpoint with a hash of auth token")
+      When("I call the notify endpoint with the auth token query param")
       val result = Http(s"$serviceUrl/file?X-Api-Token=WRONG_VALUE")
         .method(HttpVerbs.GET)
         .asString
 
-      Then("The response code should not be forbidden")
+      Then("The response code should be 403")
       result.code shouldBe FORBIDDEN
     }
 
   }
+
 }

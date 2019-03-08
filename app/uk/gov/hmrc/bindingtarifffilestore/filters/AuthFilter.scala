@@ -29,15 +29,20 @@ import scala.concurrent.Future
 @Singleton
 class AuthFilter @Inject()(appConfig: AppConfig)(implicit override val mat: Materializer) extends Filter {
 
+  private lazy val authTokenName = "X-Api-Token"
+
+  private def hash: String => String = { s: String =>
+    BaseEncoding.base64Url().encode(
+      MessageDigest.getInstance("SHA-256").digest(s.getBytes("UTF-8"))
+    )
+  }
+
   override def apply(f: RequestHeader => Future[Result])(rh: RequestHeader): Future[Result] = {
 
-    def hash: String => String = { s: String =>
-      BaseEncoding.base64Url().encode(MessageDigest.getInstance("SHA-256").digest(s.getBytes("UTF-8")))
-    }
-
     val hashedTokenValue: String = hash(appConfig.authorization)
-    val headerValue: Option[String] = rh.headers.get("X-Api-Token")
-    val hashedQueryParamValues: String = rh.queryString.get("X-Api-Token").map(_.head).getOrElse("")
+
+    val headerValue: Option[String] = rh.headers.get(authTokenName)
+    val hashedQueryParamValues: String = rh.queryString.get(authTokenName).map(_.head).getOrElse("")
 
     (headerValue, hashedQueryParamValues) match {
       case (Some(appConfig.authorization), _) => f(rh)
@@ -45,4 +50,5 @@ class AuthFilter @Inject()(appConfig: AppConfig)(implicit override val mat: Mate
       case _ => Future.successful(Results.Forbidden)
     }
   }
+
 }
