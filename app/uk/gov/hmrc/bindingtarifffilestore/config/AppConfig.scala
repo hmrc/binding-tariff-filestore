@@ -26,6 +26,8 @@ class AppConfig @Inject()(val runModeConfiguration: Configuration, environment: 
 
   override protected def mode: Mode = environment.mode
 
+  lazy val authorization: String = getString("auth.api-token")
+
   lazy val s3Configuration = S3Configuration(
     getString("s3.accessKeyId"),
     base64Decode(getString("s3.secretKeyId")),

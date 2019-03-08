@@ -64,7 +64,7 @@ class FileStoreController @Inject()(appConfig: AppConfig,
     handleNotFound(id, (att: FileMetadata) => successful(Ok(Json.toJson(att))))
   }
 
-  def notification(id: String): Action[JsValue] = Action.async(parse.json) { implicit request =>
+  def notification(id: String, authToken: Option[String]): Action[JsValue] = Action.async(parse.json) { implicit request =>
     withJsonBody[ScanResult] { scanResult =>
       handleNotFound(id, (att: FileMetadata) => service.notify(att, scanResult).map(f => Created(Json.toJson(f)))) recover recovery
     }

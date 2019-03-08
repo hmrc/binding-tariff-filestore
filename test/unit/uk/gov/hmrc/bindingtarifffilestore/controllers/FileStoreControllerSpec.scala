@@ -191,7 +191,7 @@ class FileStoreControllerSpec extends UnitSpec with Matchers
       when(service.notify(refEq(attachment), refEq(scanResult))(any[HeaderCarrier])).thenReturn(successful(Some(attachmentUpdated)))
 
       val request: FakeRequest[JsValue] = fakeRequest.withBody(Json.toJson[ScanResult](scanResult))
-      val result: Result = await(controller.notification(id = "id")(request))
+      val result: Result = await(controller.notification(id = "id", Some("authToken"))(request))
 
       status(result) shouldBe CREATED
       jsonBodyOf(result) shouldBe Json.toJson(attachmentUpdated)
@@ -202,7 +202,7 @@ class FileStoreControllerSpec extends UnitSpec with Matchers
       when(service.getById("id")).thenReturn(successful(None))
 
       val request: FakeRequest[JsValue] = fakeRequest.withBody(Json.toJson[ScanResult](scanResult))
-      val result: Result = await(controller.notification(id = "id")(request))
+      val result: Result = await(controller.notification(id = "id", Some("authToken"))(request))
 
       status(result) shouldBe NOT_FOUND
     }

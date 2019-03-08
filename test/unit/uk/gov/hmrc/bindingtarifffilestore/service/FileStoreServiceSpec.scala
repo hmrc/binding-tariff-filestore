@@ -160,6 +160,7 @@ class FileStoreServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfte
       val initiateResponse = UpscanInitiateResponse("ref", uploadTemplate)
 
       given(config.fileStoreSizeConfiguration).willReturn(FileStoreSizeConfiguration(1, 1000))
+      given(config.authorization).willReturn("auth-token")
       given(repository.insert(fileMetadata)).willReturn(successful(fileMetaDataCreated))
       given(upscanConnector.initiate(any[UploadSettings])(any[HeaderCarrier])).willReturn(successful(initiateResponse))
 
@@ -181,6 +182,7 @@ class FileStoreServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfte
       val initiateResponse = UpscanInitiateResponse("ref", uploadTemplate)
 
       given(config.fileStoreSizeConfiguration).willReturn(FileStoreSizeConfiguration(1, 1000))
+      given(config.authorization).willReturn("auth-token")
       given(repository.insert(fileMetadata)).willReturn(successful(fileMetaDataCreated))
       given(upscanConnector.initiate(any[UploadSettings])(any[HeaderCarrier])).willReturn(successful(initiateResponse))
 

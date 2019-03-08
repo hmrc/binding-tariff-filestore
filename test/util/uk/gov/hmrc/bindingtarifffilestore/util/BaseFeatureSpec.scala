@@ -16,8 +16,12 @@
 
 package uk.gov.hmrc.bindingtarifffilestore.util
 
+import java.security.MessageDigest
+
+import com.google.common.io.BaseEncoding
 import org.scalatest._
 import org.scalatestplus.play.guice.GuiceOneServerPerSuite
+import uk.gov.hmrc.bindingtarifffilestore.config.AppConfig
 import uk.gov.hmrc.bindingtarifffilestore.repository.FileMetadataMongoRepository
 
 import scala.concurrent.Await.result
@@ -27,6 +31,13 @@ import scala.concurrent.duration._
 abstract class BaseFeatureSpec extends FeatureSpec with Matchers
   with GivenWhenThen with GuiceOneServerPerSuite
   with BeforeAndAfterEach with BeforeAndAfterAll {
+
+  protected lazy val apiTokenKey = "X-Api-Token"
+  protected lazy val appConfig: AppConfig = app.injector.instanceOf[AppConfig]
+
+  def hash: String => String = { s: String =>
+    BaseEncoding.base64Url().encode(MessageDigest.getInstance("SHA-256").digest(s.getBytes("UTF-8")))
+  }
 
   private val timeout = 2.seconds
 
