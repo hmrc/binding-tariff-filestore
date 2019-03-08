@@ -30,11 +30,11 @@ class AuthSpec extends BaseFeatureSpec with ResourceFiles {
 
   private val serviceUrl = s"http://localhost:$port"
 
-  feature("Authentication") {
+  feature("Authentication to incoming requests") {
 
     scenario("Allowing requests with expected auth header") {
 
-      When("I call an endpoint with the expected auth header")
+      When("I call an endpoint")
       val result = Http(s"$serviceUrl/file")
         .header(apiTokenKey, appConfig.authorization)
         .method(HttpVerbs.GET)
@@ -46,7 +46,7 @@ class AuthSpec extends BaseFeatureSpec with ResourceFiles {
 
     scenario("Forbidding requests with incorrect value for the auth header") {
 
-      When("I call an endpoint with invalid auth header")
+      When("I call an endpoint")
       val result = Http(s"$serviceUrl/file")
         .header(apiTokenKey, "WRONG_TOKEN")
         .method(HttpVerbs.GET)
@@ -63,7 +63,7 @@ class AuthSpec extends BaseFeatureSpec with ResourceFiles {
           .digest(appConfig.authorization.getBytes("UTF-8"))
       )
 
-      When("I call the notify endpoint with the auth token query param")
+      When("I call an endpoint")
       val result = Http(s"$serviceUrl/file?X-Api-Token=$hashedTokenValue")
         .header(apiTokenKey, "WRONG_TOKEN")
         .method(HttpVerbs.GET)
@@ -75,7 +75,7 @@ class AuthSpec extends BaseFeatureSpec with ResourceFiles {
 
     scenario("Forbidding requests with no auth header and no auth query param") {
 
-      When("I call an endpoint with no auth token and not auth query param")
+      When("I call an endpoint")
       val result = Http(s"$serviceUrl/file")
         .method(HttpVerbs.GET)
         .asString
@@ -84,14 +84,14 @@ class AuthSpec extends BaseFeatureSpec with ResourceFiles {
       result.code shouldBe FORBIDDEN
     }
 
-    scenario("Allowing requests with no auth header and with expected auth token query param") {
+    scenario("Allowing requests with no auth header and with expected auth query param") {
 
       val hashedTokenValue = BaseEncoding.base64Url().encode(
         MessageDigest.getInstance("SHA-256")
           .digest(appConfig.authorization.getBytes("UTF-8"))
       )
 
-      When("I call the notify endpoint with the auth token query param")
+      When("I call an endpoint")
       val result = Http(s"$serviceUrl/file?X-Api-Token=$hashedTokenValue")
         .method(HttpVerbs.GET)
         .asString
@@ -102,7 +102,7 @@ class AuthSpec extends BaseFeatureSpec with ResourceFiles {
 
     scenario("Forbidding requests with incorrect value for the auth token query param") {
 
-      When("I call the notify endpoint with the auth token query param")
+      When("I call an endpoint")
       val result = Http(s"$serviceUrl/file?X-Api-Token=WRONG_VALUE")
         .method(HttpVerbs.GET)
         .asString

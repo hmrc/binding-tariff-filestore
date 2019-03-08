@@ -23,7 +23,6 @@ import java.time.Instant
 
 import com.github.tomakehurst.wiremock.client.WireMock._
 import org.apache.commons.io.IOUtils
-import org.scalatest.BeforeAndAfterEach
 import play.api.Application
 import play.api.http.{ContentTypes, HeaderNames, HttpVerbs, Status}
 import play.api.inject.guice.GuiceApplicationBuilder
@@ -42,7 +41,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.util.Try
 
-class FileStoreSpec extends WiremockFeatureTestServer with ResourceFiles with BeforeAndAfterEach {
+class FileStoreSpec extends WiremockFeatureTestServer with ResourceFiles {
 
   override lazy val port = 14681
 
@@ -398,7 +397,7 @@ class FileStoreSpec extends WiremockFeatureTestServer with ResourceFiles with Be
     Http(s"$serviceUrl/file")
       .header("Content-Type", "application/json")
       .header(apiTokenKey, appConfig.authorization)
-      .postData(Json.toJson(UploadRequest(fileName = filename, mimeType = contentType, published = false)).toString())
+      .postData(Json.toJson(UploadRequest(fileName = filename, mimeType = contentType)).toString())
       .execute(convertingResponseToJS)
   }
 

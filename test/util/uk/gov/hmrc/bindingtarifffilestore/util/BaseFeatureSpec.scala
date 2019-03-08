@@ -35,7 +35,7 @@ abstract class BaseFeatureSpec extends FeatureSpec with Matchers
   protected lazy val apiTokenKey = "X-Api-Token"
   protected lazy val appConfig: AppConfig = app.injector.instanceOf[AppConfig]
 
-  def hash: String => String = { s: String =>
+  protected def hash: String => String = { s: String =>
     BaseEncoding.base64Url().encode(MessageDigest.getInstance("SHA-256").digest(s.getBytes("UTF-8")))
   }
 
