@@ -30,6 +30,8 @@ import scala.concurrent.Future
 class AuthFilter @Inject()(appConfig: AppConfig)(implicit override val mat: Materializer) extends Filter {
 
   private lazy val authTokenName = "X-Api-Token"
+  private lazy val healthEndpointUri = "/ping/ping"
+  private lazy val hashedTokenValue: String = hash(appConfig.authorization)
 
   private def hash: String => String = { s: String =>
     BaseEncoding.base64Url().encode(
@@ -39,16 +41,22 @@ class AuthFilter @Inject()(appConfig: AppConfig)(implicit override val mat: Mate
 
   override def apply(f: RequestHeader => Future[Result])(rh: RequestHeader): Future[Result] = {
 
-    val hashedTokenValue: String = hash(appConfig.authorization)
-
-    val headerValue: Option[String] = rh.headers.get(authTokenName)
-    val hashedQueryParamValues: String = rh.queryString.get(authTokenName).map(_.head).getOrElse("")
-
-    (headerValue, hashedQueryParamValues) match {
-      case (Some(appConfig.authorization), _) => f(rh)
-      case (None, `hashedTokenValue`) => f(rh)
-      case _ => Future.successful(Results.Forbidden)
+    rh.uri match {
+      case uri if uri.contains(healthEndpointUri) => f(rh)
+      case _ => ensureAuthTokenIsPresent(f, rh)
     }
   }
 
+  private def ensureAuthTokenIsPresent(f: RequestHeader => Future[Result], rh: RequestHeader) = {
+
+    val headerValue: Option[String] = rh.headers.get(authTokenName)
+    val hashedQueryParamValues: Option[String] = rh.queryString.get(authTokenName).map(_.head)
+
+    (headerValue, hashedQueryParamValues) match {
+      case (Some(appConfig.authorization), Some(`hashedTokenValue`)) => f(rh)
+      case (Some(appConfig.authorization), None) => f(rh)
+      case (None, Some(`hashedTokenValue`)) => f(rh)
+      case _ => Future.successful(Results.Forbidden)
+    }
+  }
 }

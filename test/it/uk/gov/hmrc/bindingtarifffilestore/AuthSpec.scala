@@ -29,6 +29,10 @@ class AuthSpec extends BaseFeatureSpec with ResourceFiles {
   override lazy val port = 14682
 
   private val serviceUrl = s"http://localhost:$port"
+  private val hashedTokenValue = BaseEncoding.base64Url().encode(
+    MessageDigest.getInstance("SHA-256")
+      .digest(appConfig.authorization.getBytes("UTF-8"))
+  )
 
   feature("Authentication to incoming requests") {
 
@@ -58,11 +62,6 @@ class AuthSpec extends BaseFeatureSpec with ResourceFiles {
 
     scenario("Forbidding requests with incorrect value for the auth header and expected auth token query param") {
 
-      val hashedTokenValue = BaseEncoding.base64Url().encode(
-        MessageDigest.getInstance("SHA-256")
-          .digest(appConfig.authorization.getBytes("UTF-8"))
-      )
-
       When("I call an endpoint")
       val result = Http(s"$serviceUrl/file?X-Api-Token=$hashedTokenValue")
         .header(apiTokenKey, "WRONG_TOKEN")
@@ -71,6 +70,30 @@ class AuthSpec extends BaseFeatureSpec with ResourceFiles {
 
       Then("The response code should be 403")
       result.code shouldBe FORBIDDEN
+    }
+
+    scenario("Forbidding requests with expected value for the auth header and incorrect auth token query param") {
+
+      When("I call an endpoint")
+      val result = Http(s"$serviceUrl/file?X-Api-Token=WRONG_TOKEN")
+        .header(apiTokenKey, appConfig.authorization)
+        .method(HttpVerbs.GET)
+        .asString
+
+      Then("The response code should be 403")
+      result.code shouldBe FORBIDDEN
+    }
+
+    scenario("Allowing requests with both expected auth header and expected auth query param") {
+
+      When("I call an endpoint")
+      val result = Http(s"$serviceUrl/file?X-Api-Token=$hashedTokenValue")
+        .header(apiTokenKey, appConfig.authorization)
+        .method(HttpVerbs.GET)
+        .asString
+
+      Then("The response code should be 200")
+      result.code shouldBe OK
     }
 
     scenario("Forbidding requests with no auth header and no auth query param") {
@@ -85,11 +108,6 @@ class AuthSpec extends BaseFeatureSpec with ResourceFiles {
     }
 
     scenario("Allowing requests with no auth header and with expected auth query param") {
-
-      val hashedTokenValue = BaseEncoding.base64Url().encode(
-        MessageDigest.getInstance("SHA-256")
-          .digest(appConfig.authorization.getBytes("UTF-8"))
-      )
 
       When("I call an endpoint")
       val result = Http(s"$serviceUrl/file?X-Api-Token=$hashedTokenValue")
@@ -109,6 +127,15 @@ class AuthSpec extends BaseFeatureSpec with ResourceFiles {
 
       Then("The response code should be 403")
       result.code shouldBe FORBIDDEN
+    }
+
+    scenario("Calls to the health endpoint do not require auth token") {
+      val result = Http(s"$serviceUrl/ping/ping")
+        .method(HttpVerbs.GET)
+        .asString
+
+      Then("The response code should be 200")
+      result.code shouldBe OK
     }
 
   }
