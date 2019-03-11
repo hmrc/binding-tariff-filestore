@@ -16,6 +16,9 @@
 
 package uk.gov.hmrc.bindingtarifffilestore.service
 
+import java.security.MessageDigest
+
+import com.google.common.io.BaseEncoding
 import javax.inject.{Inject, Singleton}
 import play.api.Logger
 import uk.gov.hmrc.bindingtarifffilestore.audit.AuditService
@@ -38,13 +41,16 @@ class FileStoreService @Inject()(appConfig: AppConfig,
                                  upscanConnector: UpscanConnector,
                                  auditService: AuditService) {
 
+  private lazy val authToken = BaseEncoding.base64Url().encode(
+    MessageDigest.getInstance("SHA-256").digest(appConfig.authorization.getBytes("UTF-8")))
+
   // Initiates an upload for a POST direct to Upscan
   def initiate(metadata: FileMetadata)(implicit hc: HeaderCarrier): Future[UploadTemplate] = {
     val fileId = metadata.id
     Logger.info(s"Initiating file [$fileId]")
     val settings = UploadSettings(
       callbackUrl = routes.FileStoreController
-        .notification(fileId)
+        .notification(fileId, Some(authToken))
         .absoluteURL(appConfig.filestoreSSL, appConfig.filestoreUrl),
       minimumFileSize = appConfig.fileStoreSizeConfiguration.minFileSize,
       maximumFileSize = appConfig.fileStoreSizeConfiguration.maxFileSize
@@ -64,7 +70,7 @@ class FileStoreService @Inject()(appConfig: AppConfig,
     Logger.info(s"Uploading file [$fileId]")
     val settings = UploadSettings(
       callbackUrl = routes.FileStoreController
-        .notification(fileId)
+        .notification(fileId, Some(authToken))
         .absoluteURL(appConfig.filestoreSSL, appConfig.filestoreUrl),
       minimumFileSize = appConfig.fileStoreSizeConfiguration.minFileSize,
       maximumFileSize = appConfig.fileStoreSizeConfiguration.maxFileSize

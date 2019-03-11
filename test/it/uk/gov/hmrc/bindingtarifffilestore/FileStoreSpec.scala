@@ -23,7 +23,6 @@ import java.time.Instant
 
 import com.github.tomakehurst.wiremock.client.WireMock._
 import org.apache.commons.io.IOUtils
-import org.scalatest.BeforeAndAfterEach
 import play.api.Application
 import play.api.http.{ContentTypes, HeaderNames, HttpVerbs, Status}
 import play.api.inject.guice.GuiceApplicationBuilder
@@ -42,7 +41,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.util.Try
 
-class FileStoreSpec extends WiremockFeatureTestServer with ResourceFiles with BeforeAndAfterEach {
+class FileStoreSpec extends WiremockFeatureTestServer with ResourceFiles {
 
   override lazy val port = 14681
 
@@ -77,6 +76,7 @@ class FileStoreSpec extends WiremockFeatureTestServer with ResourceFiles with Be
 
       When("I delete all documents")
       val deleteResult = Http(s"$serviceUrl/file")
+        .header(apiTokenKey, appConfig.authorization)
         .method(HttpVerbs.DELETE)
         .asString
 
@@ -91,6 +91,7 @@ class FileStoreSpec extends WiremockFeatureTestServer with ResourceFiles with Be
 
       And("the are no files")
       val files = Http(s"$serviceUrl/file")
+        .header(apiTokenKey, appConfig.authorization)
         .method(HttpVerbs.GET)
         .execute(convertingArrayResponseToJS)
       files.code shouldBe 200
@@ -203,7 +204,10 @@ class FileStoreSpec extends WiremockFeatureTestServer with ResourceFiles with Be
       upload("some-file2.txt", "text/plain").body("id").as[JsString].value
 
       When("I request the file details")
-      val response =  Http(s"$serviceUrl/file").method(HttpVerbs.GET).execute(convertingArrayResponseToJS)
+      val response =  Http(s"$serviceUrl/file")
+        .header(apiTokenKey, appConfig.authorization)
+        .method(HttpVerbs.GET)
+        .execute(convertingArrayResponseToJS)
 
       Then("The response code should be Ok")
       response.code shouldBe Status.OK
@@ -311,6 +315,7 @@ class FileStoreSpec extends WiremockFeatureTestServer with ResourceFiles with Be
 
   private def getFile(id: String): HttpResponse[Map[String, JsValue]] = {
     Http(s"$serviceUrl/file/$id")
+      .header(apiTokenKey, appConfig.authorization)
       .method(HttpVerbs.GET)
       .execute(convertingResponseToJS)
   }
@@ -319,6 +324,7 @@ class FileStoreSpec extends WiremockFeatureTestServer with ResourceFiles with Be
     stubS3DeleteOne(id)
 
     Http(s"$serviceUrl/file/$id")
+      .header(apiTokenKey, appConfig.authorization)
       .method(HttpVerbs.DELETE)
       .asString
   }
@@ -328,6 +334,7 @@ class FileStoreSpec extends WiremockFeatureTestServer with ResourceFiles with Be
     val queryParams = ids.map(id => s"id=$id").mkString("&")
 
     Http(s"$serviceUrl/file?$queryParams")
+      .header(apiTokenKey, appConfig.authorization)
       .method(HttpVerbs.GET)
       .execute(convertingArrayResponseToJS)
   }
@@ -335,6 +342,7 @@ class FileStoreSpec extends WiremockFeatureTestServer with ResourceFiles with Be
   private def publishSafeFile(id: String): HttpResponse[Map[String, JsValue]] = {
     stubS3Upload(id)
     Http(s"$serviceUrl/file/$id/publish")
+      .header(apiTokenKey, appConfig.authorization)
       .method(HttpVerbs.POST)
       .execute(convertingResponseToJS)
   }
@@ -342,6 +350,7 @@ class FileStoreSpec extends WiremockFeatureTestServer with ResourceFiles with Be
   private def publishUnSafeFile(id: String): HttpResponse[Map[String, JsValue]] = {
     // Should NOT call S3 Upload
     Http(s"$serviceUrl/file/$id/publish")
+      .header(apiTokenKey, appConfig.authorization)
       .method(HttpVerbs.POST)
       .execute(convertingResponseToJS)
   }
@@ -353,6 +362,7 @@ class FileStoreSpec extends WiremockFeatureTestServer with ResourceFiles with Be
     Http(s"$serviceUrl/file/$id/notify")
       .postData(Json.toJson(model).toString())
       .header(HeaderNames.CONTENT_TYPE, ContentTypes.JSON)
+      .param(apiTokenKey, hash(appConfig.authorization))
       .execute(convertingResponseToJS)
   }
 
@@ -362,6 +372,7 @@ class FileStoreSpec extends WiremockFeatureTestServer with ResourceFiles with Be
     Http(s"$serviceUrl/file/$id/notify")
       .postData(Json.toJson(model).toString())
       .header(HeaderNames.CONTENT_TYPE, ContentTypes.JSON)
+      .param(apiTokenKey, hash(appConfig.authorization))
       .execute(convertingResponseToJS)
   }
 
@@ -375,6 +386,7 @@ class FileStoreSpec extends WiremockFeatureTestServer with ResourceFiles with Be
       Files.readAllBytes(TemporaryFile(filename).file.toPath)
     )
     Http(s"$serviceUrl/file")
+      .header(apiTokenKey, appConfig.authorization)
       .postMulti(form)
       .execute(convertingResponseToJS)
   }
@@ -384,7 +396,8 @@ class FileStoreSpec extends WiremockFeatureTestServer with ResourceFiles with Be
 
     Http(s"$serviceUrl/file")
       .header("Content-Type", "application/json")
-      .postData(Json.toJson(UploadRequest(fileName = filename, mimeType = contentType, published = false)).toString())
+      .header(apiTokenKey, appConfig.authorization)
+      .postData(Json.toJson(UploadRequest(fileName = filename, mimeType = contentType)).toString())
       .execute(convertingResponseToJS)
   }
 

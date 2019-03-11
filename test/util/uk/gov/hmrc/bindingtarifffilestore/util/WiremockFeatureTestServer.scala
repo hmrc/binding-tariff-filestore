@@ -34,11 +34,13 @@ trait WiremockFeatureTestServer extends BaseFeatureSpec with BeforeAndAfterEach 
   }
 
   override protected def beforeEach(): Unit = {
+    super.beforeEach()
     wireMockServer.start()
     WireMock.configureFor(wireHost, wirePort)
   }
 
   override protected def afterEach(): Unit = {
+    super.afterEach()
     wireMockServer.stop()
   }
 
