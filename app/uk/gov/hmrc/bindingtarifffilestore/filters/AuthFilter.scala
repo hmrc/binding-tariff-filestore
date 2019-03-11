@@ -42,7 +42,7 @@ class AuthFilter @Inject()(appConfig: AppConfig)(implicit override val mat: Mate
   override def apply(f: RequestHeader => Future[Result])(rh: RequestHeader): Future[Result] = {
 
     rh.uri match {
-      case uri if uri.contains(healthEndpointUri) => f(rh)
+      case uri if uri.endsWith(healthEndpointUri) => f(rh)
       case _ => ensureAuthTokenIsPresent(f, rh)
     }
   }
