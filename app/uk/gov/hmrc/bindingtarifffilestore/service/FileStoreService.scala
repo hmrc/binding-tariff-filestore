@@ -16,9 +16,6 @@
 
 package uk.gov.hmrc.bindingtarifffilestore.service
 
-import java.security.MessageDigest
-
-import com.google.common.io.BaseEncoding
 import javax.inject.{Inject, Singleton}
 import play.api.Logger
 import uk.gov.hmrc.bindingtarifffilestore.audit.AuditService
@@ -29,6 +26,7 @@ import uk.gov.hmrc.bindingtarifffilestore.model.ScanStatus.{FAILED, READY}
 import uk.gov.hmrc.bindingtarifffilestore.model.upscan._
 import uk.gov.hmrc.bindingtarifffilestore.model.{FileMetadata, FileWithMetadata, UploadTemplate}
 import uk.gov.hmrc.bindingtarifffilestore.repository.FileMetadataRepository
+import uk.gov.hmrc.bindingtarifffilestore.util.HashUtil
 import uk.gov.hmrc.http.HeaderCarrier
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -41,8 +39,7 @@ class FileStoreService @Inject()(appConfig: AppConfig,
                                  upscanConnector: UpscanConnector,
                                  auditService: AuditService) {
 
-  private lazy val authToken = BaseEncoding.base64Url().encode(
-    MessageDigest.getInstance("SHA-256").digest(appConfig.authorization.getBytes("UTF-8")))
+  private lazy val authToken = HashUtil.hash(appConfig.authorization)
 
   // Initiates an upload for a POST direct to Upscan
   def initiate(metadata: FileMetadata)(implicit hc: HeaderCarrier): Future[UploadTemplate] = {
@@ -50,8 +47,8 @@ class FileStoreService @Inject()(appConfig: AppConfig,
     Logger.info(s"Initiating file [$fileId]")
     val settings = UploadSettings(
       callbackUrl = routes.FileStoreController
-        .notification(fileId, Some(authToken))
-        .absoluteURL(appConfig.filestoreSSL, appConfig.filestoreUrl),
+        .notification(fileId)
+        .absoluteURL(appConfig.filestoreSSL, appConfig.filestoreUrl) + s"?X-Api-Token=$authToken",
       minimumFileSize = appConfig.fileStoreSizeConfiguration.minFileSize,
       maximumFileSize = appConfig.fileStoreSizeConfiguration.maxFileSize
     )
@@ -70,8 +67,8 @@ class FileStoreService @Inject()(appConfig: AppConfig,
     Logger.info(s"Uploading file [$fileId]")
     val settings = UploadSettings(
       callbackUrl = routes.FileStoreController
-        .notification(fileId, Some(authToken))
-        .absoluteURL(appConfig.filestoreSSL, appConfig.filestoreUrl),
+        .notification(fileId)
+        .absoluteURL(appConfig.filestoreSSL, appConfig.filestoreUrl) + s"?X-Api-Token=$authToken",
       minimumFileSize = appConfig.fileStoreSizeConfiguration.minFileSize,
       maximumFileSize = appConfig.fileStoreSizeConfiguration.maxFileSize
     )

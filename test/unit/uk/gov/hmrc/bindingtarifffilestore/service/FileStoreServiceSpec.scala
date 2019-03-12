@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.bindingtarifffilestore.service
 
+import org.mockito.{ArgumentCaptor, Mockito}
 import org.mockito.ArgumentMatchers.any
 import org.mockito.BDDMockito.given
 import org.mockito.Mockito._
@@ -159,6 +160,7 @@ class FileStoreServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfte
       val uploadTemplate = UpscanTemplate(href = "href", fields = Map("key" -> "value"))
       val initiateResponse = UpscanInitiateResponse("ref", uploadTemplate)
 
+      given(config.filestoreUrl).willReturn("host")
       given(config.fileStoreSizeConfiguration).willReturn(FileStoreSizeConfiguration(1, 1000))
       given(config.authorization).willReturn("auth-token")
       given(repository.insert(fileMetadata)).willReturn(successful(fileMetaDataCreated))
@@ -168,6 +170,12 @@ class FileStoreServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfte
 
       verify(auditService, times(1)).auditUpScanInitiated(fileId = "id", fileName = "file", upScanRef = "ref")
       verifyNoMoreInteractions(auditService)
+
+      theInitatePayload shouldBe UploadSettings(
+        "http://host/file/id/notify?X-Api-Token=2yL0YYIInq0TGnTCyaUwQhXpxtIktdzWH7QIx9mmMWU=",
+        1,
+        1000
+      )
     }
   }
 
@@ -181,6 +189,7 @@ class FileStoreServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfte
       val uploadTemplate = mock[UpscanTemplate]
       val initiateResponse = UpscanInitiateResponse("ref", uploadTemplate)
 
+      given(config.filestoreUrl).willReturn("host")
       given(config.fileStoreSizeConfiguration).willReturn(FileStoreSizeConfiguration(1, 1000))
       given(config.authorization).willReturn("auth-token")
       given(repository.insert(fileMetadata)).willReturn(successful(fileMetaDataCreated))
@@ -190,7 +199,19 @@ class FileStoreServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfte
 
       verify(auditService, times(1)).auditUpScanInitiated(fileId = "id", fileName = "file", upScanRef = "ref")
       verifyNoMoreInteractions(auditService)
+
+      theInitatePayload shouldBe UploadSettings(
+        "http://host/file/id/notify?X-Api-Token=2yL0YYIInq0TGnTCyaUwQhXpxtIktdzWH7QIx9mmMWU=",
+        1,
+        1000
+      )
     }
+  }
+
+  private def theInitatePayload: UploadSettings = {
+    val captor: ArgumentCaptor[UploadSettings] = ArgumentCaptor.forClass(classOf[UploadSettings])
+    verify(upscanConnector).initiate(captor.capture())(any[HeaderCarrier])
+    captor.getValue
   }
 
   "Service 'notify' " should {
