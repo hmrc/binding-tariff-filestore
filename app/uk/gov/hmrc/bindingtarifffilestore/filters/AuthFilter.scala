@@ -16,13 +16,11 @@
 
 package uk.gov.hmrc.bindingtarifffilestore.filters
 
-import java.security.MessageDigest
-
 import akka.stream.Materializer
-import com.google.common.io.BaseEncoding
 import javax.inject.{Inject, Singleton}
 import play.api.mvc.{Filter, RequestHeader, Result, Results}
 import uk.gov.hmrc.bindingtarifffilestore.config.AppConfig
+import uk.gov.hmrc.bindingtarifffilestore.util.HashUtil
 
 import scala.concurrent.Future
 
@@ -31,16 +29,9 @@ class AuthFilter @Inject()(appConfig: AppConfig)(implicit override val mat: Mate
 
   private lazy val authTokenName = "X-Api-Token"
   private lazy val healthEndpointUri = "/ping/ping"
-  private lazy val hashedTokenValue: String = hash(appConfig.authorization)
-
-  private def hash: String => String = { s: String =>
-    BaseEncoding.base64Url().encode(
-      MessageDigest.getInstance("SHA-256").digest(s.getBytes("UTF-8"))
-    )
-  }
+  private lazy val hashedTokenValue: String = HashUtil.hash(appConfig.authorization)
 
   override def apply(f: RequestHeader => Future[Result])(rh: RequestHeader): Future[Result] = {
-
     rh.uri match {
       case uri if uri.endsWith(healthEndpointUri) => f(rh)
       case _ => ensureAuthTokenIsPresent(f, rh)

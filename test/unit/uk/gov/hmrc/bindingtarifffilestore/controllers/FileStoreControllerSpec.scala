@@ -24,7 +24,6 @@ import org.mockito.ArgumentMatchers.{any, refEq}
 import org.mockito.Mockito.{reset, verify, when}
 import org.scalatest.mockito.MockitoSugar
 import org.scalatest.{BeforeAndAfterEach, Matchers}
-import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.http.Status._
 import play.api.libs.Files.TemporaryFile
 import play.api.libs.json.{JsValue, Json, Writes}
@@ -191,7 +190,7 @@ class FileStoreControllerSpec extends UnitSpec with Matchers
       when(service.notify(refEq(attachment), refEq(scanResult))(any[HeaderCarrier])).thenReturn(successful(Some(attachmentUpdated)))
 
       val request: FakeRequest[JsValue] = fakeRequest.withBody(Json.toJson[ScanResult](scanResult))
-      val result: Result = await(controller.notification(id = "id", Some("authToken"))(request))
+      val result: Result = await(controller.notification(id = "id")(request))
 
       status(result) shouldBe CREATED
       jsonBodyOf(result) shouldBe Json.toJson(attachmentUpdated)
@@ -202,7 +201,7 @@ class FileStoreControllerSpec extends UnitSpec with Matchers
       when(service.getById("id")).thenReturn(successful(None))
 
       val request: FakeRequest[JsValue] = fakeRequest.withBody(Json.toJson[ScanResult](scanResult))
-      val result: Result = await(controller.notification(id = "id", Some("authToken"))(request))
+      val result: Result = await(controller.notification(id = "id")(request))
 
       status(result) shouldBe NOT_FOUND
     }
