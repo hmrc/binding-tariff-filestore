@@ -56,7 +56,8 @@ class AuthFilter @Inject()(appConfig: AppConfig)(implicit override val mat: Mate
       case (Some(appConfig.authorization), Some(`hashedTokenValue`)) => f(rh)
       case (Some(appConfig.authorization), None) => f(rh)
       case (None, Some(`hashedTokenValue`)) => f(rh)
-      case _ => Future.successful(Results.Forbidden)
+      case _ => Future.successful(Results.Forbidden(s"Missing or invalid '$authTokenName'"))
     }
   }
+
 }

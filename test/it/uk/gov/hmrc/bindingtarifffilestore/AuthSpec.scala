@@ -58,6 +58,7 @@ class AuthSpec extends BaseFeatureSpec with ResourceFiles {
 
       Then("The response code should be 403")
       result.code shouldBe FORBIDDEN
+      result.body shouldBe "Missing or invalid 'X-Api-Token'"
     }
 
     scenario("Forbidding requests with incorrect value for the auth header and expected auth token query param") {
@@ -70,6 +71,7 @@ class AuthSpec extends BaseFeatureSpec with ResourceFiles {
 
       Then("The response code should be 403")
       result.code shouldBe FORBIDDEN
+      result.body shouldBe "Missing or invalid 'X-Api-Token'"
     }
 
     scenario("Forbidding requests with expected value for the auth header and incorrect auth token query param") {
@@ -82,6 +84,7 @@ class AuthSpec extends BaseFeatureSpec with ResourceFiles {
 
       Then("The response code should be 403")
       result.code shouldBe FORBIDDEN
+      result.body shouldBe "Missing or invalid 'X-Api-Token'"
     }
 
     scenario("Allowing requests with both expected auth header and expected auth query param") {
@@ -105,6 +108,7 @@ class AuthSpec extends BaseFeatureSpec with ResourceFiles {
 
       Then("The response code should be 403")
       result.code shouldBe FORBIDDEN
+      result.body shouldBe "Missing or invalid 'X-Api-Token'"
     }
 
     scenario("Allowing requests with no auth header and with expected auth query param") {
@@ -127,6 +131,7 @@ class AuthSpec extends BaseFeatureSpec with ResourceFiles {
 
       Then("The response code should be 403")
       result.code shouldBe FORBIDDEN
+      result.body shouldBe "Missing or invalid 'X-Api-Token'"
     }
 
     scenario("Calls to the health endpoint do not require auth token") {
