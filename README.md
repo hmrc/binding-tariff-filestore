@@ -12,6 +12,24 @@ A microservice providing read, write and delete access to Amazon S3.
 3) [LocalStack](https://github.com/localstack/localstack) Installed
 4) [AWS CLI](https://aws.amazon.com/cli/) Installed
 
+###### Installing localstack:
+
+`pip install localstack --user --upgrade --ignore-installed six`
+
+`pip install amazon_kclpy`
+
+`localstack start`
+
+Set up aws cli credentials (one time only):
+
+```
+aws configure
+AWS Access Key ID [None]: test
+AWS Secret Access Key [None]: <password here>
+Default region name [None]: eu-west-2
+Default output format [None]:
+```
+
 ##### Starting the microservice:
 
 ###### The first time you run the app
