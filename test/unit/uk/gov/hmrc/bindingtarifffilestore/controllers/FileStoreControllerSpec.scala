@@ -97,16 +97,7 @@ class FileStoreControllerSpec extends UnitSpec with Matchers
     val id = "ABC-123_000"
     val req = FakeRequest(method = HttpVerbs.DELETE, path = s"/file/$id")
 
-    "return 403 if the test mode is disabled" in {
-      when(appConfig.isTestMode).thenReturn(false)
-
-      val result = await(controller.delete(id)(req))
-
-      status(result) shouldEqual FORBIDDEN
-      jsonBodyOf(result).toString() shouldEqual s"""{"code":"FORBIDDEN","message":"You are not allowed to call ${req.method} ${req.path}"}"""
-    }
-
-    "return 204 if the test mode is enabled" in {
+    "return 204" in {
       when(appConfig.isTestMode).thenReturn(true)
       when(service.delete(id)).thenReturn(successful((): Unit))
 

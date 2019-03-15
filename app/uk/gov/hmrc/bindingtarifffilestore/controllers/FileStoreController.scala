@@ -44,7 +44,7 @@ class FileStoreController @Inject()(appConfig: AppConfig,
     service.deleteAll() map (_ => NoContent) recover recovery
   }
 
-  def delete(id: String): Action[AnyContent] = testModeFilter.async { implicit request =>
+  def delete(id: String): Action[AnyContent] = Action.async { implicit request =>
     service.delete(id) map (_ => NoContent) recover recovery
   }
 
