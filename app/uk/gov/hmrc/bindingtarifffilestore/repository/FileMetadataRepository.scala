@@ -16,6 +16,8 @@
 
 package uk.gov.hmrc.bindingtarifffilestore.repository
 
+import java.time.Instant
+
 import com.google.inject.ImplementedBy
 import javax.inject.{Inject, Singleton}
 import play.api.libs.json.Json
@@ -87,7 +89,7 @@ class FileMetadataMongoRepository @Inject()(config: AppConfig,
   override def update(att: FileMetadata): Future[Option[FileMetadata]] = {
     collection.findAndUpdate(
       selector = byId(att.id),
-      update = att,
+      update = att.copy(lastUpdated = Instant.now()),
       fetchNewObject = true,
       upsert = false
     ).map(_.value.map(_.as[FileMetadata]))

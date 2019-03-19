@@ -119,10 +119,14 @@ class FileMetadataRepositorySpec extends BaseMongoIndexSpec
       val size = collectionSize
 
       val updated = att1.copy(mimeType = generateString, fileName = generateString)
-      await(repository.update(updated)) shouldBe Some(updated)
+      await(repository.update(updated))
       collectionSize shouldBe size
 
-      await(repository.collection.find(selectorById(updated)).one[FileMetadata]) shouldBe Some(updated)
+      val metadata = await(repository.collection.find(selectorById(updated)).one[FileMetadata])
+      metadata.map(_.id) shouldBe Some(att1.id)
+      metadata.map(_.mimeType) shouldBe Some(updated.mimeType)
+      metadata.map(_.fileName) shouldBe Some(updated.fileName)
+      metadata.map(_.lastUpdated).get.isAfter(updated.lastUpdated) shouldBe true
     }
 
     "do nothing when trying to update a non existing document in the collection" in {
