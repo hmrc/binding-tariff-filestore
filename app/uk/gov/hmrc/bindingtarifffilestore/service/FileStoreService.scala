@@ -103,7 +103,7 @@ class FileStoreService @Inject()(appConfig: AppConfig,
       case READY =>
         val result = scanResult.asInstanceOf[SuccessfulScanResult]
         val update = attachment.copy(url = Some(result.downloadUrl), scanStatus = Some(READY))
-        if (update.published) {
+        if (update.publishable) {
           for {
             updated: Option[FileMetadata] <- repository.update(update)
             published: Option[FileMetadata] <- updated match {
@@ -122,25 +122,35 @@ class FileStoreService @Inject()(appConfig: AppConfig,
   // when the file is uploaded to our S3 bucket
   def publish(att: FileMetadata)(implicit hc: HeaderCarrier): Future[Option[FileMetadata]] = {
     Logger.info(s"Publishing file [${att.id}]")
-    att.scanStatus match {
-      case Some(READY) =>
+
+    (att.scanStatus, att.published) match {
+        // File is Safe, unpublished and the download URL is still live
+      case (Some(READY), false) if att.isLive =>
         val metadata = fileStoreConnector.upload(att)
         auditService.auditFilePublished(att.id, att.fileName)
-        val update = if (metadata.published) metadata else metadata.copy(published = true)
-        repository.update(update)
+        repository.update(metadata.copy(publishable = true, published = true))
           .map(signingPermanentURL)
-      case _ =>
-        repository.update(att.copy(published = true))
-    }
 
+        // File is safe, unpublished but the download URL has expired. Clean Up.
+      case (Some(READY), false) =>
+        repository.delete(att.id).map(_ => None)
+
+        // File not safe yet & is unpublished
+      case (_, false) =>
+        repository.update(att.copy(publishable = true))
+
+        // File is already published
+      case (_, true) =>
+        Future(Some(att))
+    }
   }
 
   def deleteAll(): Future[Unit] = {
-    repository.deleteAll() map ( _ => fileStoreConnector.deleteAll() )
+    repository.deleteAll() map (_ => fileStoreConnector.deleteAll())
   }
 
   def delete(id: String): Future[Unit] = {
-    repository.delete(id) map ( _ => fileStoreConnector.delete(id) )
+    repository.delete(id) map (_ => fileStoreConnector.delete(id))
   }
 
   private def signingPermanentURL: Option[FileMetadata] => Option[FileMetadata] = _ map signingIfPublished

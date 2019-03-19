@@ -16,10 +16,10 @@
 
 package uk.gov.hmrc.bindingtarifffilestore.model
 
-import java.time.Instant
-import java.util.UUID
+import java.time.{Instant, LocalDateTime, ZoneOffset}
 
 import play.api.libs.json._
+import play.json.extra.{InvariantFormat, Jsonx}
 import uk.gov.hmrc.bindingtarifffilestore.model.ScanStatus._
 
 case class FileMetadata
@@ -29,9 +29,20 @@ case class FileMetadata
   mimeType: String,
   url: Option[String] = None,
   scanStatus: Option[ScanStatus] = None,
+  publishable: Boolean = false,
   published: Boolean = false,
   lastUpdated: Instant = Instant.now()
-)
+) {
+  private lazy val signedURL = "X-Amz-Date=(\\d{4})(\\d{2})(\\d{2})T(\\d{2})(\\d{2})(\\d{2})".r.unanchored
+
+  def isLive: Boolean = url.forall {
+    case signedURL(year, month, day, hour, min, second) =>
+      val expiry: Instant = LocalDateTime.of(year.toInt, month.toInt, day.toInt, hour.toInt, min.toInt, second.toInt).toInstant(ZoneOffset.UTC)
+      expiry.isAfter(Instant.now())
+    case _ =>
+      true
+  }
+}
 
 object FileMetadataREST {
   val writes: OWrites[FileMetadata] = new OWrites[FileMetadata] {
@@ -41,6 +52,7 @@ object FileMetadataREST {
           "id" -> JsString(o.id),
           "fileName" -> JsString(o.fileName),
           "mimeType" -> JsString(o.mimeType),
+          "publishable" -> JsBoolean(o.publishable),
           "published" -> JsBoolean(o.published),
           "lastUpdated" -> JsString(o.lastUpdated.toString)
         )
@@ -70,5 +82,9 @@ object FileMetadataMongo {
     }
   }
 
-  implicit val format: OFormat[FileMetadata] = Json.format[FileMetadata]
+  private val underlying: InvariantFormat[FileMetadata] = Jsonx.formatCaseClass[FileMetadata]
+  implicit val format: OFormat[FileMetadata] = OFormat(
+    r = underlying,
+    w = OWrites(fm => underlying.writes(fm).as[JsObject])
+  )
 }

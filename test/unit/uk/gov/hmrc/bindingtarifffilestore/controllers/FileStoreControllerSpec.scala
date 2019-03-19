@@ -252,14 +252,14 @@ class FileStoreControllerSpec extends UnitSpec with Matchers
       when(service.initiate(any[FileMetadata])(any[HeaderCarrier])).thenReturn(successful(response))
 
       // When
-      val request = UploadRequest(fileName = "file.txt", mimeType = "text/plain", published = true)
+      val request = UploadRequest(fileName = "file.txt", mimeType = "text/plain", publishable = true)
       val result: Result = await(controller.upload(jsonRequest(request)))
 
       // Then
       status(result) shouldBe ACCEPTED
 
       val metadata = theFileInitiated
-      metadata.published shouldBe true
+      metadata.publishable shouldBe true
       metadata.fileName shouldBe "file.txt"
       metadata.mimeType shouldBe "text/plain"
     }
@@ -270,7 +270,7 @@ class FileStoreControllerSpec extends UnitSpec with Matchers
       when(service.initiate(any[FileMetadata])(any[HeaderCarrier])).thenReturn(successful(response))
 
       // When
-      val request = UploadRequest(id = Some("id"), fileName = "file.txt", mimeType = "text/plain", published = true)
+      val request = UploadRequest(id = Some("id"), fileName = "file.txt", mimeType = "text/plain", publishable = true)
       val result: Result = await(controller.upload(jsonRequest(request)))
 
       // Then
@@ -278,7 +278,7 @@ class FileStoreControllerSpec extends UnitSpec with Matchers
 
       val metadata = theFileInitiated
       metadata.id shouldBe "id"
-      metadata.published shouldBe true
+      metadata.publishable shouldBe true
       metadata.fileName shouldBe "file.txt"
       metadata.mimeType shouldBe "text/plain"
     }
@@ -339,7 +339,7 @@ class FileStoreControllerSpec extends UnitSpec with Matchers
       status(result) shouldBe ACCEPTED
 
       val metadata = theFileUploaded.metadata
-      metadata.published shouldBe true
+      metadata.publishable shouldBe true
       metadata.fileName shouldBe "file.txt"
       metadata.mimeType shouldBe "text/plain"
     }

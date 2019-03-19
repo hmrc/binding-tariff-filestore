@@ -24,7 +24,7 @@ case class UploadRequest
   id: Option[String] = None,
   fileName: String,
   mimeType: String,
-  published: Boolean = false
+  publishable: Boolean = false
 )
 
 object UploadRequest {
