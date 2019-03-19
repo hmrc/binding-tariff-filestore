@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.bindingtarifffilestore.model
 
-import java.time.Instant
+import java.time.{Instant, LocalDateTime, ZoneOffset}
 import java.util.UUID
 
 import play.api.libs.json._
@@ -31,7 +31,17 @@ case class FileMetadata
   scanStatus: Option[ScanStatus] = None,
   published: Boolean = false,
   lastUpdated: Instant = Instant.now()
-)
+) {
+  private lazy val signedURL = "X-Amz-Date=(\\d{4})(\\d{2})(\\d{2})T(\\d{2})(\\d{2})(\\d{2})".r.unanchored
+
+  def isLive: Boolean = url.forall {
+    case signedURL(year, month, day, hour, min, second) =>
+      val expiry: Instant = LocalDateTime.of(year.toInt, month.toInt, day.toInt, hour.toInt, min.toInt, second.toInt).toInstant(ZoneOffset.UTC)
+      expiry.isAfter(Instant.now())
+    case _ =>
+      true
+  }
+}
 
 object FileMetadataREST {
   val writes: OWrites[FileMetadata] = new OWrites[FileMetadata] {

@@ -98,6 +98,14 @@ class FileMetadataSpec extends UnitSpec {
       value shouldBe model
     }
 
+    "Calculate liveness of signed URL" in {
+      def metadata(url: String): FileMetadata = FileMetadata("id", "file", "type", Some(url))
+      metadata("https://s3.amazonaws.com/bucket/file?X-Amz-Date=30000101T000000Z").isLive shouldBe true
+      metadata("https://s3.amazonaws.com/bucket/file?X-Amz-Date=20190101T000000Z").isLive shouldBe false
+      metadata("url").isLive shouldBe true
+      FileMetadata("id", "file", "type").isLive shouldBe true
+    }
+
   }
 
 }
