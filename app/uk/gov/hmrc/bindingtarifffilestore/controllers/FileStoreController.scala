@@ -91,14 +91,14 @@ class FileStoreController @Inject()(appConfig: AppConfig,
         id = template.id.getOrElse(UUID.randomUUID().toString),
         fileName = template.fileName,
         mimeType = template.mimeType,
-        published = template.published
+        publishable = template.publishable
       )
     ).map(t => Accepted(Json.toJson(t))) recover recovery
   }
 
   private def upload(body: MultipartFormData[TemporaryFile])(implicit hc: HeaderCarrier): Future[Result] = {
     val formFile = body.file("file").filter(_.filename.nonEmpty)
-    val published: Boolean = body.dataParts.getOrElse("publish", Seq.empty).contains("true")
+    val publishable: Boolean = body.dataParts.getOrElse("publish", Seq.empty).contains("true")
     val id: String = body.dataParts.getOrElse("id", Seq.empty).headOption.getOrElse(UUID.randomUUID().toString)
 
     val attachment: Option[FileWithMetadata] = formFile map { file =>
@@ -108,7 +108,7 @@ class FileStoreController @Inject()(appConfig: AppConfig,
           id = id,
           fileName = file.filename,
           mimeType = file.contentType.getOrElse(throw new RuntimeException("Missing file type")),
-          published = published
+          publishable = publishable
         )
       )
     }

@@ -17,7 +17,6 @@
 package uk.gov.hmrc.bindingtarifffilestore.model
 
 import java.time.{Instant, LocalDateTime, ZoneOffset}
-import java.util.UUID
 
 import play.api.libs.json._
 import uk.gov.hmrc.bindingtarifffilestore.model.ScanStatus._
@@ -29,6 +28,7 @@ case class FileMetadata
   mimeType: String,
   url: Option[String] = None,
   scanStatus: Option[ScanStatus] = None,
+  publishable: Boolean = false,
   published: Boolean = false,
   lastUpdated: Instant = Instant.now()
 ) {
@@ -51,6 +51,7 @@ object FileMetadataREST {
           "id" -> JsString(o.id),
           "fileName" -> JsString(o.fileName),
           "mimeType" -> JsString(o.mimeType),
+          "publishable" -> JsBoolean(o.publishable),
           "published" -> JsBoolean(o.published),
           "lastUpdated" -> JsString(o.lastUpdated.toString)
         )

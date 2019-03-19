@@ -240,13 +240,13 @@ class FileStoreServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfte
       val attachmentSigned = mock[FileMetadata]("AttachmentSigned")
 
       given(attachment.copy(scanStatus = Some(ScanStatus.READY), url = Some("url"))).willReturn(attachmentUpdating)
-      given(attachment.published).willReturn(true)
+      given(attachment.publishable).willReturn(true)
       given(attachment.id).willReturn("id")
       given(attachment.fileName).willReturn("file")
 
-      given(attachmentUpdating.published).willReturn(true)
+      given(attachmentUpdating.publishable).willReturn(true)
 
-      given(attachmentUpdated.published).willReturn(true)
+      given(attachmentUpdated.publishable).willReturn(true)
       given(attachmentUpdated.scanStatus).willReturn(Some(ScanStatus.READY))
       given(attachmentUpdated.id).willReturn("id")
       given(attachmentUpdated.fileName).willReturn("file")
@@ -274,7 +274,7 @@ class FileStoreServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfte
       val attachmentUpdated = mock[FileMetadata]("AttachmentUpdated")
 
       given(attachment.copy(scanStatus = Some(ScanStatus.READY), url = Some("url"))).willReturn(attachmentUpdating)
-      given(attachment.published).willReturn(true)
+      given(attachment.publishable).willReturn(true)
       given(attachment.id).willReturn("id")
       given(attachment.fileName).willReturn("file")
 

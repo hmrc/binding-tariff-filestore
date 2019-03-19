@@ -278,13 +278,14 @@ class FileStoreSpec extends WiremockFeatureTestServer with ResourceFiles {
       response.body("fileName") shouldBe JsString("some-file.txt")
       response.body("mimeType") shouldBe JsString("text/plain")
       response.body("scanStatus") shouldBe JsString("READY")
+      response.body("publishable") shouldBe JsBoolean(true)
       response.body("published") shouldBe JsBoolean(true)
 
       And("The response shows the file published")
       response.body("url").as[JsString].value should include(s"$id?X-Amz-Algorithm=AWS4-HMAC-SHA256")
     }
 
-    scenario("Should mark an un-safe file as published, but not persist") {
+    scenario("Should mark an un-safe file as publishable, but not persist") {
       Given("A File has been uploaded and marked as quarantined")
       val id = upload("some-file.txt", "text/plain")
         .body("id").as[JsString].value
@@ -300,7 +301,8 @@ class FileStoreSpec extends WiremockFeatureTestServer with ResourceFiles {
       publishResponse.body("fileName") shouldBe JsString("some-file.txt")
       publishResponse.body("mimeType") shouldBe JsString("text/plain")
       publishResponse.body("scanStatus") shouldBe JsString("FAILED")
-      publishResponse.body("published") shouldBe JsBoolean(true)
+      publishResponse.body("publishable") shouldBe JsBoolean(true)
+      publishResponse.body("published") shouldBe JsBoolean(false)
 
       And("I can call GET and see the file is unpublished")
       val getResponse = getFile(id)
@@ -308,7 +310,8 @@ class FileStoreSpec extends WiremockFeatureTestServer with ResourceFiles {
       getResponse.body("fileName") shouldBe JsString("some-file.txt")
       getResponse.body("mimeType") shouldBe JsString("text/plain")
       getResponse.body("scanStatus") shouldBe JsString("FAILED")
-      getResponse.body("published") shouldBe JsBoolean(true)
+      getResponse.body("publishable") shouldBe JsBoolean(true)
+      getResponse.body("published") shouldBe JsBoolean(false)
       getResponse.body.contains("url") shouldBe false
     }
   }

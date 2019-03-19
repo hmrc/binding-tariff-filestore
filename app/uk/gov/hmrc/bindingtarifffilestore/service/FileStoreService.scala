@@ -103,7 +103,7 @@ class FileStoreService @Inject()(appConfig: AppConfig,
       case READY =>
         val result = scanResult.asInstanceOf[SuccessfulScanResult]
         val update = attachment.copy(url = Some(result.downloadUrl), scanStatus = Some(READY))
-        if (update.published) {
+        if (update.publishable) {
           for {
             updated: Option[FileMetadata] <- repository.update(update)
             published: Option[FileMetadata] <- updated match {
@@ -126,11 +126,11 @@ class FileStoreService @Inject()(appConfig: AppConfig,
       case Some(READY) =>
         val metadata = fileStoreConnector.upload(att)
         auditService.auditFilePublished(att.id, att.fileName)
-        val update = if (metadata.published) metadata else metadata.copy(published = true)
+        val update = if (metadata.published) metadata else metadata.copy(publishable = true, published = true)
         repository.update(update)
           .map(signingPermanentURL)
       case _ =>
-        repository.update(att.copy(published = true))
+        repository.update(att.copy(publishable = true))
     }
 
   }

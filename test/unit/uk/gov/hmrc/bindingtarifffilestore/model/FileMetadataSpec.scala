@@ -30,6 +30,7 @@ class FileMetadataSpec extends UnitSpec {
       fileName = "fileName",
       mimeType = "type",
       url = Some("url"),
+      publishable = true,
       published = true,
       scanStatus = Some(ScanStatus.READY),
       lastUpdated = Instant.EPOCH
@@ -41,6 +42,7 @@ class FileMetadataSpec extends UnitSpec {
       "mimeType" -> JsString("type"),
       "url" -> JsString("url"),
       "scanStatus" -> JsString("READY"),
+      "publishable" -> JsBoolean(true),
       "published" -> JsBoolean(true),
       "lastUpdated" -> Json.obj("$date" -> JsNumber(0))
     )
@@ -52,7 +54,8 @@ class FileMetadataSpec extends UnitSpec {
       "scanStatus" -> JsString("READY"),
       "fileName" -> JsString("fileName"),
       "mimeType" -> JsString("type"),
-      "id" -> JsString("id")
+      "id" -> JsString("id"),
+      "publishable" -> JsBoolean(true)
     )
 
     "Convert to Mongo JSON" in {
@@ -77,7 +80,8 @@ class FileMetadataSpec extends UnitSpec {
         "published" -> JsBoolean(true),
         "fileName" -> JsString("fileName"),
         "mimeType" -> JsString("type"),
-        "id" -> JsString("id")
+        "id" -> JsString("id"),
+        "publishable" -> JsBoolean(true)
       ).toString()
     }
 
@@ -85,11 +89,12 @@ class FileMetadataSpec extends UnitSpec {
       val value = Json.toJson(model.copy(scanStatus = Some(ScanStatus.FAILED)))(FileMetadataREST.format)
       value.toString() shouldBe Json.obj(
         "lastUpdated" -> JsString("1970-01-01T00:00:00Z"),
-      "published" -> JsBoolean(true),
-      "scanStatus" -> JsString("FAILED"),
-      "fileName" -> JsString("fileName"),
-      "mimeType" -> JsString("type"),
-      "id" -> JsString("id")
+        "published" -> JsBoolean(true),
+        "scanStatus" -> JsString("FAILED"),
+        "fileName" -> JsString("fileName"),
+        "mimeType" -> JsString("type"),
+        "id" -> JsString("id"),
+        "publishable" -> JsBoolean(true)
       ).toString()
     }
 
@@ -100,6 +105,7 @@ class FileMetadataSpec extends UnitSpec {
 
     "Calculate liveness of signed URL" in {
       def metadata(url: String): FileMetadata = FileMetadata("id", "file", "type", Some(url))
+
       metadata("https://s3.amazonaws.com/bucket/file?X-Amz-Date=30000101T000000Z").isLive shouldBe true
       metadata("https://s3.amazonaws.com/bucket/file?X-Amz-Date=20190101T000000Z").isLive shouldBe false
       metadata("url").isLive shouldBe true
