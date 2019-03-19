@@ -314,6 +314,24 @@ class FileStoreSpec extends WiremockFeatureTestServer with ResourceFiles {
       getResponse.body("published") shouldBe JsBoolean(false)
       getResponse.body.contains("url") shouldBe false
     }
+
+    scenario("Should remove publishable file which has expired") {
+      Given("A File has been uploaded and marked as safe")
+      val id = upload("some-file.txt", "text/plain")
+        .body("id").as[JsString].value
+      val uri = new File(filePath).toURI
+      notifySuccess(id, uri = new URI(uri.toString + "?X-Amz-Date=19700101T000000Z"))
+
+      When("It is Published")
+      val response = publishSafeFile(id)
+
+      Then("The response code should be Not Found")
+      response.code shouldBe Status.NOT_FOUND
+
+      And("I can call GET and see the file does not exist")
+      val getResponse = getFile(id)
+      getResponse.code shouldBe Status.NOT_FOUND
+    }
   }
 
   private def getFile(id: String): HttpResponse[Map[String, JsValue]] = {

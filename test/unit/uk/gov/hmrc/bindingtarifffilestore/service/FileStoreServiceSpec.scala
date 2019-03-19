@@ -236,28 +236,39 @@ class FileStoreServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfte
       val attachmentUpdating = mock[FileMetadata]("AttachmentUpdating")
       val attachmentUpdated = mock[FileMetadata]("AttachmentUpdated")
       val attachmentUploaded = mock[FileMetadata]("AttachmentUploaded")
+      val attachmentUploadedUpdating = mock[FileMetadata]("AttachmentUploadedUpdating")
       val attachmentUploadedUpdated = mock[FileMetadata]("AttachmentUploadedAndUpdated")
       val attachmentSigned = mock[FileMetadata]("AttachmentSigned")
 
       given(attachment.copy(scanStatus = Some(ScanStatus.READY), url = Some("url"))).willReturn(attachmentUpdating)
       given(attachment.publishable).willReturn(true)
+      given(attachment.published).willReturn(false)
+      given(attachment.isLive).willReturn(true)
       given(attachment.id).willReturn("id")
       given(attachment.fileName).willReturn("file")
 
       given(attachmentUpdating.publishable).willReturn(true)
+      given(attachmentUpdating.published).willReturn(false)
+      given(attachmentUpdating.isLive).willReturn(true)
 
       given(attachmentUpdated.publishable).willReturn(true)
+      given(attachmentUpdated.published).willReturn(false)
+      given(attachmentUpdated.isLive).willReturn(true)
       given(attachmentUpdated.scanStatus).willReturn(Some(ScanStatus.READY))
       given(attachmentUpdated.id).willReturn("id")
       given(attachmentUpdated.fileName).willReturn("file")
 
       given(attachmentUploaded.published).willReturn(true)
+      given(attachmentUploaded.publishable).willReturn(true)
+      given(attachmentUploaded.isLive).willReturn(true)
+      given(attachmentUploaded.copy(published = true, publishable = true)).willReturn(attachmentUploadedUpdating)
 
       given(attachmentUploadedUpdated.published).willReturn(true)
+      given(attachmentUploadedUpdated.isLive).willReturn(true)
 
       given(repository.update(attachmentUpdating)).willReturn(successful(Some(attachmentUpdated)))
       given(s3Connector.upload(attachmentUpdated)).willReturn(attachmentUploaded)
-      given(repository.update(attachmentUploaded)).willReturn(successful(Some(attachmentUploadedUpdated)))
+      given(repository.update(attachmentUploadedUpdating)).willReturn(successful(Some(attachmentUploadedUpdated)))
       given(s3Connector.sign(attachmentUploadedUpdated)).willReturn(attachmentSigned)
 
       await(service.notify(attachment, scanResult)) shouldBe Some(attachmentSigned)
@@ -322,6 +333,8 @@ class FileStoreServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfte
       val fileSigned = mock[FileMetadata]("Signed")
 
       given(fileUploading.scanStatus).willReturn(Some(ScanStatus.READY))
+      given(fileUploading.published).willReturn(false)
+      given(fileUploading.isLive).willReturn(true)
       given(fileUploading.id).willReturn("id")
       given(fileUploading.fileName).willReturn("file")
 
@@ -337,6 +350,33 @@ class FileStoreServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfte
 
       verify(auditService, times(1)).auditFilePublished(fileId = "id", fileName = "file")
       verifyNoMoreInteractions(auditService)
+    }
+
+    "Clear up unpublished expired files" in {
+      val fileUploading = mock[FileMetadata]("Uploading")
+
+      given(fileUploading.scanStatus).willReturn(Some(ScanStatus.READY))
+      given(fileUploading.published).willReturn(false)
+      given(fileUploading.isLive).willReturn(false)
+      given(fileUploading.id).willReturn("id")
+
+      given(repository.delete(any[String])).willReturn(successful(()))
+
+      await(service.publish(fileUploading)) shouldBe None
+
+      verify(repository).delete("id")
+      verifyZeroInteractions(auditService, s3Connector)
+    }
+
+    "Not delegate to the File Store if pre published" in {
+      val fileUploading = mock[FileMetadata]("Uploading")
+
+      given(fileUploading.scanStatus).willReturn(Some(ScanStatus.READY))
+      given(fileUploading.published).willReturn(true)
+
+      await(service.publish(fileUploading)) shouldBe Some(fileUploading)
+
+      verifyZeroInteractions(auditService, s3Connector, repository)
     }
 
     "Not delegate to the File Store if Scanned UnSafe" in {
