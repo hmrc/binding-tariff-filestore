@@ -29,7 +29,7 @@ import reactivemongo.bson._
 import reactivemongo.core.errors.DatabaseException
 import reactivemongo.play.json.ImplicitBSONHandlers._
 import uk.gov.hmrc.bindingtarifffilestore.config.AppConfig
-import uk.gov.hmrc.bindingtarifffilestore.model.FileMetadata
+import uk.gov.hmrc.bindingtarifffilestore.model.{FileMetadata, Search}
 import uk.gov.hmrc.bindingtarifffilestore.model.FileMetadataMongo.format
 import uk.gov.hmrc.mongo.MongoSpecSupport
 
@@ -98,24 +98,12 @@ class FileMetadataRepositorySpec extends BaseMongoIndexSpec
       await(repository.collection.find(selectorById(att1)).one[FileMetadata]) shouldBe Some(att1)
     }
 
-    "fail to insert an existing document in the collection" in {
-      await(repository.insert(att1)) shouldBe att1
-      val size = collectionSize
-
-      val caught = intercept[DatabaseException] {
-        await(repository.insert(att1))
-      }
-      caught.code shouldBe Some(11000)
-
-      collectionSize shouldBe size
-    }
-
   }
 
   "update" should {
 
     "modify an existing document in the collection" in {
-      await(repository.insert(att1)) shouldBe att1
+      await(repository.insert(att1))
       val size = collectionSize
 
       val updated = att1.copy(mimeType = generateString, fileName = generateString)
@@ -171,12 +159,12 @@ class FileMetadataRepositorySpec extends BaseMongoIndexSpec
   "The collection" should {
 
     "have a unique index based on the field 'id' " in {
-      await(repository.insert(att1))
+      await(repository.collection.insert(att1))
       val size = collectionSize
 
       val caught = intercept[DatabaseException] {
 
-        await(repository.insert(att1.copy(url = Some(generateString))))
+        await(repository.collection.insert(att1.copy(url = Some(generateString))))
       }
       caught.code shouldBe Some(11000)
 
@@ -216,7 +204,7 @@ class FileMetadataRepositorySpec extends BaseMongoIndexSpec
       await(repository.insert(att2))
       collectionSize shouldBe 2
 
-      await(repository.get(Seq(att2.id))) should contain only att2
+      await(repository.get(Search(ids = Some(Set(att2.id))))) should contain only att2
     }
 
     "retrieve all the files when no ids are passed" in {
@@ -225,11 +213,11 @@ class FileMetadataRepositorySpec extends BaseMongoIndexSpec
       await(repository.insert(att2))
       collectionSize shouldBe 2
 
-      await(repository.get(Seq.empty)) should contain only (att1, att2)
+      await(repository.get(Search())) should contain only (att1, att2)
     }
 
     "return None when there are no documents in the collection" in {
-      await(repository.get(Seq(att1.id, att2.id))) shouldBe Seq.empty
+      await(repository.get(Search(ids = Some(Set(att1.id, att2.id))))) shouldBe Seq.empty
     }
 
   }

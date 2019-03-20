@@ -26,7 +26,7 @@ import reactivemongo.bson.BSONObjectID
 import reactivemongo.play.json.ImplicitBSONHandlers._
 import uk.gov.hmrc.bindingtarifffilestore.config.AppConfig
 import uk.gov.hmrc.bindingtarifffilestore.model.FileMetadataMongo.format
-import uk.gov.hmrc.bindingtarifffilestore.model.{FileMetadata, FileMetadataMongo}
+import uk.gov.hmrc.bindingtarifffilestore.model.{FileMetadata, FileMetadataMongo, Search}
 import uk.gov.hmrc.bindingtarifffilestore.repository.MongoIndexCreator.{createSingleFieldAscendingIndex, createTTLIndex}
 import uk.gov.hmrc.mongo.ReactiveRepository
 
@@ -38,7 +38,7 @@ trait FileMetadataRepository {
 
   def get(id: String): Future[Option[FileMetadata]]
 
-  def get(ids: Seq[String]): Future[Seq[FileMetadata]]
+  def get(search: Search): Future[Seq[FileMetadata]]
 
   def insert(att: FileMetadata): Future[FileMetadata]
 
@@ -70,10 +70,10 @@ class FileMetadataMongoRepository @Inject()(config: AppConfig,
     collection.find(byId(id)).one[FileMetadata]
   }
 
-  override def get(ids: Seq[String]): Future[Seq[FileMetadata]] = {
+  override def get(search: Search): Future[Seq[FileMetadata]] = {
 
-    val query = ids match {
-      case s if s.nonEmpty => Json.obj("id" -> Json.obj("$in" -> ids))
+    val query = search.ids match {
+      case s if s.nonEmpty => Json.obj("id" -> Json.obj("$in" -> s))
       case _ => Json.obj()
     }
 
@@ -83,7 +83,12 @@ class FileMetadataMongoRepository @Inject()(config: AppConfig,
   }
 
   override def insert(att: FileMetadata): Future[FileMetadata] = {
-    collection.insert(att).map(_ => att)
+    collection.findAndUpdate(
+      selector = byId(att.id),
+      update = att,
+      fetchNewObject = true,
+      upsert = true
+    ).map(_.value.map(_.as[FileMetadata]).get)
   }
 
   override def update(att: FileMetadata): Future[Option[FileMetadata]] = {

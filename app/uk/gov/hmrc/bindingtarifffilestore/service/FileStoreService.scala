@@ -24,7 +24,7 @@ import uk.gov.hmrc.bindingtarifffilestore.connector.{AmazonS3Connector, UpscanCo
 import uk.gov.hmrc.bindingtarifffilestore.controllers.routes
 import uk.gov.hmrc.bindingtarifffilestore.model.ScanStatus.{FAILED, READY}
 import uk.gov.hmrc.bindingtarifffilestore.model.upscan._
-import uk.gov.hmrc.bindingtarifffilestore.model.{FileMetadata, FileWithMetadata, UploadTemplate}
+import uk.gov.hmrc.bindingtarifffilestore.model.{FileMetadata, FileWithMetadata, Search, UploadTemplate}
 import uk.gov.hmrc.bindingtarifffilestore.repository.FileMetadataRepository
 import uk.gov.hmrc.bindingtarifffilestore.util.HashUtil
 import uk.gov.hmrc.http.HeaderCarrier
@@ -87,8 +87,8 @@ class FileStoreService @Inject()(appConfig: AppConfig,
     repository.get(id) map signingPermanentURL
   }
 
-  def getByIds(ids: Seq[String]): Future[Seq[FileMetadata]] = {
-    repository.get(ids) map (signingPermanentURLs(_))
+  def getByIds(search: Search): Future[Seq[FileMetadata]] = {
+    repository.get(search) map (signingPermanentURLs(_))
   }
 
   // when UpScan comes back to us with the scan result

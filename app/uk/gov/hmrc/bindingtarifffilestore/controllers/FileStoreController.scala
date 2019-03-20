@@ -79,8 +79,8 @@ class FileStoreController @Inject()(appConfig: AppConfig,
     ) recover recovery
   }
 
-  def getAll(ids: Option[Seq[String]]): Action[AnyContent] = Action.async { implicit request =>
-    service.getByIds(ids.getOrElse(Seq.empty)) map {
+  def getAll(search: Search): Action[AnyContent] = Action.async { implicit request =>
+    service.getByIds(search) map {
       fileMetadataObjects: Seq[FileMetadata] => Ok(Json.toJson(fileMetadataObjects))
     } recover recovery
   }

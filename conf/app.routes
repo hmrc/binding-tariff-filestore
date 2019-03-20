@@ -1,6 +1,6 @@
 # microservice specific routes
 
-GET        /file                    @uk.gov.hmrc.bindingtarifffilestore.controllers.FileStoreController.getAll(id: Option[Seq[String]])
+GET        /file                    @uk.gov.hmrc.bindingtarifffilestore.controllers.FileStoreController.getAll(search: uk.gov.hmrc.bindingtarifffilestore.model.Search ?= uk.gov.hmrc.bindingtarifffilestore.model.Search())
 GET        /file/:id                @uk.gov.hmrc.bindingtarifffilestore.controllers.FileStoreController.get(id: String)
 
 POST       /file                    @uk.gov.hmrc.bindingtarifffilestore.controllers.FileStoreController.upload

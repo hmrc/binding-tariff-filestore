@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.bindingtarifffilestore.service
 
-import org.mockito.{ArgumentCaptor, Mockito}
+import org.mockito.ArgumentCaptor
 import org.mockito.ArgumentMatchers.any
 import org.mockito.BDDMockito.given
 import org.mockito.Mockito._
@@ -27,8 +27,8 @@ import play.api.libs.Files.TemporaryFile
 import uk.gov.hmrc.bindingtarifffilestore.audit.AuditService
 import uk.gov.hmrc.bindingtarifffilestore.config.{AppConfig, FileStoreSizeConfiguration}
 import uk.gov.hmrc.bindingtarifffilestore.connector.{AmazonS3Connector, UpscanConnector}
+import uk.gov.hmrc.bindingtarifffilestore.model._
 import uk.gov.hmrc.bindingtarifffilestore.model.upscan._
-import uk.gov.hmrc.bindingtarifffilestore.model.{FileMetadata, FileWithMetadata, ScanStatus, UploadTemplate}
 import uk.gov.hmrc.bindingtarifffilestore.repository.FileMetadataRepository
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.test.UnitSpec
@@ -119,18 +119,12 @@ class FileStoreServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfte
     }
   }
 
-  "Service 'getAll by id list' " should {
+  "Service 'getAll by search' " should {
 
-    "return empty when no ids are requested" in {
-      given(repository.get(Seq.empty)).willReturn(successful(Seq.empty))
+    "delegate to repository" in {
+      given(repository.get(Search())).willReturn(successful(Seq.empty))
 
-      await(service.getByIds(Seq())) shouldBe Seq.empty
-    }
-
-    "return empty when no ids are found on the db" in {
-      given(repository.get(Seq("unknownFile"))).willReturn(successful(Seq.empty))
-
-      await(service.getByIds(Seq("unknownFile"))) shouldBe Seq.empty
+      await(service.getByIds(Search())) shouldBe Seq.empty
     }
 
     "return all attachment requested already signed" in {
@@ -138,17 +132,15 @@ class FileStoreServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfte
       val attSigned1 = mock[FileMetadata]
 
       val attachment2 = mock[FileMetadata]
-      val attSigned2 = mock[FileMetadata]
 
       given(attachment1.published).willReturn(true)
       given(s3Connector.sign(attachment1)).willReturn(attSigned1)
 
-      given(attachment2.published).willReturn(true)
-      given(s3Connector.sign(attachment2)).willReturn(attSigned2)
+      given(attachment2.published).willReturn(false)
 
-      given(repository.get(Seq("filename_1","filename_2"))).willReturn(successful(Seq(attachment1,attachment2)))
+      given(repository.get(Search())).willReturn(successful(Seq(attachment1,attachment2)))
 
-      await(service.getByIds(Seq("filename_1","filename_2"))) shouldBe Seq(attSigned1,attSigned2)
+      await(service.getByIds(Search())) shouldBe Seq(attSigned1, attachment2)
     }
   }
 

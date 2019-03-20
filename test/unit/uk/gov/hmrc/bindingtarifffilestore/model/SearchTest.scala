@@ -1,0 +1,58 @@
+/*
+ * Copyright 2019 HM Revenue & Customs
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package uk.gov.hmrc.bindingtarifffilestore.model
+
+import java.net.URLDecoder
+
+import uk.gov.hmrc.play.test.UnitSpec
+
+class SearchTest extends UnitSpec {
+
+  private val search = Search(
+    ids = Some(Set("file-id"))
+  )
+
+  private val params = Map[String, Seq[String]](
+    "id" -> Seq("file-id")
+  )
+
+  "Search Binder" should {
+
+    "Unbind Unpopulated Search to Query String" in {
+      Search.bindable.unbind("", Search()) shouldBe ""
+    }
+
+    "Unbind Populated Search to Query String" in {
+      val populatedQueryParam: String =
+        "id=file-id"
+      URLDecoder.decode(Search.bindable.unbind("", search), "UTF-8") shouldBe populatedQueryParam
+    }
+
+    "Bind empty query string" in {
+      Search.bindable.bind("", Map()) shouldBe Some(Right(Search()))
+    }
+
+    "Bind query string with empty values" in {
+      Search.bindable.bind("", params.mapValues(_.map(_ => ""))) shouldBe Some(Right(Search()))
+    }
+
+    "Bind populated query string" in {
+      Search.bindable.bind("", params) shouldBe Some(Right(search))
+    }
+  }
+
+}

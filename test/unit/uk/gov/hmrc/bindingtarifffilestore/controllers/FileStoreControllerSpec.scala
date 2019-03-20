@@ -140,20 +140,11 @@ class FileStoreControllerSpec extends UnitSpec with Matchers
     }
   }
 
-  "Get By IDs" should {
-    "return 200 with empty array when empty id array are provided" in {
-      when(service.getByIds(Seq.empty)).thenReturn(successful(Seq.empty))
+  "Get By Search" should {
+    "return 200" in {
+      when(service.getByIds(Search(ids = Some(Set.empty)))).thenReturn(successful(Seq.empty))
 
-      val result = await(controller.getAll(Some(Seq.empty))(fakeRequest))
-
-      status(result) shouldBe OK
-      bodyOf(result) shouldEqual Json.toJson(Seq.empty).toString()
-    }
-
-    "return 200 with empty array when no ids are provided" in {
-      when(service.getByIds(Seq.empty)).thenReturn(successful(Seq.empty))
-
-      val result = await(controller.getAll(None)(fakeRequest))
+      val result = await(controller.getAll(Search(ids = Some(Set.empty)))(fakeRequest))
 
       status(result) shouldBe OK
       bodyOf(result) shouldEqual Json.toJson(Seq.empty).toString()
@@ -163,9 +154,9 @@ class FileStoreControllerSpec extends UnitSpec with Matchers
       val attachment1 = FileMetadata(id = "id1", fileName = "file1", mimeType = "type1")
       val attachment2 = FileMetadata(id = "id2", fileName = "file2", mimeType = "type2")
 
-      when(service.getByIds(ids = Seq("id1", "id2"))).thenReturn(successful(Seq(attachment1, attachment2)))
+      when(service.getByIds(Search(ids = Some(Set("id1", "id2"))))).thenReturn(successful(Seq(attachment1, attachment2)))
 
-      val result = await(controller.getAll(Some(Seq("id1", "id2")))(fakeRequest))
+      val result = await(controller.getAll(Search(ids = Some(Set("id1", "id2"))))(fakeRequest))
 
       status(result) shouldBe OK
       bodyOf(result) shouldEqual Json.toJson(Seq(attachment1, attachment2)).toString()
