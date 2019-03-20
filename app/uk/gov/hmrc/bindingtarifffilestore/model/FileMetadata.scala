@@ -33,15 +33,39 @@ case class FileMetadata
   published: Boolean = false,
   lastUpdated: Instant = Instant.now()
 ) {
-  private lazy val signedURL = "X-Amz-Date=(\\d{4})(\\d{2})(\\d{2})T(\\d{2})(\\d{2})(\\d{2})".r.unanchored
+  private lazy val date = "X-Amz-Date=(\\d{4})(\\d{2})(\\d{2})T(\\d{2})(\\d{2})(\\d{2})".r.unanchored
+  private lazy val expires = "X-Amz-Expires=(\\d+)".r.unanchored
 
-  def isLive: Boolean = url.forall {
-    case signedURL(year, month, day, hour, min, second) =>
-      val expiry: Instant = LocalDateTime.of(year.toInt, month.toInt, day.toInt, hour.toInt, min.toInt, second.toInt).toInstant(ZoneOffset.UTC)
-      expiry.isAfter(Instant.now())
-    case _ =>
-      true
+  def isLive: Boolean = {
+    this.url.forall { url =>
+      (date.findFirstMatchIn(url), expires.findFirstMatchIn(url)) match {
+        case (Some(dateMatch), Some(expiresMatch)) =>
+          LocalDateTime.of(
+            dateMatch.group(1).toInt,
+            dateMatch.group(2).toInt,
+            dateMatch.group(3).toInt,
+            dateMatch.group(4).toInt,
+            dateMatch.group(5).toInt,
+            dateMatch.group(6).toInt
+          )
+            .plusSeconds(expiresMatch.group(1).toLong)
+            .toInstant(ZoneOffset.UTC)
+            .isAfter(Instant.now())
+        case _ => true
+      }
+    }
   }
+
+  //    url.forall {
+  //      case date(year, month, day, hour, min, second) | expires(seconds) =>
+  //        val expiry: Instant = LocalDateTime
+  //          .of(year.toInt, month.toInt, day.toInt, hour.toInt, min.toInt, second.toInt).plusSeconds(seconds.toLong)
+  //          .toInstant(ZoneOffset.UTC)
+  //        expiry.isAfter(Instant.now())
+  //      case _ =>
+  //        true
+  //    }
+  //  }
 }
 
 object FileMetadataREST {
@@ -56,8 +80,8 @@ object FileMetadataREST {
           "published" -> JsBoolean(o.published),
           "lastUpdated" -> JsString(o.lastUpdated.toString)
         )
-        ++ o.scanStatus.map("scanStatus" -> Json.toJson(_))
-        ++ o.url.filter(_ => o.scanStatus.contains(READY)).map("url" -> JsString(_))
+          ++ o.scanStatus.map("scanStatus" -> Json.toJson(_))
+          ++ o.url.filter(_ => o.scanStatus.contains(READY)).map("url" -> JsString(_))
       )
     }
   }

@@ -320,7 +320,7 @@ class FileStoreSpec extends WiremockFeatureTestServer with ResourceFiles {
       val id = upload("some-file.txt", "text/plain")
         .body("id").as[JsString].value
       val uri = new File(filePath).toURI
-      notifySuccess(id, uri = new URI(uri.toString + "?X-Amz-Date=19700101T000000Z"))
+      notifySuccess(id, uri = new URI(uri.toString + "?X-Amz-Date=19700101T000000Z&X-Amz-Expires=0"))
 
       When("It is Published")
       val response = publishSafeFile(id)
