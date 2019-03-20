@@ -133,6 +133,7 @@ class FileStoreService @Inject()(appConfig: AppConfig,
 
         // File is safe, unpublished but the download URL has expired. Clean Up.
       case (Some(READY), false) =>
+        Logger.info(s"Removing expired file [${att.id}] with expired URL [${att.url}]")
         repository.delete(att.id).map(_ => None)
 
         // File not safe yet & is unpublished
