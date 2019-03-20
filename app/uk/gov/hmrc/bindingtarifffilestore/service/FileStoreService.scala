@@ -138,10 +138,12 @@ class FileStoreService @Inject()(appConfig: AppConfig,
 
         // File not safe yet & is unpublished
       case (_, false) =>
+        Logger.info(s"Marking file [${att.id}] as publishable")
         repository.update(att.copy(publishable = true))
 
         // File is already published
       case (_, true) =>
+        Logger.info(s"Ignoring file [${att.id}] as it was already published")
         Future(Some(att))
     }
   }
