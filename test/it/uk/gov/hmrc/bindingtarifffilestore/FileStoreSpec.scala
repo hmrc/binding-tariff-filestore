@@ -29,7 +29,7 @@ import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.Files.TemporaryFile
 import play.api.libs.json._
 import scalaj.http.{Http, HttpResponse, MultiPart}
-import uk.gov.hmrc.bindingtarifffilestore.model.UploadRequest
+import uk.gov.hmrc.bindingtarifffilestore.model.{Search, UploadRequest}
 import uk.gov.hmrc.bindingtarifffilestore.model.upscan.ScanResult.format
 import uk.gov.hmrc.bindingtarifffilestore.model.upscan._
 import uk.gov.hmrc.bindingtarifffilestore.repository.FileMetadataMongoRepository
@@ -186,7 +186,7 @@ class FileStoreSpec extends WiremockFeatureTestServer with ResourceFiles {
       val id2 = upload("some-file2.txt", "text/plain").body("id").as[JsString].value
 
       When("I request the file details")
-      val response = getFiles(id1, id2)
+      val response = getFiles(Search(ids = Some(Set(id1, id2))))
 
       Then("The response code should be Ok")
       response.code shouldBe Status.OK
@@ -350,9 +350,9 @@ class FileStoreSpec extends WiremockFeatureTestServer with ResourceFiles {
       .asString
   }
 
-  private def getFiles(ids: String*): HttpResponse[JsValue] = {
+  private def getFiles(search: Search): HttpResponse[JsValue] = {
 
-    val queryParams = ids.map(id => s"id=$id").mkString("&")
+    val queryParams = Search.bindable.unbind("", search)
 
     Http(s"$serviceUrl/file?$queryParams")
       .header(apiTokenKey, appConfig.authorization)

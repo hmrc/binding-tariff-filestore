@@ -196,19 +196,27 @@ class FileMetadataRepositorySpec extends BaseMongoIndexSpec
     }
   }
 
-  "getAll by id list" should {
+  "get many" should {
 
-    "retrieve the expected documents from the collection" in {
-
+    "retrieve the expected documents by id" in {
       await(repository.insert(att1))
       await(repository.insert(att2))
       collectionSize shouldBe 2
 
       await(repository.get(Search(ids = Some(Set(att2.id))))) should contain only att2
+      await(repository.get(Search(ids = Some(Set(att1.id))))) should contain only att1
     }
 
-    "retrieve all the files when no ids are passed" in {
+    "retrieve the expected documents by published" in {
+      await(repository.insert(att1.copy(published = true)))
+      await(repository.insert(att2.copy(published = false)))
+      collectionSize shouldBe 2
 
+      await(repository.get(Search(published = Some(true)))) should contain only att1.copy(published = true)
+      await(repository.get(Search(published = Some(false)))) should contain only att2.copy(published = false)
+    }
+
+    "retrieve all the files for empty Search" in {
       await(repository.insert(att1))
       await(repository.insert(att2))
       collectionSize shouldBe 2
@@ -216,8 +224,8 @@ class FileMetadataRepositorySpec extends BaseMongoIndexSpec
       await(repository.get(Search())) should contain only (att1, att2)
     }
 
-    "return None when there are no documents in the collection" in {
-      await(repository.get(Search(ids = Some(Set(att1.id, att2.id))))) shouldBe Seq.empty
+    "return None when there are no documents matching" in {
+      await(repository.get(Search())) shouldBe Seq.empty
     }
 
   }

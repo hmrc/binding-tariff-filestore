@@ -23,11 +23,13 @@ import uk.gov.hmrc.play.test.UnitSpec
 class SearchTest extends UnitSpec {
 
   private val search = Search(
-    ids = Some(Set("file-id"))
+    ids = Some(Set("file-id1", "file-id2")),
+    published = Some(true)
   )
 
   private val params = Map[String, Seq[String]](
-    "id" -> Seq("file-id")
+    "id" -> Seq("file-id1", "file-id2"),
+    "published" -> Seq("true")
   )
 
   "Search Binder" should {
@@ -38,7 +40,7 @@ class SearchTest extends UnitSpec {
 
     "Unbind Populated Search to Query String" in {
       val populatedQueryParam: String =
-        "id=file-id"
+        "id=file-id1&id=file-id2&published=true"
       URLDecoder.decode(Search.bindable.unbind("", search), "UTF-8") shouldBe populatedQueryParam
     }
 

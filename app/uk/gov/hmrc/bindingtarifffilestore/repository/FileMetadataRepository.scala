@@ -20,7 +20,7 @@ import java.time.Instant
 
 import com.google.inject.ImplementedBy
 import javax.inject.{Inject, Singleton}
-import play.api.libs.json.Json
+import play.api.libs.json.{JsBoolean, JsObject, JsValue, Json}
 import reactivemongo.api.Cursor
 import reactivemongo.bson.BSONObjectID
 import reactivemongo.play.json.ImplicitBSONHandlers._
@@ -72,10 +72,11 @@ class FileMetadataMongoRepository @Inject()(config: AppConfig,
 
   override def get(search: Search): Future[Seq[FileMetadata]] = {
 
-    val query = search.ids match {
-      case s if s.nonEmpty => Json.obj("id" -> Json.obj("$in" -> s))
-      case _ => Json.obj()
-    }
+    val query = JsObject(
+      Map[String, JsValue]()
+        ++ search.ids.map(ids => "id" -> Json.obj("$in" -> ids))
+        ++ search.published.map(published => "published" -> JsBoolean(published))
+    )
 
     collection.find(query)
       .cursor[FileMetadata]()
