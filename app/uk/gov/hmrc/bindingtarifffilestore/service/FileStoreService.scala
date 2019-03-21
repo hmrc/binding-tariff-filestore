@@ -44,7 +44,7 @@ class FileStoreService @Inject()(appConfig: AppConfig,
   // Initiates an upload for a POST direct to Upscan
   def initiate(metadata: FileMetadata)(implicit hc: HeaderCarrier): Future[UploadTemplate] = {
     val fileId = metadata.id
-    Logger.info(s"Initiating file [$fileId]")
+    log(fileId, "Initiating")
     val settings = UploadSettings(
       callbackUrl = routes.FileStoreController
         .notification(fileId)
@@ -55,6 +55,7 @@ class FileStoreService @Inject()(appConfig: AppConfig,
 
     for {
       initiateResponse <- upscanConnector.initiate(settings)
+      _ = log(fileId, s"Upscan Initiated with url [${initiateResponse.uploadRequest.href}] and Upscan reference [${initiateResponse.reference}]")
       _ = auditService.auditUpScanInitiated(fileId, metadata.fileName, initiateResponse.reference)
       _ <- repository.insert(metadata)
       template = initiateResponse.uploadRequest
@@ -64,7 +65,7 @@ class FileStoreService @Inject()(appConfig: AppConfig,
   // Initiates an upload and Uploads the file direct
   def upload(fileWithMetadata: FileWithMetadata)(implicit hc: HeaderCarrier): Future[FileMetadata] = {
     val fileId = fileWithMetadata.metadata.id
-    Logger.info(s"Uploading file [$fileId]")
+    log(fileId, "Uploading")
     val settings = UploadSettings(
       callbackUrl = routes.FileStoreController
         .notification(fileId)
@@ -75,10 +76,12 @@ class FileStoreService @Inject()(appConfig: AppConfig,
 
     for {
       initiateResponse <- upscanConnector.initiate(settings)
-      _ = Logger.info(s"Upscan-Initiated file [$fileId] with Upscan reference [${initiateResponse.reference}]")
+      _ = log(fileId, s"Upscan Initiated with url [${initiateResponse.uploadRequest.href}] and Upscan reference [${initiateResponse.reference}]")
       _ = auditService.auditUpScanInitiated(fileId, fileWithMetadata.metadata.fileName, initiateResponse.reference)
       // This future (Upload) executes asynchronously intentionally
+      _ = log(fileId, s"Uploading to Upscan url [${initiateResponse.uploadRequest.href}] with Upscan reference [${initiateResponse.reference}]")
       _ = upscanConnector.upload(initiateResponse.uploadRequest, fileWithMetadata)
+      _ = log(fileId, s"Uploaded to Upscan url [${initiateResponse.uploadRequest.href}] with Upscan reference [${initiateResponse.reference}]")
       update <- repository.insert(fileWithMetadata.metadata)
     } yield update
   }
@@ -93,12 +96,12 @@ class FileStoreService @Inject()(appConfig: AppConfig,
 
   // when UpScan comes back to us with the scan result
   def notify(attachment: FileMetadata, scanResult: ScanResult)(implicit hc: HeaderCarrier): Future[Option[FileMetadata]] = {
-    Logger.info(s"Scan completed for file [${attachment.id}] with status [${scanResult.fileStatus}] and Upscan reference [${scanResult.reference}]")
+    log(attachment.id, s"Scan completed with status [${scanResult.fileStatus}] and Upscan reference [${scanResult.reference}]")
     auditService.auditFileScanned(attachment.id, attachment.fileName, scanResult.reference, scanResult.fileStatus.toString)
     scanResult.fileStatus match {
       case FAILED =>
         val details = scanResult.asInstanceOf[FailedScanResult].failureDetails
-        Logger.info(s"Scan for file [${attachment.id}] failed because it was [${details.failureReason}] with message [${details.message}]")
+        log(attachment.id, s"Scan failed because it was [${details.failureReason}] with message [${details.message}]")
         repository.update(attachment.copy(scanStatus = Some(FAILED)))
       case READY =>
         val result = scanResult.asInstanceOf[SuccessfulScanResult]
@@ -109,7 +112,7 @@ class FileStoreService @Inject()(appConfig: AppConfig,
             published: Option[FileMetadata] <- updated match {
               case Some(metadata) => publish(metadata)
               case _ =>
-                Logger.warn(s"Scan completed for file [${attachment.id}] but it couldn't be published as it no longer exits")
+                log(attachment.id, s"Scan completed as READY but it couldn't be published as it no longer exits")
                 Future.successful(None)
             }
           } yield published
@@ -121,29 +124,31 @@ class FileStoreService @Inject()(appConfig: AppConfig,
 
   // when the file is uploaded to our S3 bucket
   def publish(att: FileMetadata)(implicit hc: HeaderCarrier): Future[Option[FileMetadata]] = {
-    Logger.info(s"Publishing file [${att.id}]")
+    log(att.id, "Publishing")
 
     (att.scanStatus, att.published) match {
         // File is Safe, unpublished and the download URL is still live
       case (Some(READY), false) if att.isLive =>
+        log(att.id, "Publishing file to Permanent Storage")
         val metadata = fileStoreConnector.upload(att)
         auditService.auditFilePublished(att.id, att.fileName)
+        log(att.id, "Published file to Permanent Storage")
         repository.update(metadata.copy(publishable = true, published = true))
           .map(signingPermanentURL)
 
         // File is safe, unpublished but the download URL has expired. Clean Up.
       case (Some(READY), false) =>
-        Logger.info(s"Removing expired file [${att.id}] with expired URL [${att.url}]")
+        log(att.id, s"Removing as it had an expired download URL [${att.url}]")
         repository.delete(att.id).map(_ => None)
 
         // File not safe yet & is unpublished
       case (_, false) =>
-        Logger.info(s"Marking file [${att.id}] as publishable")
+        log(att.id, s"Marking as publishable")
         repository.update(att.copy(publishable = true))
 
         // File is already published
       case (_, true) =>
-        Logger.info(s"Ignoring file [${att.id}] as it was already published")
+        log(att.id, s"Ignoring publish request as it was already published")
         Future(Some(att))
     }
   }
@@ -153,6 +158,7 @@ class FileStoreService @Inject()(appConfig: AppConfig,
   }
 
   def delete(id: String): Future[Unit] = {
+    log(id, "Deleting")
     repository.delete(id) map (_ => fileStoreConnector.delete(id))
   }
 
@@ -163,6 +169,10 @@ class FileStoreService @Inject()(appConfig: AppConfig,
   private def signingIfPublished: FileMetadata => FileMetadata = {
     case file if file.published => fileStoreConnector.sign(file)
     case other => other
+  }
+
+  private def log(id: String, message: String): Unit = {
+    Logger.info(s"File [$id]: $message")
   }
 
 }
