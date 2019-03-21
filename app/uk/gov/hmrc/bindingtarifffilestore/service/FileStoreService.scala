@@ -45,18 +45,9 @@ class FileStoreService @Inject()(appConfig: AppConfig,
   def initiate(metadata: FileMetadata)(implicit hc: HeaderCarrier): Future[UploadTemplate] = {
     val fileId = metadata.id
     log(fileId, "Initiating")
-    val settings = UploadSettings(
-      callbackUrl = routes.FileStoreController
-        .notification(fileId)
-        .absoluteURL(appConfig.filestoreSSL, appConfig.filestoreUrl) + s"?X-Api-Token=$authToken",
-      minimumFileSize = appConfig.fileStoreSizeConfiguration.minFileSize,
-      maximumFileSize = appConfig.fileStoreSizeConfiguration.maxFileSize
-    )
 
     for {
-      initiateResponse <- upscanConnector.initiate(settings)
-      _ = log(fileId, s"Upscan Initiated with url [${initiateResponse.uploadRequest.href}] and Upscan reference [${initiateResponse.reference}]")
-      _ = auditService.auditUpScanInitiated(fileId, metadata.fileName, initiateResponse.reference)
+      initiateResponse <- upscanInitiate(metadata)
       _ <- repository.insert(metadata)
       template = initiateResponse.uploadRequest
     } yield UploadTemplate(fileId, template.href, template.fields)
@@ -66,18 +57,9 @@ class FileStoreService @Inject()(appConfig: AppConfig,
   def upload(fileWithMetadata: FileWithMetadata)(implicit hc: HeaderCarrier): Future[FileMetadata] = {
     val fileId = fileWithMetadata.metadata.id
     log(fileId, "Uploading")
-    val settings = UploadSettings(
-      callbackUrl = routes.FileStoreController
-        .notification(fileId)
-        .absoluteURL(appConfig.filestoreSSL, appConfig.filestoreUrl) + s"?X-Api-Token=$authToken",
-      minimumFileSize = appConfig.fileStoreSizeConfiguration.minFileSize,
-      maximumFileSize = appConfig.fileStoreSizeConfiguration.maxFileSize
-    )
 
     for {
-      initiateResponse <- upscanConnector.initiate(settings)
-      _ = log(fileId, s"Upscan Initiated with url [${initiateResponse.uploadRequest.href}] and Upscan reference [${initiateResponse.reference}]")
-      _ = auditService.auditUpScanInitiated(fileId, fileWithMetadata.metadata.fileName, initiateResponse.reference)
+      initiateResponse <- upscanInitiate(fileWithMetadata.metadata)
       // This future (Upload) executes asynchronously intentionally
       _ = log(fileId, s"Uploading to Upscan url [${initiateResponse.uploadRequest.href}] with Upscan reference [${initiateResponse.reference}]")
       _ = upscanConnector.upload(initiateResponse.uploadRequest, fileWithMetadata)
@@ -160,6 +142,21 @@ class FileStoreService @Inject()(appConfig: AppConfig,
   def delete(id: String): Future[Unit] = {
     log(id, "Deleting")
     repository.delete(id) map (_ => fileStoreConnector.delete(id))
+  }
+
+  private def upscanInitiate(fileMetadata: FileMetadata)(implicit hc: HeaderCarrier): Future[UpscanInitiateResponse] = {
+    val settings = UploadSettings(
+      callbackUrl = routes.FileStoreController
+        .notification(fileMetadata.id)
+        .absoluteURL(appConfig.filestoreSSL, appConfig.filestoreUrl) + s"?X-Api-Token=$authToken",
+      minimumFileSize = appConfig.fileStoreSizeConfiguration.minFileSize,
+      maximumFileSize = appConfig.fileStoreSizeConfiguration.maxFileSize
+    )
+    for {
+      initiateResponse <- upscanConnector.initiate(settings)
+      _ = log(fileMetadata.id, s"Upscan Initiated with url [${initiateResponse.uploadRequest.href}] and Upscan reference [${initiateResponse.reference}]")
+      _ = auditService.auditUpScanInitiated(fileMetadata.id, fileMetadata.fileName, initiateResponse.reference)
+    } yield initiateResponse
   }
 
   private def signingPermanentURL: Option[FileMetadata] => Option[FileMetadata] = _ map signingIfPublished
