@@ -80,7 +80,7 @@ class FileStoreController @Inject()(appConfig: AppConfig,
   }
 
   def getAll(search: Search, pagination: Option[Pagination]): Action[AnyContent] = Action.async { implicit request =>
-    service.find(search, pagination.getOrElse(Pagination())) map { pagedResults =>
+    service.find(search, pagination.getOrElse(Pagination.max)) map { pagedResults =>
       if(pagination.isDefined) {
         Ok(Json.toJson(pagedResults))
       } else {
