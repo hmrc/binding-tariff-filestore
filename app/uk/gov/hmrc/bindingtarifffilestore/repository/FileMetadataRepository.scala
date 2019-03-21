@@ -21,12 +21,12 @@ import java.time.Instant
 import com.google.inject.ImplementedBy
 import javax.inject.{Inject, Singleton}
 import play.api.libs.json.{JsBoolean, JsObject, JsValue, Json}
-import reactivemongo.api.Cursor
+import reactivemongo.api.{Cursor, QueryOpts}
 import reactivemongo.bson.BSONObjectID
 import reactivemongo.play.json.ImplicitBSONHandlers._
 import uk.gov.hmrc.bindingtarifffilestore.config.AppConfig
 import uk.gov.hmrc.bindingtarifffilestore.model.FileMetadataMongo.format
-import uk.gov.hmrc.bindingtarifffilestore.model.{FileMetadata, FileMetadataMongo, Search}
+import uk.gov.hmrc.bindingtarifffilestore.model._
 import uk.gov.hmrc.bindingtarifffilestore.repository.MongoIndexCreator.{createSingleFieldAscendingIndex, createTTLIndex}
 import uk.gov.hmrc.mongo.ReactiveRepository
 
@@ -38,7 +38,7 @@ trait FileMetadataRepository {
 
   def get(id: String): Future[Option[FileMetadata]]
 
-  def get(search: Search): Future[Seq[FileMetadata]]
+  def get(search: Search, pagination: Pagination): Future[Paged[FileMetadata]]
 
   def insert(att: FileMetadata): Future[FileMetadata]
 
@@ -70,17 +70,20 @@ class FileMetadataMongoRepository @Inject()(config: AppConfig,
     collection.find(byId(id)).one[FileMetadata]
   }
 
-  override def get(search: Search): Future[Seq[FileMetadata]] = {
-
+  override def get(search: Search, pagination: Pagination): Future[Paged[FileMetadata]] = {
     val query = JsObject(
       Map[String, JsValue]()
         ++ search.ids.map(ids => "id" -> Json.obj("$in" -> ids))
         ++ search.published.map(published => "published" -> JsBoolean(published))
     )
 
-    collection.find(query)
-      .cursor[FileMetadata]()
-      .collect[Seq](-1, Cursor.FailOnError[Seq[FileMetadata]]())
+    for {
+      results <- collection.find(query)
+          .options(QueryOpts(skipN = (pagination.page -1) * pagination.pageSize, batchSizeN = pagination.pageSize))
+        .cursor[FileMetadata]()
+        .collect[Seq](pagination.pageSize, Cursor.FailOnError[Seq[FileMetadata]]())
+      count <- collection.count(Some(query))
+    } yield Paged(results, pagination.page, pagination.pageSize, count)
   }
 
   override def insert(att: FileMetadata): Future[FileMetadata] = {

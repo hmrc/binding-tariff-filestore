@@ -29,7 +29,7 @@ import reactivemongo.bson._
 import reactivemongo.core.errors.DatabaseException
 import reactivemongo.play.json.ImplicitBSONHandlers._
 import uk.gov.hmrc.bindingtarifffilestore.config.AppConfig
-import uk.gov.hmrc.bindingtarifffilestore.model.{FileMetadata, Search}
+import uk.gov.hmrc.bindingtarifffilestore.model.{FileMetadata, Paged, Pagination, Search}
 import uk.gov.hmrc.bindingtarifffilestore.model.FileMetadataMongo.format
 import uk.gov.hmrc.mongo.MongoSpecSupport
 
@@ -203,8 +203,8 @@ class FileMetadataRepositorySpec extends BaseMongoIndexSpec
       await(repository.insert(att2))
       collectionSize shouldBe 2
 
-      await(repository.get(Search(ids = Some(Set(att2.id))))) should contain only att2
-      await(repository.get(Search(ids = Some(Set(att1.id))))) should contain only att1
+      await(repository.get(Search(ids = Some(Set(att1.id))), Pagination())) shouldBe Paged(Seq(att1))
+      await(repository.get(Search(ids = Some(Set(att2.id))), Pagination())) shouldBe Paged(Seq(att2))
     }
 
     "retrieve the expected documents by published" in {
@@ -212,8 +212,8 @@ class FileMetadataRepositorySpec extends BaseMongoIndexSpec
       await(repository.insert(att2.copy(published = false)))
       collectionSize shouldBe 2
 
-      await(repository.get(Search(published = Some(true)))) should contain only att1.copy(published = true)
-      await(repository.get(Search(published = Some(false)))) should contain only att2.copy(published = false)
+      await(repository.get(Search(published = Some(true)), Pagination())) shouldBe Paged(Seq(att1.copy(published = true)))
+      await(repository.get(Search(published = Some(false)), Pagination())) shouldBe Paged(Seq(att2.copy(published = false)))
     }
 
     "retrieve all the files for empty Search" in {
@@ -221,11 +221,11 @@ class FileMetadataRepositorySpec extends BaseMongoIndexSpec
       await(repository.insert(att2))
       collectionSize shouldBe 2
 
-      await(repository.get(Search())) should contain only (att1, att2)
+      await(repository.get(Search(), Pagination())) shouldBe Paged(Seq(att1, att2))
     }
 
     "return None when there are no documents matching" in {
-      await(repository.get(Search())) shouldBe Seq.empty
+      await(repository.get(Search(), Pagination())) shouldBe Paged.empty[FileMetadata]
     }
 
   }

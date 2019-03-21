@@ -24,7 +24,7 @@ import uk.gov.hmrc.bindingtarifffilestore.connector.{AmazonS3Connector, UpscanCo
 import uk.gov.hmrc.bindingtarifffilestore.controllers.routes
 import uk.gov.hmrc.bindingtarifffilestore.model.ScanStatus.{FAILED, READY}
 import uk.gov.hmrc.bindingtarifffilestore.model.upscan._
-import uk.gov.hmrc.bindingtarifffilestore.model.{FileMetadata, FileWithMetadata, Search, UploadTemplate}
+import uk.gov.hmrc.bindingtarifffilestore.model._
 import uk.gov.hmrc.bindingtarifffilestore.repository.FileMetadataRepository
 import uk.gov.hmrc.bindingtarifffilestore.util.HashUtil
 import uk.gov.hmrc.http.HeaderCarrier
@@ -72,8 +72,8 @@ class FileStoreService @Inject()(appConfig: AppConfig,
     repository.get(id) map signingPermanentURL
   }
 
-  def find(search: Search): Future[Seq[FileMetadata]] = {
-    repository.get(search) map (signingPermanentURLs(_))
+  def find(search: Search, pagination: Pagination): Future[Paged[FileMetadata]] = {
+    repository.get(search, pagination: Pagination) map (signingPermanentURLs(_))
   }
 
   // when UpScan comes back to us with the scan result
@@ -161,7 +161,7 @@ class FileStoreService @Inject()(appConfig: AppConfig,
 
   private def signingPermanentURL: Option[FileMetadata] => Option[FileMetadata] = _ map signingIfPublished
 
-  private def signingPermanentURLs: Seq[FileMetadata] => Seq[FileMetadata] = _ map signingIfPublished
+  private def signingPermanentURLs: Paged[FileMetadata] => Paged[FileMetadata] = _ map signingIfPublished
 
   private def signingIfPublished: FileMetadata => FileMetadata = {
     case file if file.published => fileStoreConnector.sign(file)

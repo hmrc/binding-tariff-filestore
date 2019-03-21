@@ -122,9 +122,9 @@ class FileStoreServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfte
   "Service 'getAll by search' " should {
 
     "delegate to repository" in {
-      given(repository.get(Search())).willReturn(successful(Seq.empty))
+      given(repository.get(Search(), Pagination())).willReturn(successful(Paged.empty[FileMetadata]))
 
-      await(service.find(Search())) shouldBe Seq.empty
+      await(service.find(Search(), Pagination())) shouldBe Paged.empty[FileMetadata]
     }
 
     "return all attachment requested already signed" in {
@@ -138,9 +138,9 @@ class FileStoreServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfte
 
       given(attachment2.published).willReturn(false)
 
-      given(repository.get(Search())).willReturn(successful(Seq(attachment1,attachment2)))
+      given(repository.get(Search(), Pagination())).willReturn(successful(Paged(Seq(attachment1,attachment2))))
 
-      await(service.find(Search())) shouldBe Seq(attSigned1, attachment2)
+      await(service.find(Search(), Pagination())) shouldBe Paged(Seq(attSigned1, attachment2))
     }
   }
 

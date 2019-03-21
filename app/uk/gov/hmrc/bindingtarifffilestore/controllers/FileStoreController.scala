@@ -79,9 +79,13 @@ class FileStoreController @Inject()(appConfig: AppConfig,
     ) recover recovery
   }
 
-  def getAll(search: Search): Action[AnyContent] = Action.async { implicit request =>
-    service.find(search) map {
-      fileMetadataObjects: Seq[FileMetadata] => Ok(Json.toJson(fileMetadataObjects))
+  def getAll(search: Search, pagination: Option[Pagination]): Action[AnyContent] = Action.async { implicit request =>
+    service.find(search, pagination.getOrElse(Pagination())) map { pagedResults =>
+      if(pagination.isDefined) {
+        Ok(Json.toJson(pagedResults))
+      } else {
+        Ok(Json.toJson(pagedResults.results))
+      }
     } recover recovery
   }
 

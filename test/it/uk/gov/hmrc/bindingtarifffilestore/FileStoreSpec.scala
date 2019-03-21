@@ -29,7 +29,7 @@ import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.Files.TemporaryFile
 import play.api.libs.json._
 import scalaj.http.{Http, HttpResponse, MultiPart}
-import uk.gov.hmrc.bindingtarifffilestore.model.{Search, UploadRequest}
+import uk.gov.hmrc.bindingtarifffilestore.model.{Pagination, Search, UploadRequest}
 import uk.gov.hmrc.bindingtarifffilestore.model.upscan.ScanResult.format
 import uk.gov.hmrc.bindingtarifffilestore.model.upscan._
 import uk.gov.hmrc.bindingtarifffilestore.repository.FileMetadataMongoRepository
@@ -180,7 +180,7 @@ class FileStoreSpec extends WiremockFeatureTestServer with ResourceFiles {
   }
 
   feature("Get files") {
-    scenario("Should show the files are persisted") {
+    scenario("Should return all files matching search") {
       Given("Files have been uploaded")
       val id1 = upload("some-file1.txt", "text/plain").body("id").as[JsString].value
       val id2 = upload("some-file2.txt", "text/plain").body("id").as[JsString].value
@@ -197,17 +197,14 @@ class FileStoreSpec extends WiremockFeatureTestServer with ResourceFiles {
       (response.body \\ "fileName").map(_.as[String])  should contain only ("some-file1.txt", "some-file2.txt")
     }
 
-    scenario("Should return all files where no ids are provided") {
+    scenario("Should return all files for empty search") {
       Given("Files have been uploaded")
 
       upload("some-file1.txt", "text/plain").body("id").as[JsString].value
       upload("some-file2.txt", "text/plain").body("id").as[JsString].value
 
       When("I request the file details")
-      val response =  Http(s"$serviceUrl/file")
-        .header(apiTokenKey, appConfig.authorization)
-        .method(HttpVerbs.GET)
-        .execute(convertingArrayResponseToJS)
+      val response =  getFiles(Search())
 
       Then("The response code should be Ok")
       response.code shouldBe Status.OK
@@ -216,6 +213,44 @@ class FileStoreSpec extends WiremockFeatureTestServer with ResourceFiles {
 
       (response.body \\ "fileName").map(_.as[String]) should contain allOf ("some-file1.txt", "some-file2.txt")
     }
+
+  }
+
+  feature("Get files with pagination") {
+    scenario("Should return all files matching search") {
+      Given("Files have been uploaded")
+      val id1 = upload("some-file1.txt", "text/plain").body("id").as[JsString].value
+      val id2 = upload("some-file2.txt", "text/plain").body("id").as[JsString].value
+
+      When("I request the file details")
+      val response = getFiles(Search(ids = Some(Set(id1, id2))), Some(Pagination()))
+
+      Then("The response code should be Ok")
+      response.code shouldBe Status.OK
+
+      And("The response body contains the file details")
+
+      response.body.asInstanceOf[JsObject].value("resultCount").toString().toInt shouldBe 2
+      (response.body \\ "fileName").map(_.as[String])  should contain only ("some-file1.txt", "some-file2.txt")
+    }
+
+    scenario("Should return all files for empty search") {
+      Given("Files have been uploaded")
+
+      upload("some-file1.txt", "text/plain").body("id").as[JsString].value
+      upload("some-file2.txt", "text/plain").body("id").as[JsString].value
+
+      When("I request the file details")
+      val response =  getFiles(Search(), Some(Pagination()))
+
+      Then("The response code should be Ok")
+      response.code shouldBe Status.OK
+
+      And("The response body contains the file details")
+      response.body.asInstanceOf[JsObject].value("resultCount").toString().toInt shouldBe 2
+      (response.body \\ "fileName").map(_.as[String]) should contain allOf ("some-file1.txt", "some-file2.txt")
+    }
+
   }
 
   feature("Notify") {
@@ -350,10 +385,8 @@ class FileStoreSpec extends WiremockFeatureTestServer with ResourceFiles {
       .asString
   }
 
-  private def getFiles(search: Search): HttpResponse[JsValue] = {
-
-    val queryParams = Search.bindable.unbind("", search)
-
+  private def getFiles(search: Search, pagination: Option[Pagination] = None): HttpResponse[JsValue] = {
+    val queryParams = Search.bindable.unbind("", search) + pagination.map(p => "&" + Pagination.bindable.unbind("", p)).getOrElse("")
     Http(s"$serviceUrl/file?$queryParams")
       .header(apiTokenKey, appConfig.authorization)
       .method(HttpVerbs.GET)

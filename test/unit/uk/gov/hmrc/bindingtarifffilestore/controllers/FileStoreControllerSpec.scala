@@ -141,25 +141,46 @@ class FileStoreControllerSpec extends UnitSpec with Matchers
   }
 
   "Get By Search" should {
-    "return 200" in {
-      when(service.find(Search(ids = Some(Set.empty)))).thenReturn(successful(Seq.empty))
+    "return 200 with empty array" in {
+      when(service.find(Search(ids = Some(Set.empty)), Pagination())).thenReturn(successful(Paged.empty[FileMetadata]))
 
-      val result = await(controller.getAll(Search(ids = Some(Set.empty)))(fakeRequest))
+      val result = await(controller.getAll(Search(ids = Some(Set.empty)), None)(fakeRequest))
 
       status(result) shouldBe OK
       bodyOf(result) shouldEqual Json.toJson(Seq.empty).toString()
     }
 
-    "return 200 with file metadata array when ids are provided" in {
+    "return 200 with non empty array" in {
       val attachment1 = FileMetadata(id = "id1", fileName = "file1", mimeType = "type1")
       val attachment2 = FileMetadata(id = "id2", fileName = "file2", mimeType = "type2")
 
-      when(service.find(Search(ids = Some(Set("id1", "id2"))))).thenReturn(successful(Seq(attachment1, attachment2)))
+      when(service.find(Search(ids = Some(Set("id1", "id2"))), Pagination())).thenReturn(successful(Paged(Seq(attachment1, attachment2))))
 
-      val result = await(controller.getAll(Search(ids = Some(Set("id1", "id2"))))(fakeRequest))
+      val result = await(controller.getAll(Search(ids = Some(Set("id1", "id2"))), None)(fakeRequest))
 
       status(result) shouldBe OK
       bodyOf(result) shouldEqual Json.toJson(Seq(attachment1, attachment2)).toString()
+    }
+
+    "return 200 with pagination and empty pager" in {
+      when(service.find(Search(ids = Some(Set.empty)), Pagination())).thenReturn(successful(Paged.empty[FileMetadata]))
+
+      val result = await(controller.getAll(Search(ids = Some(Set.empty)), None)(fakeRequest))
+
+      status(result) shouldBe OK
+      bodyOf(result) shouldEqual Json.toJson(Seq.empty).toString()
+    }
+
+    "return 200 with pagination and non empty pager" in {
+      val attachment1 = FileMetadata(id = "id1", fileName = "file1", mimeType = "type1")
+      val attachment2 = FileMetadata(id = "id2", fileName = "file2", mimeType = "type2")
+
+      when(service.find(Search(ids = Some(Set("id1", "id2"))), Pagination())).thenReturn(successful(Paged(Seq(attachment1, attachment2))))
+
+      val result = await(controller.getAll(Search(ids = Some(Set("id1", "id2"))), Some(Pagination()))(fakeRequest))
+
+      status(result) shouldBe OK
+      bodyOf(result) shouldEqual Json.toJson(Paged(Seq(attachment1, attachment2))).toString()
     }
   }
 
