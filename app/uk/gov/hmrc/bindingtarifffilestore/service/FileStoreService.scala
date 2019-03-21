@@ -68,11 +68,11 @@ class FileStoreService @Inject()(appConfig: AppConfig,
     } yield update
   }
 
-  def getById(id: String): Future[Option[FileMetadata]] = {
+  def find(id: String): Future[Option[FileMetadata]] = {
     repository.get(id) map signingPermanentURL
   }
 
-  def getByIds(search: Search): Future[Seq[FileMetadata]] = {
+  def find(search: Search): Future[Seq[FileMetadata]] = {
     repository.get(search) map (signingPermanentURLs(_))
   }
 

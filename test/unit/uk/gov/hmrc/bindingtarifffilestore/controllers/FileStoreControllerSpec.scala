@@ -123,7 +123,7 @@ class FileStoreControllerSpec extends UnitSpec with Matchers
   "Get By ID" should {
     "return 200 when found" in {
       val attachment = FileMetadata(id="id", fileName = "file", mimeType = "type")
-      when(service.getById(id = "id")).thenReturn(successful(Some(attachment)))
+      when(service.find(id = "id")).thenReturn(successful(Some(attachment)))
 
       val result = await(controller.get("id")(fakeRequest))
 
@@ -132,7 +132,7 @@ class FileStoreControllerSpec extends UnitSpec with Matchers
     }
 
     "return 404 when not found" in {
-      when(service.getById(id = "id")).thenReturn(successful(None))
+      when(service.find(id = "id")).thenReturn(successful(None))
 
       val result = await(controller.get("id")(fakeRequest))
 
@@ -142,7 +142,7 @@ class FileStoreControllerSpec extends UnitSpec with Matchers
 
   "Get By Search" should {
     "return 200" in {
-      when(service.getByIds(Search(ids = Some(Set.empty)))).thenReturn(successful(Seq.empty))
+      when(service.find(Search(ids = Some(Set.empty)))).thenReturn(successful(Seq.empty))
 
       val result = await(controller.getAll(Search(ids = Some(Set.empty)))(fakeRequest))
 
@@ -154,7 +154,7 @@ class FileStoreControllerSpec extends UnitSpec with Matchers
       val attachment1 = FileMetadata(id = "id1", fileName = "file1", mimeType = "type1")
       val attachment2 = FileMetadata(id = "id2", fileName = "file2", mimeType = "type2")
 
-      when(service.getByIds(Search(ids = Some(Set("id1", "id2"))))).thenReturn(successful(Seq(attachment1, attachment2)))
+      when(service.find(Search(ids = Some(Set("id1", "id2"))))).thenReturn(successful(Seq(attachment1, attachment2)))
 
       val result = await(controller.getAll(Search(ids = Some(Set("id1", "id2"))))(fakeRequest))
 
@@ -168,7 +168,7 @@ class FileStoreControllerSpec extends UnitSpec with Matchers
       val scanResult = SuccessfulScanResult("ref", "url", UploadDetails(Instant.now(), "checksum"))
       val attachment = FileMetadata(id = "id", fileName = "file", mimeType = "type")
       val attachmentUpdated = FileMetadata(id = "id", fileName = "file", mimeType = "type", url = Some("url"))
-      when(service.getById(id = "id")).thenReturn(successful(Some(attachment)))
+      when(service.find(id = "id")).thenReturn(successful(Some(attachment)))
       when(service.notify(refEq(attachment), refEq(scanResult))(any[HeaderCarrier])).thenReturn(successful(Some(attachmentUpdated)))
 
       val request: FakeRequest[JsValue] = fakeRequest.withBody(Json.toJson[ScanResult](scanResult))
@@ -180,7 +180,7 @@ class FileStoreControllerSpec extends UnitSpec with Matchers
 
     "return 404 when not found" in {
       val scanResult = SuccessfulScanResult("ref", "url", UploadDetails(Instant.now(), "checksum"))
-      when(service.getById("id")).thenReturn(successful(None))
+      when(service.find("id")).thenReturn(successful(None))
 
       val request: FakeRequest[JsValue] = fakeRequest.withBody(Json.toJson[ScanResult](scanResult))
       val result: Result = await(controller.notification(id = "id")(request))
@@ -193,7 +193,7 @@ class FileStoreControllerSpec extends UnitSpec with Matchers
     "return 201 when found" in {
       val attachmentExisting = FileMetadata(id = "id", fileName = "file", mimeType = "type", scanStatus = Some(ScanStatus.READY))
       val attachmentUpdated = FileMetadata(id = "id", fileName = "file", mimeType = "type", scanStatus = Some(ScanStatus.READY), url = Some("url"))
-      when(service.getById(id = "id")).thenReturn(successful(Some(attachmentExisting)))
+      when(service.find(id = "id")).thenReturn(successful(Some(attachmentExisting)))
       when(service.publish(refEq(attachmentExisting))(any[HeaderCarrier])).thenReturn(successful(Some(attachmentUpdated)))
 
       val result: Result = await(controller.publish(id = "id")(fakeRequest))
@@ -203,7 +203,7 @@ class FileStoreControllerSpec extends UnitSpec with Matchers
     }
 
     "return 404 when not found" in {
-      when(service.getById(id = "id")).thenReturn(successful(None))
+      when(service.find(id = "id")).thenReturn(successful(None))
 
       val result: Result = await(controller.publish(id = "id")(fakeRequest))
 
@@ -212,7 +212,7 @@ class FileStoreControllerSpec extends UnitSpec with Matchers
 
     "return 404 when publish returns not found" in {
       val attachmentExisting = FileMetadata(id="id", fileName = "file", mimeType = "type", scanStatus = Some(ScanStatus.READY))
-      when(service.getById(id = "id")).thenReturn(successful(Some(attachmentExisting)))
+      when(service.find(id = "id")).thenReturn(successful(Some(attachmentExisting)))
       when(service.publish(refEq(attachmentExisting))(any[HeaderCarrier])).thenReturn(successful(None))
 
       val result: Result = await(controller.publish(id = "id")(fakeRequest))

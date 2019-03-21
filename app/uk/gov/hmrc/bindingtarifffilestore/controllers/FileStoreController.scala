@@ -80,7 +80,7 @@ class FileStoreController @Inject()(appConfig: AppConfig,
   }
 
   def getAll(search: Search): Action[AnyContent] = Action.async { implicit request =>
-    service.getByIds(search) map {
+    service.find(search) map {
       fileMetadataObjects: Seq[FileMetadata] => Ok(Json.toJson(fileMetadataObjects))
     } recover recovery
   }
@@ -119,7 +119,7 @@ class FileStoreController @Inject()(appConfig: AppConfig,
   }
 
   private def handleNotFound(id: String, result: FileMetadata => Future[Result]): Future[Result] = {
-    service.getById(id) flatMap {
+    service.find(id) flatMap {
       case Some(att: FileMetadata) => result(att)
       case _ => successful(NotFound(JsErrorResponse(NOTFOUND, "File Not Found")))
     }

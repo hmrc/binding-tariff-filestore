@@ -106,14 +106,14 @@ class FileStoreServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfte
       given(repository.get("id")).willReturn(successful(Some(attachment)))
       given(s3Connector.sign(attachment)).willReturn(attachmentSigned)
 
-      await(service.getById("id")) shouldBe Some(attachmentSigned)
+      await(service.find("id")) shouldBe Some(attachmentSigned)
     }
 
     "Not sign unpublished files" in {
       val attachment = mock[FileMetadata]
       given(repository.get("id")).willReturn(successful(Some(attachment)))
 
-      await(service.getById("id")) shouldBe Some(attachment)
+      await(service.find("id")) shouldBe Some(attachment)
 
       verify(s3Connector, never()).sign(any[FileMetadata])
     }
@@ -124,7 +124,7 @@ class FileStoreServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfte
     "delegate to repository" in {
       given(repository.get(Search())).willReturn(successful(Seq.empty))
 
-      await(service.getByIds(Search())) shouldBe Seq.empty
+      await(service.find(Search())) shouldBe Seq.empty
     }
 
     "return all attachment requested already signed" in {
@@ -140,7 +140,7 @@ class FileStoreServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfte
 
       given(repository.get(Search())).willReturn(successful(Seq(attachment1,attachment2)))
 
-      await(service.getByIds(Search())) shouldBe Seq(attSigned1, attachment2)
+      await(service.find(Search())) shouldBe Seq(attSigned1, attachment2)
     }
   }
 
