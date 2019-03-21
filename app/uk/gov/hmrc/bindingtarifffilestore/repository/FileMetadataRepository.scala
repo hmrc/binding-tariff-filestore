@@ -83,7 +83,7 @@ class FileMetadataMongoRepository @Inject()(config: AppConfig,
         .cursor[FileMetadata]()
         .collect[Seq](pagination.pageSize, Cursor.FailOnError[Seq[FileMetadata]]())
       count <- collection.count(Some(query))
-    } yield Paged(results, pagination.page, pagination.pageSize, count)
+    } yield Paged(results, pagination, count)
   }
 
   override def insert(att: FileMetadata): Future[FileMetadata] = {
