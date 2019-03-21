@@ -55,17 +55,6 @@ case class FileMetadata
       }
     }
   }
-
-  //    url.forall {
-  //      case date(year, month, day, hour, min, second) | expires(seconds) =>
-  //        val expiry: Instant = LocalDateTime
-  //          .of(year.toInt, month.toInt, day.toInt, hour.toInt, min.toInt, second.toInt).plusSeconds(seconds.toLong)
-  //          .toInstant(ZoneOffset.UTC)
-  //        expiry.isAfter(Instant.now())
-  //      case _ =>
-  //        true
-  //    }
-  //  }
 }
 
 object FileMetadataREST {
