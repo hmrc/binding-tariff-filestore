@@ -177,12 +177,7 @@ class FileMetadataRepositorySpec extends BaseMongoIndexSpec
 
       val expectedIndexes = List(
         Index(key = Seq("id" -> Ascending), name = Some("id_Index"), unique = true),
-        Index(key = Seq("_id" -> Ascending), name = Some("_id_")),
-        Index(
-          key = Seq("lastUpdated" -> IndexType.Ascending),
-          name = Some("expiry"),
-          options = BSONDocument("expireAfterSeconds" -> 10)
-        )
+        Index(key = Seq("_id" -> Ascending), name = Some("_id_"))
       )
 
       val repo = createMongoRepo

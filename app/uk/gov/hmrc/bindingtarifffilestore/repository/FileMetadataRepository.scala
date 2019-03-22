@@ -59,9 +59,10 @@ class FileMetadataMongoRepository @Inject()(config: AppConfig,
     mongo = mongoDbProvider.mongo,
     domainFormat = FileMetadataMongo.format) with FileMetadataRepository {
 
+  collection.indexesManager.drop("expiry_Index")
+
   override lazy val indexes: Seq[Index] = Seq(
-    createSingleFieldAscendingIndex("id", isUnique = true),
-    createTTLIndex(config.mongoTTL)
+    createSingleFieldAscendingIndex("id", isUnique = true)
   )
 
   override def ensureIndexes(implicit ec: ExecutionContext): Future[Seq[Boolean]] = for {
