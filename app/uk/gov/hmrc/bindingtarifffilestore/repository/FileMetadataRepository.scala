@@ -59,6 +59,7 @@ class FileMetadataMongoRepository @Inject()(config: AppConfig,
     mongo = mongoDbProvider.mongo,
     domainFormat = FileMetadataMongo.format) with FileMetadataRepository {
 
+  // TODO: remove this line once you verified this index has been deleted.
   collection.indexesManager.drop("expiry_Index")
 
   override lazy val indexes: Seq[Index] = Seq(
