@@ -67,7 +67,7 @@ class FileMetadataMongoRepository @Inject()(config: AppConfig,
   override def ensureIndexes(implicit ec: ExecutionContext): Future[Seq[Boolean]] = for {
     status <- Future.sequence(indexes.map(collection.indexesManager.ensure(_)))
     _ = collection.indexesManager.list().foreach(_.foreach { index =>
-      Logger.info(s"Running with Index: [${Json.toJson(index.options)}] with options [${Json.toJson(index.options)}]")
+      Logger.info(s"Running with Index: [$index] with options [${Json.toJson(index.options)}]")
     })
   } yield status
 
