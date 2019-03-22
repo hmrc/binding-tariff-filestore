@@ -20,7 +20,9 @@ import java.time.Instant
 
 import com.google.inject.ImplementedBy
 import javax.inject.{Inject, Singleton}
+import play.api.Logger
 import play.api.libs.json.{JsBoolean, JsObject, JsValue, Json}
+import reactivemongo.api.indexes.Index
 import reactivemongo.api.{Cursor, QueryOpts}
 import reactivemongo.bson.BSONObjectID
 import reactivemongo.play.json.ImplicitBSONHandlers._
@@ -57,14 +59,17 @@ class FileMetadataMongoRepository @Inject()(config: AppConfig,
     mongo = mongoDbProvider.mongo,
     domainFormat = FileMetadataMongo.format) with FileMetadataRepository {
 
-  override lazy val indexes = Seq(
+  override lazy val indexes: Seq[Index] = Seq(
     createSingleFieldAscendingIndex("id", isUnique = true),
     createTTLIndex(config.mongoTTL)
   )
 
-  override def ensureIndexes(implicit ec: ExecutionContext): Future[Seq[Boolean]] = {
-    Future.sequence(indexes.map(collection.indexesManager.ensure(_)))
-  }
+  override def ensureIndexes(implicit ec: ExecutionContext): Future[Seq[Boolean]] = for {
+    status <- Future.sequence(indexes.map(collection.indexesManager.ensure(_)))
+    _ = collection.indexesManager.list().foreach(_.foreach { index =>
+      Logger.info(s"Running with Index: [${Json.toJson(index.options)}] with options [${Json.toJson(index.options)}]")
+    })
+  } yield status
 
   override def get(id: String): Future[Option[FileMetadata]] = {
     collection.find(byId(id)).one[FileMetadata]
@@ -79,7 +84,7 @@ class FileMetadataMongoRepository @Inject()(config: AppConfig,
 
     for {
       results <- collection.find(query)
-          .options(QueryOpts(skipN = (pagination.page -1) * pagination.pageSize, batchSizeN = pagination.pageSize))
+        .options(QueryOpts(skipN = (pagination.page - 1) * pagination.pageSize, batchSizeN = pagination.pageSize))
         .cursor[FileMetadata]()
         .collect[Seq](pagination.pageSize, Cursor.FailOnError[Seq[FileMetadata]]())
       count <- collection.count(Some(query))
