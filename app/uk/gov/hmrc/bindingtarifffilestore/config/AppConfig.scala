@@ -47,8 +47,6 @@ class AppConfig @Inject()(val runModeConfiguration: Configuration, environment: 
 
   private def base64Decode(text: String) = new String(java.util.Base64.getDecoder.decode(text))
 
-  lazy val mongoTTL: Int = getInt("mongodb.timeToLiveInSeconds")
-
   lazy val isTestMode: Boolean = getBooleanConfig("testMode", default = false)
 
   private def getBooleanConfig(key: String, default: Boolean): Boolean = {
