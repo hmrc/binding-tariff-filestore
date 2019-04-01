@@ -29,7 +29,7 @@ import reactivemongo.play.json.ImplicitBSONHandlers._
 import uk.gov.hmrc.bindingtarifffilestore.config.AppConfig
 import uk.gov.hmrc.bindingtarifffilestore.model.FileMetadataMongo.format
 import uk.gov.hmrc.bindingtarifffilestore.model._
-import uk.gov.hmrc.bindingtarifffilestore.repository.MongoIndexCreator.{createSingleFieldAscendingIndex, createTTLIndex}
+import uk.gov.hmrc.bindingtarifffilestore.repository.MongoIndexCreator.createSingleFieldAscendingIndex
 import uk.gov.hmrc.mongo.ReactiveRepository
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -65,9 +65,9 @@ class FileMetadataMongoRepository @Inject()(config: AppConfig,
 
   override def ensureIndexes(implicit ec: ExecutionContext): Future[Seq[Boolean]] = for {
     status <- Future.sequence(indexes.map(collection.indexesManager.ensure(_)))
-    _ = collection.indexesManager.list().foreach(_.foreach { index =>
+    _ = collection.indexesManager.list().foreach { _.foreach { index =>
       Logger.info(s"Running with Index: [$index] with options [${Json.toJson(index.options)}]")
-    })
+    }}
   } yield status
 
   override def get(id: String): Future[Option[FileMetadata]] = {
@@ -78,7 +78,7 @@ class FileMetadataMongoRepository @Inject()(config: AppConfig,
     val query = JsObject(
       Map[String, JsValue]()
         ++ search.ids.map(ids => "id" -> Json.obj("$in" -> ids))
-        ++ search.published.map(published => "published" -> JsBoolean(published))
+        ++ search.published.map(pub => "published" -> JsBoolean(pub))
     )
 
     for {
@@ -109,14 +109,14 @@ class FileMetadataMongoRepository @Inject()(config: AppConfig,
   }
 
   override def delete(id: String): Future[Unit] = {
-    collection.findAndRemove(byId(id)).map(_ => Unit)
+    collection.findAndRemove(byId(id)).map(_ => ())
   }
 
   override def deleteAll(): Future[Unit] = {
     removeAll().map(_ => ())
   }
 
-  private def byId(id: String) = {
+  private def byId(id: String): JsObject = {
     Json.obj("id" -> id)
   }
 

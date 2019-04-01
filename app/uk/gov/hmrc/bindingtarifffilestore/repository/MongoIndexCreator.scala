@@ -48,13 +48,4 @@ object MongoIndexCreator {
     )
   }
 
-  def createTTLIndex(ttl: Int): Index = {
-    createCompoundIndex(
-      indexFieldMappings = Seq(("lastUpdated", IndexType.Ascending)),
-      isUnique = false,
-      name = Some("expiry_Index"),
-      options = BSONDocument("expireAfterSeconds" -> ttl, "partialFilterExpression" -> BSONDocument("published" -> false))
-    )
-  }
-
 }
