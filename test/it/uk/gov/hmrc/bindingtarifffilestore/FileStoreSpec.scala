@@ -421,7 +421,7 @@ class FileStoreSpec extends WiremockFeatureTestServer with ResourceFiles {
   }
 
   private def notifyFailure(id: String): HttpResponse[Map[String, JsValue]] = {
-    val model = FailedScanResult("reference", FailureDetails(FailureReason.QUARANTINED, "message"))
+    val model = FailedScanResult("reference", FailureDetails(FailureReason.QUARANTINE, "message"))
 
     Http(s"$serviceUrl/file/$id/notify")
       .postData(Json.toJson(model).toString())

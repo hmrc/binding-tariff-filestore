@@ -45,11 +45,11 @@ class ScanResultSpec extends UnitSpec {
   }
 
   "Failed Scan Result" should {
-    val model = FailedScanResult("ref", FailureDetails(FailureReason.QUARANTINED, "message"))
+    val model = FailedScanResult("ref", FailureDetails(FailureReason.QUARANTINE, "message"))
     val json = JsObject(Map(
       "reference" -> JsString("ref"),
       "failureDetails" -> JsObject(Map(
-        "failureReason" -> JsString("QUARANTINED"),
+        "failureReason" -> JsString("QUARANTINE"),
         "message" -> JsString("message")
       )),
       "fileStatus" -> JsString("FAILED")

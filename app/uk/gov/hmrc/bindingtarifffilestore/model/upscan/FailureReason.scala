@@ -21,7 +21,7 @@ import uk.gov.hmrc.bindingtarifffilestore.util.EnumJson
 object FailureReason extends Enumeration {
   type FailureReason = Value
 
-  val QUARANTINED = Value("QUARANTINED")
+  val QUARANTINE = Value("QUARANTINE")
   val REJECTED = Value("REJECTED")
   val UNKNOWN = Value("UNKNOWN")
 
