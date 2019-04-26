@@ -47,8 +47,8 @@ class FileStoreService @Inject()(appConfig: AppConfig,
     log(fileId, "Initiating")
 
     for {
-      initiateResponse <- upscanInitiate(metadata)
       _ <- repository.insert(metadata)
+      initiateResponse <- upscanInitiate(metadata)
       template = initiateResponse.uploadRequest
     } yield UploadTemplate(fileId, template.href, template.fields)
   }
@@ -59,12 +59,12 @@ class FileStoreService @Inject()(appConfig: AppConfig,
     log(fileId, "Uploading")
 
     for {
+      update <- repository.insert(fileWithMetadata.metadata)
       initiateResponse <- upscanInitiate(fileWithMetadata.metadata)
       // This future (Upload) executes asynchronously intentionally
       _ = log(fileId, s"Uploading to Upscan url [${initiateResponse.uploadRequest.href}] with Upscan reference [${initiateResponse.reference}]")
       _ = upscanConnector.upload(initiateResponse.uploadRequest, fileWithMetadata)
       _ = log(fileId, s"Uploaded to Upscan url [${initiateResponse.uploadRequest.href}] with Upscan reference [${initiateResponse.reference}]")
-      update <- repository.insert(fileWithMetadata.metadata)
     } yield update
   }
 
