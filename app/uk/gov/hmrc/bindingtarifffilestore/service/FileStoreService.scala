@@ -64,7 +64,12 @@ class FileStoreService @Inject()(appConfig: AppConfig,
       // This future (Upload) executes asynchronously intentionally
       _ = log(fileId, s"Uploading to Upscan url [${initiateResponse.uploadRequest.href}] with Upscan reference [${initiateResponse.reference}]")
       _ = upscanConnector.upload(initiateResponse.uploadRequest, fileWithMetadata)
-      _ = log(fileId, s"Uploaded to Upscan url [${initiateResponse.uploadRequest.href}] with Upscan reference [${initiateResponse.reference}]")
+        .recover { case e =>
+          error(fileId, s"Upload failed to Upscan url [${initiateResponse.uploadRequest.href}] with Upscan reference [${initiateResponse.reference}]", e)
+        }
+        .onComplete {
+          _ => log(fileId, s"Uploaded to Upscan url [${initiateResponse.uploadRequest.href}] with Upscan reference [${initiateResponse.reference}]")
+        }
     } yield update
   }
 
@@ -109,7 +114,7 @@ class FileStoreService @Inject()(appConfig: AppConfig,
     log(att.id, "Publishing")
 
     (att.scanStatus, att.published) match {
-        // File is Safe, unpublished and the download URL is still live
+      // File is Safe, unpublished and the download URL is still live
       case (Some(READY), false) if att.isLive =>
         log(att.id, "Publishing file to Permanent Storage")
         val metadata = fileStoreConnector.upload(att)
@@ -118,17 +123,17 @@ class FileStoreService @Inject()(appConfig: AppConfig,
         repository.update(metadata.copy(publishable = true, published = true))
           .map(signingPermanentURL)
 
-        // File is safe, unpublished but the download URL has expired. Clean Up.
+      // File is safe, unpublished but the download URL has expired. Clean Up.
       case (Some(READY), false) =>
         log(att.id, s"Removing as it had an expired download URL [${att.url}]")
         repository.delete(att.id).map(_ => None)
 
-        // File not safe yet & is unpublished
+      // File not safe yet & is unpublished
       case (_, false) =>
         log(att.id, s"Marking as publishable")
         repository.update(att.copy(publishable = true))
 
-        // File is already published
+      // File is already published
       case (_, true) =>
         log(att.id, s"Ignoring publish request as it was already published")
         Future(Some(att))
@@ -166,6 +171,10 @@ class FileStoreService @Inject()(appConfig: AppConfig,
   private def signingIfPublished: FileMetadata => FileMetadata = {
     case file if file.published => fileStoreConnector.sign(file)
     case other => other
+  }
+
+  private def error(id: String, message: String, error: Throwable): Unit = {
+    Logger.error(s"File [$id]: $message", error)
   }
 
   private def log(id: String, message: String): Unit = {

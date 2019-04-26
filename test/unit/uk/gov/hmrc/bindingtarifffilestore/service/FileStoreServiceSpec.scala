@@ -186,6 +186,7 @@ class FileStoreServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfte
       given(config.authorization).willReturn("auth-token")
       given(repository.insert(fileMetadata)).willReturn(successful(fileMetaDataCreated))
       given(upscanConnector.initiate(any[UploadSettings])(any[HeaderCarrier])).willReturn(successful(initiateResponse))
+      given(upscanConnector.upload(any[UpscanTemplate], any[FileWithMetadata])(any[HeaderCarrier])).willReturn(successful((): Unit))
 
       await(service.upload(fileWithMetadata)) shouldBe fileMetaDataCreated
 
