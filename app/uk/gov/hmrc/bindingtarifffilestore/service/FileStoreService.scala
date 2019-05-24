@@ -83,12 +83,12 @@ class FileStoreService @Inject()(appConfig: AppConfig,
 
   // when UpScan comes back to us with the scan result
   def notify(attachment: FileMetadata, scanResult: ScanResult)(implicit hc: HeaderCarrier): Future[Option[FileMetadata]] = {
-    log(attachment.id, s"Scan completed with status [${scanResult.fileStatus}] and Upscan reference [${scanResult.reference}]")
+    log(attachment.id, s"Scan completed for id [${attachment.id}] with status [${scanResult.fileStatus}] and Upscan reference [${scanResult.reference}]")
     auditService.auditFileScanned(attachment.id, attachment.fileName, scanResult.reference, scanResult.fileStatus.toString)
     scanResult.fileStatus match {
       case FAILED =>
         val details = scanResult.asInstanceOf[FailedScanResult].failureDetails
-        log(attachment.id, s"Scan failed because it was [${details.failureReason}] with message [${details.message}]")
+        log(attachment.id, s"Scan failed for id [${attachment.id}] because it was [${details.failureReason}] with message [${details.message}]")
         repository.update(attachment.copy(scanStatus = Some(FAILED)))
       case READY =>
         val result = scanResult.asInstanceOf[SuccessfulScanResult]
@@ -99,7 +99,7 @@ class FileStoreService @Inject()(appConfig: AppConfig,
             published: Option[FileMetadata] <- updated match {
               case Some(metadata) => publish(metadata)
               case _ =>
-                log(attachment.id, s"Scan completed as READY but it couldn't be published as it no longer exits")
+                log(attachment.id, s"Scan completed for id [${attachment.id}] as READY but it couldn't be published as it no longer exits")
                 Future.successful(None)
             }
           } yield published
