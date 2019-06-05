@@ -32,7 +32,7 @@ Default output format [None]:
 
 ##### Starting the microservice:
 
-###### The first time you run the app
+###### The first time you run the app (or if you restart your machine)
 
 Start LocalStack `SERVICES=s3 localstack start`
 
@@ -40,10 +40,10 @@ Run the LocalStack AWS Set Up Script `./initialize-localstack.sh`
 
 ###### From then on
 
-1) Start Mongo
+1) Start Mongo `sm --start MONGO -r`
 2) Start Upscan `sm --start UPSCAN_STUB -r`
 
-Run `sbt run`
+Run `sbt "run 9583"`
 
 ##### Starting With Service Manager
 
