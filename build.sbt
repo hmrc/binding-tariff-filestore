@@ -17,7 +17,7 @@ lazy val microservice = (project in file("."))
   .settings(majorVersion := 0)
   .settings(
     name := appName,
-    scalaVersion := "2.11.11",
+    scalaVersion := "2.11.12",
     targetJvm := "jvm-1.8",
     libraryDependencies ++= (AppDependencies.compile ++ AppDependencies.test).map(_ withSources()),
     evictionWarningOptions in update := EvictionWarningOptions.default.withWarnScalaVersionEviction(false),
