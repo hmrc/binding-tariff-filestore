@@ -22,24 +22,26 @@ import org.mockito.BDDMockito.given
 import org.mockito.Mockito._
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.concurrent.Eventually
-import org.scalatest.mockito.MockitoSugar
+import org.scalatestplus.mockito.MockitoSugar
 import play.api.libs.Files.TemporaryFile
 import uk.gov.hmrc.bindingtarifffilestore.audit.AuditService
 import uk.gov.hmrc.bindingtarifffilestore.config.{AppConfig, FileStoreSizeConfiguration}
 import uk.gov.hmrc.bindingtarifffilestore.connector.{AmazonS3Connector, UpscanConnector}
 import uk.gov.hmrc.bindingtarifffilestore.model._
 import uk.gov.hmrc.bindingtarifffilestore.model.upscan._
-import uk.gov.hmrc.bindingtarifffilestore.repository.FileMetadataRepository
+import uk.gov.hmrc.bindingtarifffilestore.repository.FileMetadataMongoRepository
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.test.UnitSpec
 
+import scala.concurrent.ExecutionContext
 import scala.concurrent.Future.successful
+import scala.concurrent.ExecutionContext.Implicits.global
 
 class FileStoreServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfterEach with Eventually {
 
   private val config = mock[AppConfig]
   private val s3Connector = mock[AmazonS3Connector]
-  private val repository = mock[FileMetadataRepository]
+  private val repository = mock[FileMetadataMongoRepository]
   private val upscanConnector = mock[UpscanConnector]
   private val auditService = mock[AuditService]
 
@@ -155,7 +157,7 @@ class FileStoreServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfte
       given(config.filestoreUrl).willReturn("host")
       given(config.fileStoreSizeConfiguration).willReturn(FileStoreSizeConfiguration(1, 1000))
       given(config.authorization).willReturn("auth-token")
-      given(repository.insert(fileMetadata)).willReturn(successful(fileMetaDataCreated))
+      given(repository.insertFile(fileMetadata)).willReturn(successful(fileMetaDataCreated))
       given(upscanConnector.initiate(any[UploadSettings])(any[HeaderCarrier])).willReturn(successful(initiateResponse))
 
       await(service.initiate(fileMetadata)) shouldBe UploadTemplate(id = "id", href = "href", fields = Map("key" -> "value"))
@@ -184,9 +186,9 @@ class FileStoreServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfte
       given(config.filestoreUrl).willReturn("host")
       given(config.fileStoreSizeConfiguration).willReturn(FileStoreSizeConfiguration(1, 1000))
       given(config.authorization).willReturn("auth-token")
-      given(repository.insert(fileMetadata)).willReturn(successful(fileMetaDataCreated))
+      given(repository.insertFile(fileMetadata)).willReturn(successful(fileMetaDataCreated))
       given(upscanConnector.initiate(any[UploadSettings])(any[HeaderCarrier])).willReturn(successful(initiateResponse))
-      given(upscanConnector.upload(any[UpscanTemplate], any[FileWithMetadata])(any[HeaderCarrier])).willReturn(successful((): Unit))
+      given(upscanConnector.upload(any[UpscanTemplate], any[FileWithMetadata])).willReturn(successful((): Unit))
 
       await(service.upload(fileWithMetadata)) shouldBe fileMetaDataCreated
 
@@ -336,7 +338,7 @@ class FileStoreServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfte
       given(fileUpdated.published).willReturn(true)
 
       given(s3Connector.upload(fileUploading)).willReturn(fileUploaded)
-      given(repository.update(any[FileMetadata])).willReturn(successful(Some(fileUpdated)))
+      given(repository.update(any[FileMetadata])(any[ExecutionContext])).willReturn(successful(Some(fileUpdated)))
       given(s3Connector.sign(fileUpdated)).willReturn(fileSigned)
 
       await(service.publish(fileUploading)) shouldBe Some(fileSigned)
@@ -353,7 +355,7 @@ class FileStoreServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfte
       given(fileUploading.isLive).willReturn(false)
       given(fileUploading.id).willReturn("id")
 
-      given(repository.delete(any[String])).willReturn(successful(()))
+      given(repository.delete(any[String])(any[ExecutionContext])).willReturn(successful(()))
 
       await(service.publish(fileUploading)) shouldBe None
 
@@ -380,7 +382,7 @@ class FileStoreServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfte
       given(fileUploading.scanStatus).willReturn(Some(ScanStatus.FAILED))
       given(fileUploading.copy(published = true)).willReturn(fileUpdating)
 
-      given(repository.update(any[FileMetadata])).willReturn(successful(Some(fileUpdated)))
+      given(repository.update(any[FileMetadata])(any[ExecutionContext])).willReturn(successful(Some(fileUpdated)))
 
       await(service.publish(fileUploading)) shouldBe Some(fileUpdated)
 
@@ -395,7 +397,7 @@ class FileStoreServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfte
       given(fileUploading.scanStatus).willReturn(None)
       given(fileUploading.copy(published = true)).willReturn(fileUpdating)
 
-      given(repository.update(any[FileMetadata])).willReturn(successful(Some(fileUpdated)))
+      given(repository.update(any[FileMetadata])(any[ExecutionContext])).willReturn(successful(Some(fileUpdated)))
 
       await(service.publish(fileUploading)) shouldBe Some(fileUpdated)
 

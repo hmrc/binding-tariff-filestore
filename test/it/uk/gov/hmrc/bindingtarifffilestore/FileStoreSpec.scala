@@ -18,6 +18,7 @@ package uk.gov.hmrc.bindingtarifffilestore
 
 import java.io.{File, InputStream}
 import java.net.URI
+import java.nio.charset.Charset
 import java.nio.file.Files
 import java.time.Instant
 
@@ -26,12 +27,12 @@ import org.apache.commons.io.IOUtils
 import play.api.Application
 import play.api.http.{ContentTypes, HeaderNames, HttpVerbs, Status}
 import play.api.inject.guice.GuiceApplicationBuilder
-import play.api.libs.Files.TemporaryFile
+import play.api.libs.Files.SingletonTemporaryFileCreator
 import play.api.libs.json._
 import scalaj.http.{Http, HttpResponse, MultiPart}
-import uk.gov.hmrc.bindingtarifffilestore.model.{Pagination, Search, UploadRequest}
 import uk.gov.hmrc.bindingtarifffilestore.model.upscan.ScanResult.format
 import uk.gov.hmrc.bindingtarifffilestore.model.upscan._
+import uk.gov.hmrc.bindingtarifffilestore.model.{Pagination, Search, UploadRequest}
 import uk.gov.hmrc.bindingtarifffilestore.repository.FileMetadataMongoRepository
 import uk.gov.hmrc.bindingtarifffilestore.util.{ResourceFiles, WiremockFeatureTestServer}
 
@@ -437,7 +438,7 @@ class FileStoreSpec extends WiremockFeatureTestServer with ResourceFiles {
       "file",
       filename,
       contentType,
-      Files.readAllBytes(TemporaryFile(filename).file.toPath)
+      Files.readAllBytes(SingletonTemporaryFileCreator.create(filename).path)
     )
     Http(s"$serviceUrl/file")
       .header(apiTokenKey, appConfig.authorization)
@@ -518,14 +519,14 @@ class FileStoreSpec extends WiremockFeatureTestServer with ResourceFiles {
   }
 
   private def convertingResponseToJS: InputStream => Map[String, JsValue] = { is =>
-    val body = IOUtils.toString(is)
+    val body = IOUtils.toString(is, Charset.defaultCharset)
     Try(Json.parse(body))
       .map(_.as[JsObject].value)
       .getOrElse(throw new AssertionError(s"The response was not valid JSON object:\n $body"))
   }
 
   private def convertingArrayResponseToJS: InputStream => JsValue = { is =>
-    val body = IOUtils.toString(is)
+    val body = IOUtils.toString(is, Charset.defaultCharset)
     Try(Json.parse(body))
       .getOrElse(throw new AssertionError(s"The response was not valid JSON array:\n $body"))
   }

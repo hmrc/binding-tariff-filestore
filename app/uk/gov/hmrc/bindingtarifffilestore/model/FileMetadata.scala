@@ -19,7 +19,6 @@ package uk.gov.hmrc.bindingtarifffilestore.model
 import java.time.{Instant, LocalDateTime, ZoneOffset}
 
 import play.api.libs.json._
-import play.json.extra.{InvariantFormat, Jsonx}
 import uk.gov.hmrc.bindingtarifffilestore.model.ScanStatus._
 
 case class FileMetadata
@@ -95,7 +94,7 @@ object FileMetadataMongo {
     }
   }
 
-  private val underlying: InvariantFormat[FileMetadata] = Jsonx.formatCaseClass[FileMetadata]
+  private val underlying = Json.format[FileMetadata]
   implicit val format: OFormat[FileMetadata] = OFormat(
     r = underlying,
     w = OWrites(fm => underlying.writes(fm).as[JsObject])

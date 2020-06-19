@@ -22,13 +22,13 @@ import akka.stream.Materializer
 import org.mockito.ArgumentCaptor
 import org.mockito.ArgumentMatchers.{any, refEq}
 import org.mockito.Mockito.{reset, verify, when}
-import org.scalatest.mockito.MockitoSugar
 import org.scalatest.{BeforeAndAfterEach, Matchers}
+import org.scalatestplus.mockito.MockitoSugar
 import play.api.http.Status._
-import play.api.libs.Files.TemporaryFile
+import play.api.libs.Files.{SingletonTemporaryFileCreator, TemporaryFile}
 import play.api.libs.json.{JsValue, Json, Writes}
 import play.api.mvc.MultipartFormData.FilePart
-import play.api.mvc.{AnyContent, MultipartFormData, Request, Result}
+import play.api.mvc._
 import play.api.test.FakeRequest
 import uk.gov.hmrc.bindingtarifffilestore.config.AppConfig
 import uk.gov.hmrc.bindingtarifffilestore.model.FileMetadataREST.format
@@ -47,7 +47,9 @@ class FileStoreControllerSpec extends UnitSpec with Matchers
 
   private val appConfig = mock[AppConfig]
   private val service = mock[FileStoreService]
-  private val controller = new FileStoreController(appConfig, service)
+  lazy val defaultPlayBodyParsers: BodyParsers.Default = fakeApplication.injector.instanceOf[BodyParsers.Default]
+  lazy val cc: MessagesControllerComponents = fakeApplication.injector.instanceOf[MessagesControllerComponents]
+  private val controller = new FileStoreController(appConfig, service, defaultPlayBodyParsers, cc)
 
   private val fakeRequest = FakeRequest()
 
@@ -237,7 +239,7 @@ class FileStoreControllerSpec extends UnitSpec with Matchers
 
     val fileName = "file.txt"
     val mimeType = "text/plain"
-    val tmpFile = TemporaryFile("example-file.txt")
+    val tmpFile = SingletonTemporaryFileCreator.create("example-file.txt")
 
     def multipartRequest(body: MultipartFormData[TemporaryFile]): Request[AnyContent] = {
       fakeRequest.withMultipartFormDataBody(body)

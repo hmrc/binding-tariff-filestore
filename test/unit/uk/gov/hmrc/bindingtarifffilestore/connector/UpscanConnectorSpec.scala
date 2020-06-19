@@ -20,17 +20,16 @@ import akka.actor.ActorSystem
 import com.github.tomakehurst.wiremock.client.WireMock._
 import org.mockito.BDDMockito.given
 import org.scalatest.BeforeAndAfterEach
-import org.scalatest.mockito.MockitoSugar
-import play.api.Environment
+import org.scalatestplus.mockito.MockitoSugar
 import play.api.http.Status
-import play.api.libs.Files.TemporaryFile
+import play.api.libs.Files.SingletonTemporaryFileCreator
 import play.api.libs.ws.WSClient
 import uk.gov.hmrc.bindingtarifffilestore.config.AppConfig
-import uk.gov.hmrc.bindingtarifffilestore.model.upscan.{UpscanTemplate, UploadSettings, UpscanInitiateResponse}
+import uk.gov.hmrc.bindingtarifffilestore.model.upscan.{UploadSettings, UpscanInitiateResponse, UpscanTemplate}
 import uk.gov.hmrc.bindingtarifffilestore.model.{FileMetadata, FileWithMetadata}
 import uk.gov.hmrc.bindingtarifffilestore.util.{ResourceFiles, WiremockTestServer}
 import uk.gov.hmrc.http.HeaderCarrier
-import uk.gov.hmrc.play.bootstrap.audit.DefaultAuditConnector
+import uk.gov.hmrc.play.audit.http.HttpAuditing
 import uk.gov.hmrc.play.bootstrap.http.DefaultHttpClient
 import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
 
@@ -43,8 +42,8 @@ class UpscanConnectorSpec extends UnitSpec with WithFakeApplication with Wiremoc
 
   private val actorSystem = ActorSystem.create("test")
   private val wsClient: WSClient = fakeApplication.injector.instanceOf[WSClient]
-  private val auditConnector = new DefaultAuditConnector(fakeApplication.configuration, fakeApplication.injector.instanceOf[Environment])
-  private val hmrcWsClient = new DefaultHttpClient(fakeApplication.configuration, auditConnector, wsClient, actorSystem)
+  private val httpAuditing = fakeApplication.injector.instanceOf[HttpAuditing]
+  private val hmrcWsClient = new DefaultHttpClient(fakeApplication.configuration, httpAuditing, wsClient, actorSystem)
 
   private implicit val headers: HeaderCarrier = HeaderCarrier()
 
@@ -93,7 +92,7 @@ class UpscanConnectorSpec extends UnitSpec with WithFakeApplication with Wiremoc
         )
       )
       val fileUploading = FileWithMetadata(
-        TemporaryFile("example-file.json"),
+        SingletonTemporaryFileCreator.create("example-file.json"),
         FileMetadata("id", "file.txt", "text/plain")
       )
 
@@ -117,7 +116,7 @@ class UpscanConnectorSpec extends UnitSpec with WithFakeApplication with Wiremoc
         )
       )
       val fileUploading = FileWithMetadata(
-        TemporaryFile("example-file.json"),
+        SingletonTemporaryFileCreator.create("example-file.json"),
         FileMetadata("id", "file.txt", "text/plain")
       )
 
