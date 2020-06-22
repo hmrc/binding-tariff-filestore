@@ -33,6 +33,8 @@ class CommonController(
                         mcc: MessagesControllerComponents
                       ) extends BackendController(mcc) {
 
+  private val uniqueIDExceptionMongo = 11000
+
   override protected def withJsonBody[T]
   (f: T => Future[Result])(implicit request: Request[JsValue], m: Manifest[T], reads: Reads[T]): Future[Result] = {
     Try(request.body.validate[T]) match {
@@ -53,7 +55,7 @@ class CommonController(
   }
 
   private[controllers] def recovery: PartialFunction[Throwable, Result] = {
-    case e: DatabaseException if e.code.contains(11000) => Conflict(JsErrorResponse(ErrorCode.CONFLICT, "Entity already exists"))
+    case e: DatabaseException if e.code.contains(uniqueIDExceptionMongo) => Conflict(JsErrorResponse(ErrorCode.CONFLICT, "Entity already exists"))
     case e: Throwable => handleException(e)
   }
 
