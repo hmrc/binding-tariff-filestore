@@ -55,13 +55,11 @@ class CommonController(
   }
 
   private[controllers] def recovery: PartialFunction[Throwable, Result] = {
-    case e: DatabaseException if e.code.contains(uniqueIDExceptionMongo) => Conflict(JsErrorResponse(ErrorCode.CONFLICT, "Entity already exists"))
-    case e: Throwable => handleException(e)
-  }
-
-  private[controllers] def handleException(e: Throwable) = {
-    Logger.error(s"An unexpected error occurred: ${e.getMessage}", e)
-    InternalServerError(JsErrorResponse(UNKNOWN_ERROR, "An unexpected error occurred"))
+    case e: DatabaseException if e.code.contains(uniqueIDExceptionMongo) =>
+      Conflict(JsErrorResponse(ErrorCode.CONFLICT, "Entity already exists"))
+    case e: Throwable =>
+      Logger.error(s"An unexpected error occurred: ${e.getMessage}", e)
+      InternalServerError(JsErrorResponse(UNKNOWN_ERROR, "An unexpected error occurred"))
   }
 
 }

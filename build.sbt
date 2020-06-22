@@ -1,3 +1,4 @@
+import play.sbt.PlayImport.PlayKeys._
 import sbt.Tests.{Group, SubProcess}
 import uk.gov.hmrc.DefaultBuildSettings._
 import uk.gov.hmrc.SbtArtifactory
@@ -19,6 +20,8 @@ lazy val microservice = (project in file("."))
     name := appName,
     scalaVersion := "2.12.10",
     targetJvm := "jvm-1.8",
+    playDefaultPort := 9583,
+    scalacOptions ++= Seq("-Ywarn-unused-import", "-deprecation", "-feature"),
     libraryDependencies ++= (AppDependencies.compile ++ AppDependencies.test).map(_ withSources()),
     evictionWarningOptions in update := EvictionWarningOptions.default.withWarnScalaVersionEviction(false),
     parallelExecution in Test := false,
