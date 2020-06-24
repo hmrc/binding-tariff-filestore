@@ -22,12 +22,11 @@ import org.mockito.Mockito.when
 import org.scalatest.BeforeAndAfterEach
 import org.scalatestplus.mockito.MockitoSugar
 import play.api.Configuration
-import uk.gov.hmrc.play.bootstrap.config.{RunMode, ServicesConfig}
+import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
 
 class AppConfigSpec extends UnitSpec with WithFakeApplication with MockitoSugar with BeforeAndAfterEach {
   val serviceConfig: ServicesConfig = mock[ServicesConfig]
-  val runMode: RunMode = fakeApplication.injector.instanceOf[RunMode]
 
   override protected def beforeEach(): Unit = {
     super.beforeEach()
@@ -41,7 +40,7 @@ class AppConfigSpec extends UnitSpec with WithFakeApplication with MockitoSugar 
       "upscan.maxFileSize" -> 0
     )
     pairs.foreach(e => config = config + e)
-    new AppConfig(runMode, Configuration.from(config), serviceConfig).fileStoreSizeConfiguration
+    new AppConfig(Configuration.from(config), serviceConfig).fileStoreSizeConfiguration
   }
 
   private def s3ConfigWith(pairs: (String, String)*): S3Configuration = {
@@ -53,16 +52,16 @@ class AppConfigSpec extends UnitSpec with WithFakeApplication with MockitoSugar 
       "s3.endpoint" -> ""
     )
     pairs.foreach(e => config = config + e)
-    new AppConfig(runMode, Configuration.from(config), serviceConfig).s3Configuration
+    new AppConfig(Configuration.from(config), serviceConfig).s3Configuration
   }
 
   private def upscanConfigWith(host: String, port: String, pairs: (String, String)*): AppConfig = {
     when(serviceConfig.baseUrl(refEq("upscan-initiate"))).thenReturn(s"http://$host:$port")
-    new AppConfig(runMode, Configuration.from(pairs.map(e => e._1 -> e._2).toMap), serviceConfig)
+    new AppConfig(Configuration.from(pairs.map(e => e._1 -> e._2).toMap), serviceConfig)
   }
 
   private def configWith(pairs: (String, String)*): AppConfig = {
-    new AppConfig(runMode, Configuration.from(pairs.map(e => e._1 -> e._2).toMap), serviceConfig)
+    new AppConfig(Configuration.from(pairs.map(e => e._1 -> e._2).toMap), serviceConfig)
   }
 
   "Config" should {

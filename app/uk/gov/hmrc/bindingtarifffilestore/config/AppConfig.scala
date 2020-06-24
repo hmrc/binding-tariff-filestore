@@ -18,11 +18,10 @@ package uk.gov.hmrc.bindingtarifffilestore.config
 
 import javax.inject.{Inject, Singleton}
 import play.api.Configuration
-import uk.gov.hmrc.play.bootstrap.config.{RunMode, ServicesConfig}
+import uk.gov.hmrc.play.bootstrap.config._
 
 @Singleton
 class AppConfig @Inject()(
-                           runMode: RunMode,
                            config: Configuration,
                            servicesConfig: ServicesConfig
                          ) {
@@ -48,8 +47,7 @@ class AppConfig @Inject()(
 
   private def base64Decode(text: String) = new String(java.util.Base64.getDecoder.decode(text))
 
-  lazy val isTestMode: Boolean = runMode.env == "Test"
-
+  lazy val isTestMode: Boolean = config.getOptional[Boolean]("testMode").getOrElse(false)
 }
 
 case class S3Configuration
