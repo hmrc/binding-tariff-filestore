@@ -17,15 +17,16 @@
 package uk.gov.hmrc.bindingtarifffilestore.config
 
 import javax.inject.{Inject, Singleton}
-import play.api.{Configuration, Environment, Mode}
-import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
+import play.api.Configuration
+import uk.gov.hmrc.play.bootstrap.config.{RunMode, ServicesConfig}
 
 @Singleton
 class AppConfig @Inject()(
+                           runMode: RunMode,
                            config: Configuration,
-                           environment: Environment,
                            servicesConfig: ServicesConfig
                          ) {
+
   lazy val authorization: String = config.get[String]("auth.api-token")
 
   lazy val s3Configuration = S3Configuration(
@@ -47,7 +48,7 @@ class AppConfig @Inject()(
 
   private def base64Decode(text: String) = new String(java.util.Base64.getDecoder.decode(text))
 
-  lazy val isTestMode: Boolean = environment.mode == Mode.Test
+  lazy val isTestMode: Boolean = runMode.env == "Test"
 
 }
 

@@ -16,17 +16,18 @@
 
 package uk.gov.hmrc.bindingtarifffilestore.config
 
+import org.mockito.ArgumentMatchers.refEq
 import org.mockito.Mockito
+import org.mockito.Mockito.when
 import org.scalatest.BeforeAndAfterEach
 import org.scalatestplus.mockito.MockitoSugar
-import play.api.{Configuration, Environment}
-import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
+import play.api.Configuration
+import uk.gov.hmrc.play.bootstrap.config.{RunMode, ServicesConfig}
 import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
-import org.mockito.ArgumentMatchers.{any, refEq}
-import org.mockito.Mockito.when
 
 class AppConfigSpec extends UnitSpec with WithFakeApplication with MockitoSugar with BeforeAndAfterEach {
   val serviceConfig: ServicesConfig = mock[ServicesConfig]
+  val runMode: RunMode = fakeApplication.injector.instanceOf[RunMode]
 
   override protected def beforeEach(): Unit = {
     super.beforeEach()
@@ -40,7 +41,7 @@ class AppConfigSpec extends UnitSpec with WithFakeApplication with MockitoSugar 
       "upscan.maxFileSize" -> 0
     )
     pairs.foreach(e => config = config + e)
-    new AppConfig(Configuration.from(config), Environment.simple(), serviceConfig).fileStoreSizeConfiguration
+    new AppConfig(runMode, Configuration.from(config), serviceConfig).fileStoreSizeConfiguration
   }
 
   private def s3ConfigWith(pairs: (String, String)*): S3Configuration = {
@@ -52,16 +53,16 @@ class AppConfigSpec extends UnitSpec with WithFakeApplication with MockitoSugar 
       "s3.endpoint" -> ""
     )
     pairs.foreach(e => config = config + e)
-    new AppConfig(Configuration.from(config), Environment.simple(), serviceConfig).s3Configuration
+    new AppConfig(runMode, Configuration.from(config), serviceConfig).s3Configuration
   }
 
   private def upscanConfigWith(host: String, port: String, pairs: (String, String)*): AppConfig = {
     when(serviceConfig.baseUrl(refEq("upscan-initiate"))).thenReturn(s"http://$host:$port")
-    new AppConfig(Configuration.from(pairs.map(e => e._1 -> e._2).toMap), Environment.simple(), serviceConfig)
+    new AppConfig(runMode, Configuration.from(pairs.map(e => e._1 -> e._2).toMap), serviceConfig)
   }
 
   private def configWith(pairs: (String, String)*): AppConfig = {
-    new AppConfig(Configuration.from(pairs.map(e => e._1 -> e._2).toMap), Environment.simple(), serviceConfig)
+    new AppConfig(runMode, Configuration.from(pairs.map(e => e._1 -> e._2).toMap), serviceConfig)
   }
 
   "Config" should {
