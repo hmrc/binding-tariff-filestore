@@ -27,5 +27,5 @@ case class UploadRequest
 )
 
 object UploadRequest {
-  implicit val format: Format[UploadRequest] = Json.format[UploadRequest]
+  implicit val format: Format[UploadRequest] = Json.using[Json.WithDefaultValues].format[UploadRequest]
 }

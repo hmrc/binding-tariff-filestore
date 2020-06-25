@@ -102,7 +102,7 @@ object FileMetadataMongo {
     }
   }
 
-  private val underlying = Json.format[FileMetadata]
+  private val underlying = Json.using[Json.WithDefaultValues].format[FileMetadata]
   implicit val format: OFormat[FileMetadata] = OFormat(
     r = underlying,
     w = OWrites(fm => underlying.writes(fm).as[JsObject])
