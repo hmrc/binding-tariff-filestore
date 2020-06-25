@@ -48,7 +48,7 @@ object Paged {
     (js \ "resultCount").as[Int]
   )).map(JsSuccess(_)).recover {
     case t: Throwable => JsError(t.getMessage)
-  } get
+  }.get
 
   private def writes[T](implicit fmt: Writes[T]): Paged[T] => JsValue = (paged: Paged[T]) => Json.obj(
     "results" -> JsArray(paged.results.map(fmt.writes)),

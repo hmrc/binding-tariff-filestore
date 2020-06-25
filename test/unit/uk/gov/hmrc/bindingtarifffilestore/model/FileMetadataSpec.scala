@@ -47,6 +47,15 @@ class FileMetadataSpec extends UnitSpec {
       "lastUpdated" -> Json.obj("$date" -> JsNumber(0))
     )
 
+    val jsonMongoWithoutDefaults: JsObject = Json.obj(
+      "id" -> JsString("id"),
+      "fileName" -> JsString("fileName"),
+      "mimeType" -> JsString("type"),
+      "url" -> JsString("url"),
+      "scanStatus" -> JsString("READY"),
+      "lastUpdated" -> Json.obj("$date" -> JsNumber(0))
+    )
+
     val jsonREST: JsObject = Json.obj(
       "url" -> JsString("url"),
       "lastUpdated" -> JsString("1970-01-01T00:00:00Z"),
@@ -66,6 +75,11 @@ class FileMetadataSpec extends UnitSpec {
     "Convert from Mongo JSON" in {
       val value = Json.fromJson[FileMetadata](jsonMongo)(FileMetadataMongo.format).get
       value shouldBe model
+    }
+
+    "Convert from Mongo JSON with defaults" in {
+      val value = Json.fromJson[FileMetadata](jsonMongoWithoutDefaults)(FileMetadataMongo.format).get
+      value shouldBe model.copy(publishable = false, published = false)
     }
 
     "Convert to REST JSON" in {

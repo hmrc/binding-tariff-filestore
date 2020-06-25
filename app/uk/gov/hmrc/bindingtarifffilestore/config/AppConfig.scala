@@ -16,43 +16,38 @@
 
 package uk.gov.hmrc.bindingtarifffilestore.config
 
-import javax.inject._
-import play.api.Mode.Mode
-import play.api.{Configuration, Environment}
-import uk.gov.hmrc.play.config.ServicesConfig
+import javax.inject.{Inject, Singleton}
+import play.api.Configuration
+import uk.gov.hmrc.play.bootstrap.config._
 
 @Singleton
-class AppConfig @Inject()(val runModeConfiguration: Configuration, environment: Environment) extends ServicesConfig {
+class AppConfig @Inject()(
+                           config: Configuration,
+                           servicesConfig: ServicesConfig
+                         ) {
 
-  override protected def mode: Mode = environment.mode
-
-  lazy val authorization: String = getString("auth.api-token")
+  lazy val authorization: String = config.get[String]("auth.api-token")
 
   lazy val s3Configuration = S3Configuration(
-    getString("s3.accessKeyId"),
-    base64Decode(getString("s3.secretKeyId")),
-    getString("s3.region"),
-    getString("s3.bucket"),
-    Option(getString("s3.endpoint")).filter(_.nonEmpty)
+    config.get[String]("s3.accessKeyId"),
+    base64Decode(config.get[String]("s3.secretKeyId")),
+    config.get[String]("s3.region"),
+    config.get[String]("s3.bucket"),
+    Option(config.get[String]("s3.endpoint")).filter(_.nonEmpty)
   )
 
-  lazy val upscanInitiateUrl: String = baseUrl("upscan-initiate")
+  lazy val upscanInitiateUrl: String = servicesConfig.baseUrl("upscan-initiate")
   lazy val fileStoreSizeConfiguration = FileStoreSizeConfiguration(
-    maxFileSize = getInt("upscan.maxFileSize"),
-    minFileSize = getInt("upscan.minFileSize")
+    maxFileSize = config.get[Int]("upscan.maxFileSize"),
+    minFileSize = config.get[Int]("upscan.minFileSize")
   )
 
-  lazy val filestoreUrl: String = getString("filestore.url")
-  lazy val filestoreSSL: Boolean = getBoolean("filestore.ssl")
+  lazy val filestoreUrl: String = config.get[String]("filestore.url")
+  lazy val filestoreSSL: Boolean = config.get[Boolean]("filestore.ssl")
 
   private def base64Decode(text: String) = new String(java.util.Base64.getDecoder.decode(text))
 
-  lazy val isTestMode: Boolean = getBooleanConfig("testMode", default = false)
-
-  private def getBooleanConfig(key: String, default: Boolean): Boolean = {
-    runModeConfiguration.getBoolean(key).getOrElse(default)
-  }
-
+  lazy val isTestMode: Boolean = config.getOptional[Boolean]("testMode").getOrElse(false)
 }
 
 case class S3Configuration

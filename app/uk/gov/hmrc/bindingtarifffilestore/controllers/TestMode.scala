@@ -20,17 +20,21 @@ import play.api.mvc._
 import uk.gov.hmrc.bindingtarifffilestore.config.AppConfig
 import uk.gov.hmrc.bindingtarifffilestore.model.{ErrorCode, JsErrorResponse}
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 object TestMode {
 
-  def actionFilter(appConfig: AppConfig) = new ActionBuilder[Request] with ActionFilter[Request] {
+  def actionFilter(appConfig: AppConfig, bodyParser: BodyParsers.Default)(implicit ec: ExecutionContext) =
+    new ActionBuilder[Request, AnyContent] with ActionFilter[Request] {
 
     override protected def filter[A](request: Request[A]): Future[Option[Result]] = Future.successful {
       if (appConfig.isTestMode) None
       else Some(Results.Forbidden(JsErrorResponse(ErrorCode.FORBIDDEN, s"You are not allowed to call ${request.method} ${request.uri}")))
     }
 
-  }
+      override def parser: BodyParser[AnyContent] = bodyParser
+
+      override protected def executionContext: ExecutionContext = ec
+    }
 
 }

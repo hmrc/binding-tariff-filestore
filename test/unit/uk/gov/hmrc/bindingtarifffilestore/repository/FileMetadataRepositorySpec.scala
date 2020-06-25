@@ -20,7 +20,7 @@ import java.util.UUID
 
 import org.mockito.BDDMockito.given
 import org.scalatest.concurrent.Eventually
-import org.scalatest.mockito.MockitoSugar
+import org.scalatestplus.mockito.MockitoSugar
 import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
 import reactivemongo.api.DB
 import reactivemongo.api.indexes.IndexType.Ascending
@@ -49,17 +49,15 @@ class FileMetadataRepositorySpec extends BaseMongoIndexSpec
 
   private val att1 = generateAttachment
   private val att2 = generateAttachment
-  private val config = mock[AppConfig]
   private val repository = createMongoRepo
 
 
   private def createMongoRepo = {
-    new FileMetadataMongoRepository(config, mongoDbProvider)
+    new FileMetadataMongoRepository(mongoDbProvider)
   }
 
   override def beforeEach(): Unit = {
     super.beforeEach()
-    given(config.getInt("mongodb.timeToLiveInSeconds")).willReturn(10)
     await(repository.drop)
     await(repository.ensureIndexes)
   }
@@ -78,11 +76,11 @@ class FileMetadataRepositorySpec extends BaseMongoIndexSpec
     "clear the collection" in {
       val size = collectionSize
 
-      await(repository.insert(att1))
-      await(repository.insert(att2))
+      await(repository.insertFile(att1))
+      await(repository.insertFile(att2))
       collectionSize shouldBe 2 + size
 
-      await(repository.deleteAll()) shouldBe ((): Unit)
+      await(repository.deleteAll) shouldBe ((): Unit)
       collectionSize shouldBe 0
     }
 
@@ -93,7 +91,7 @@ class FileMetadataRepositorySpec extends BaseMongoIndexSpec
     "insert a new document in the collection" in {
       val size = collectionSize
 
-      await(repository.insert(att1)) shouldBe att1
+      await(repository.insertFile(att1)) shouldBe att1
       collectionSize shouldBe 1 + size
       await(repository.collection.find(selectorById(att1)).one[FileMetadata]) shouldBe Some(att1)
     }
@@ -103,7 +101,7 @@ class FileMetadataRepositorySpec extends BaseMongoIndexSpec
   "update" should {
 
     "modify an existing document in the collection" in {
-      await(repository.insert(att1))
+      await(repository.insertFile(att1))
       val size = collectionSize
 
       val updated = att1.copy(mimeType = generateString, fileName = generateString)
@@ -129,8 +127,8 @@ class FileMetadataRepositorySpec extends BaseMongoIndexSpec
 
     "retrieve the expected document from the collection" in {
 
-      await(repository.insert(att1))
-      await(repository.insert(att2))
+      await(repository.insertFile(att1))
+      await(repository.insertFile(att2))
       collectionSize shouldBe 2
 
       await(repository.get(att1.id)) shouldBe Some(att1)
@@ -145,8 +143,8 @@ class FileMetadataRepositorySpec extends BaseMongoIndexSpec
   "delete" should {
 
     "delete the expected document from the collection" in {
-      await(repository.insert(att1))
-      await(repository.insert(att2))
+      await(repository.insertFile(att1))
+      await(repository.insertFile(att2))
       collectionSize shouldBe 2
 
       await(repository.delete(att1.id))
@@ -194,8 +192,8 @@ class FileMetadataRepositorySpec extends BaseMongoIndexSpec
   "get many" should {
 
     "retrieve the expected documents by id" in {
-      await(repository.insert(att1))
-      await(repository.insert(att2))
+      await(repository.insertFile(att1))
+      await(repository.insertFile(att2))
       collectionSize shouldBe 2
 
       await(repository.get(Search(ids = Some(Set(att1.id))), Pagination())) shouldBe Paged(Seq(att1))
@@ -203,8 +201,8 @@ class FileMetadataRepositorySpec extends BaseMongoIndexSpec
     }
 
     "retrieve the expected documents by published" in {
-      await(repository.insert(att1.copy(published = true)))
-      await(repository.insert(att2.copy(published = false)))
+      await(repository.insertFile(att1.copy(published = true)))
+      await(repository.insertFile(att2.copy(published = false)))
       collectionSize shouldBe 2
 
       await(repository.get(Search(published = Some(true)), Pagination())) shouldBe Paged(Seq(att1.copy(published = true)))
@@ -212,8 +210,8 @@ class FileMetadataRepositorySpec extends BaseMongoIndexSpec
     }
 
     "retrieve all the files for empty Search" in {
-      await(repository.insert(att1))
-      await(repository.insert(att2))
+      await(repository.insertFile(att1))
+      await(repository.insertFile(att2))
       collectionSize shouldBe 2
 
       await(repository.get(Search(), Pagination())) shouldBe Paged(Seq(att1, att2))

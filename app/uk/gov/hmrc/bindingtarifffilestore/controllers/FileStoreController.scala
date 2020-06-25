@@ -35,16 +35,20 @@ import scala.concurrent.Future
 import scala.concurrent.Future.successful
 
 @Singleton
-class FileStoreController @Inject()(appConfig: AppConfig,
-                                    service: FileStoreService) extends CommonController {
+class FileStoreController @Inject()(
+                                     appConfig: AppConfig,
+                                     service: FileStoreService,
+                                     parser: BodyParsers.Default,
+                                     mcc: MessagesControllerComponents
+                                   ) extends CommonController(mcc) {
 
-  lazy private val testModeFilter = TestMode.actionFilter(appConfig)
+  lazy private val testModeFilter = TestMode.actionFilter(appConfig, parser)
 
-  def deleteAll(): Action[AnyContent] = testModeFilter.async { implicit request =>
+  def deleteAll(): Action[AnyContent] = testModeFilter.async {
     service.deleteAll() map (_ => NoContent) recover recovery
   }
 
-  def delete(id: String): Action[AnyContent] = Action.async { implicit request =>
+  def delete(id: String): Action[AnyContent] = Action.async {
     service.delete(id) map (_ => NoContent) recover recovery
   }
 
@@ -60,7 +64,7 @@ class FileStoreController @Inject()(appConfig: AppConfig,
     }
   }
 
-  def get(id: String): Action[AnyContent] = Action.async { implicit request =>
+  def get(id: String): Action[AnyContent] = Action.async {
     handleNotFound(id, (att: FileMetadata) => successful(Ok(Json.toJson(att))))
   }
 
@@ -79,7 +83,7 @@ class FileStoreController @Inject()(appConfig: AppConfig,
     ) recover recovery
   }
 
-  def getAll(search: Search, pagination: Option[Pagination]): Action[AnyContent] = Action.async { implicit request =>
+  def getAll(search: Search, pagination: Option[Pagination]): Action[AnyContent] = Action.async {
     service.find(search, pagination.getOrElse(Pagination.max)) map { pagedResults =>
       if(pagination.isDefined) {
         Ok(Json.toJson(pagedResults))

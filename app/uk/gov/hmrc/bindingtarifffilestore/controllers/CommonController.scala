@@ -22,13 +22,18 @@ import play.api.mvc.{AnyContent, Request, Result}
 import reactivemongo.core.errors.DatabaseException
 import uk.gov.hmrc.bindingtarifffilestore.model.{ErrorCode, JsErrorResponse}
 import uk.gov.hmrc.bindingtarifffilestore.model.ErrorCode._
-import uk.gov.hmrc.play.bootstrap.controller.BaseController
+import uk.gov.hmrc.play.bootstrap.controller.BackendController
+import play.api.mvc._
 
 import scala.concurrent.Future
 import scala.concurrent.Future.successful
 import scala.util.{Failure, Success, Try}
 
-trait CommonController extends BaseController {
+class CommonController(
+                        mcc: MessagesControllerComponents
+                      ) extends BackendController(mcc) {
+
+  private val uniqueIDExceptionMongo = 11000
 
   override protected def withJsonBody[T]
   (f: T => Future[Result])(implicit request: Request[JsValue], m: Manifest[T], reads: Reads[T]): Future[Result] = {
@@ -40,7 +45,7 @@ trait CommonController extends BaseController {
   }
 
   protected def asJson[T]
-  (f: T => Future[Result])(implicit request: Request[AnyContent], m: Manifest[T], reads: Reads[T]): Future[Result] = {
+  (f: T => Future[Result])(implicit request: Request[AnyContent], reads: Reads[T]): Future[Result] = {
     Try(request.body.asJson.map(_.validate[T])) match {
       case Success(Some(JsSuccess(payload, _))) => f(payload)
       case Success(Some(JsError(errs))) => successful(BadRequest(JsErrorResponse(INVALID_REQUEST_PAYLOAD, JsError.toJson(errs))))
@@ -50,13 +55,11 @@ trait CommonController extends BaseController {
   }
 
   private[controllers] def recovery: PartialFunction[Throwable, Result] = {
-    case e: DatabaseException if e.code.contains(11000) => Conflict(JsErrorResponse(ErrorCode.CONFLICT, "Entity already exists"))
-    case e: Throwable => handleException(e)
-  }
-
-  private[controllers] def handleException(e: Throwable) = {
-    Logger.error(s"An unexpected error occurred: ${e.getMessage}", e)
-    InternalServerError(JsErrorResponse(UNKNOWN_ERROR, "An unexpected error occurred"))
+    case e: DatabaseException if e.code.contains(uniqueIDExceptionMongo) =>
+      Conflict(JsErrorResponse(ErrorCode.CONFLICT, "Entity already exists"))
+    case e: Throwable =>
+      Logger.error(s"An unexpected error occurred: ${e.getMessage}", e)
+      InternalServerError(JsErrorResponse(UNKNOWN_ERROR, "An unexpected error occurred"))
   }
 
 }

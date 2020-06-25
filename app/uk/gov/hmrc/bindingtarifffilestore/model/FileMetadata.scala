@@ -19,7 +19,6 @@ package uk.gov.hmrc.bindingtarifffilestore.model
 import java.time.{Instant, LocalDateTime, ZoneOffset}
 
 import play.api.libs.json._
-import play.json.extra.{InvariantFormat, Jsonx}
 import uk.gov.hmrc.bindingtarifffilestore.model.ScanStatus._
 
 case class FileMetadata
@@ -36,17 +35,25 @@ case class FileMetadata
   private lazy val date = "X-Amz-Date=(\\d{4})(\\d{2})(\\d{2})T(\\d{2})(\\d{2})(\\d{2})".r.unanchored
   private lazy val expires = "X-Amz-Expires=(\\d+)".r.unanchored
 
+  //date time groups -> based on date regex above
+  private val yearGroup = 1
+  private val monthGroup = 2
+  private val dayGroup = 3
+  private val hourGroup = 4
+  private val minuteGroup = 5
+  private val secondGroup = 6
+
   def isLive: Boolean = {
     this.url.forall { url =>
       (date.findFirstMatchIn(url), expires.findFirstMatchIn(url)) match {
         case (Some(dateMatch), Some(expiresMatch)) =>
           LocalDateTime.of(
-            dateMatch.group(1).toInt,
-            dateMatch.group(2).toInt,
-            dateMatch.group(3).toInt,
-            dateMatch.group(4).toInt,
-            dateMatch.group(5).toInt,
-            dateMatch.group(6).toInt
+            dateMatch.group(yearGroup).toInt,
+            dateMatch.group(monthGroup).toInt,
+            dateMatch.group(dayGroup).toInt,
+            dateMatch.group(hourGroup).toInt,
+            dateMatch.group(minuteGroup).toInt,
+            dateMatch.group(secondGroup).toInt
           )
             .plusSeconds(expiresMatch.group(1).toLong)
             .toInstant(ZoneOffset.UTC)
@@ -95,7 +102,7 @@ object FileMetadataMongo {
     }
   }
 
-  private val underlying: InvariantFormat[FileMetadata] = Jsonx.formatCaseClass[FileMetadata]
+  private val underlying = Json.using[Json.WithDefaultValues].format[FileMetadata]
   implicit val format: OFormat[FileMetadata] = OFormat(
     r = underlying,
     w = OWrites(fm => underlying.writes(fm).as[JsObject])

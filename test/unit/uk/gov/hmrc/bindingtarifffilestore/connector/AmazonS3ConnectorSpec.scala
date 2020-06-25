@@ -20,9 +20,9 @@ import com.amazonaws.services.s3.model.AmazonS3Exception
 import com.github.tomakehurst.wiremock.client.WireMock._
 import org.mockito.BDDMockito.given
 import org.scalatest.BeforeAndAfterEach
-import org.scalatest.mockito.MockitoSugar
+import org.scalatestplus.mockito.MockitoSugar
 import play.api.http.Status
-import play.api.libs.Files.TemporaryFile
+import play.api.libs.Files.SingletonTemporaryFileCreator
 import uk.gov.hmrc.bindingtarifffilestore.config.{AppConfig, S3Configuration}
 import uk.gov.hmrc.bindingtarifffilestore.model.FileMetadata
 import uk.gov.hmrc.bindingtarifffilestore.util.{ResourceFiles, WiremockTestServer}
@@ -79,7 +79,7 @@ class AmazonS3ConnectorSpec extends UnitSpec with WiremockTestServer
           )
       )
 
-      val url = TemporaryFile("example.txt").file.toURI.toURL.toString
+      val url = SingletonTemporaryFileCreator.create("example.txt").path.toUri.toURL.toString
       val fileUploading = FileMetadata("id", "file.txt", "text/plain", Some(url))
 
       // Then
@@ -112,7 +112,7 @@ class AmazonS3ConnectorSpec extends UnitSpec with WiremockTestServer
               .withStatus(Status.BAD_GATEWAY)
           )
       )
-      val url = TemporaryFile("example.txt").file.toURI.toURL.toString
+      val url = SingletonTemporaryFileCreator.create("example.txt").path.toUri.toURL.toString
       val fileUploading = FileMetadata("id", "file.txt", "text/plain", Some(url))
 
       // Then

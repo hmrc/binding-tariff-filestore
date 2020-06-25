@@ -44,8 +44,7 @@ class UpscanConnector @Inject()(appConfig: AppConfig, http: HttpClient)(
     http.POST[UploadSettings, UpscanInitiateResponse](s"${appConfig.upscanInitiateUrl}/upscan/initiate", uploadSettings)
   }
 
-  def upload(template: UpscanTemplate, fileWithMetaData: FileWithMetadata)
-            (implicit headerCarrier: HeaderCarrier): Future[Unit] = {
+  def upload(template: UpscanTemplate, fileWithMetaData: FileWithMetadata): Future[Unit] = {
     Logger.info(s"Uploading file [${fileWithMetaData.metadata.id}] with template [$template]")
 
     val builder: MultipartEntityBuilder = MultipartEntityBuilder.create

@@ -17,16 +17,18 @@
 package uk.gov.hmrc.bindingtarifffilestore.model
 
 import play.api.mvc.QueryStringBindable
+import uk.gov.hmrc.bindingtarifffilestore.model.Pagination.{defaultPageSize, defaultPageStart}
 
-case class Pagination
-(
-  page: Int = 1,
-  pageSize: Int = 100
-)
+case class Pagination(
+                       page: Int = defaultPageStart,
+                       pageSize: Int = defaultPageSize
+                     )
 
 object Pagination {
+  val defaultPageStart = 1
+  val defaultPageSize = 100
 
-  val max = Pagination(1, Integer.MAX_VALUE)
+  val max: Pagination = Pagination(1, Integer.MAX_VALUE)
 
   private val pageKey = "page"
   private val pageSizeKey = "page_size"
