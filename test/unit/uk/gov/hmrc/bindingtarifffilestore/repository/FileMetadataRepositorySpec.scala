@@ -49,7 +49,6 @@ class FileMetadataRepositorySpec extends BaseMongoIndexSpec
 
   private val att1 = generateAttachment
   private val att2 = generateAttachment
-//  private val config = mock[AppConfig]
   private val repository = createMongoRepo
 
 
@@ -59,7 +58,6 @@ class FileMetadataRepositorySpec extends BaseMongoIndexSpec
 
   override def beforeEach(): Unit = {
     super.beforeEach()
-//    given(config.getInt("mongodb.timeToLiveInSeconds")).willReturn(10)
     await(repository.drop)
     await(repository.ensureIndexes)
   }

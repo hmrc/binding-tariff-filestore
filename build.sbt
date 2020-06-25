@@ -47,27 +47,17 @@ lazy val microservice = (project in file("."))
     ),
     resourceDirectory in IntegrationTest := baseDirectory.value / "test" / "resources",
     addTestReportOption(IntegrationTest, "int-test-reports"),
-//    testGrouping in IntegrationTest := oneForkedJvmPerTest((definedTests in IntegrationTest).value),
     parallelExecution in IntegrationTest := false)
   .settings(
     resolvers += Resolver.bintrayRepo("hmrc", "releases"),
     resolvers += Resolver.jcenterRepo
   )
-//  .settings(ivyScala := ivyScala.value map {
-//    _.copy(overrideScalaVersion = true)
-//  })
 
 lazy val allPhases = "tt->test;test->test;test->compile;compile->compile"
 lazy val allItPhases = "tit->it;it->it;it->compile;compile->compile"
 
 lazy val TemplateTest = config("tt") extend Test
 lazy val TemplateItTest = config("tit") extend IntegrationTest
-
-//def oneForkedJvmPerTest(tests: Seq[TestDefinition]): Seq[Group] = {
-//  tests map {
-//    test => Group(test.name, Seq(test), SubProcess(ForkOptions(runJVMOptions = Seq("-Dtest.name=" + test.name))))
-//  }
-//}
 
 // Coverage configuration
 coverageMinimum := 93
