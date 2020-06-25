@@ -17,8 +17,8 @@
 package uk.gov.hmrc.bindingtarifffilestore.repository
 
 import com.google.inject.ImplementedBy
-import javax.inject.Singleton
-import play.modules.reactivemongo.MongoDbConnection
+import javax.inject.{Inject, Singleton}
+import play.modules.reactivemongo.ReactiveMongoComponent
 import reactivemongo.api.DB
 
 @ImplementedBy(classOf[MongoDb])
@@ -27,6 +27,6 @@ trait MongoDbProvider {
 }
 
 @Singleton
-class MongoDb extends MongoDbConnection with MongoDbProvider {
-  override val mongo: () => DB = db
+class MongoDb @Inject() (mongoDB: ReactiveMongoComponent) extends MongoDbProvider {
+  override val mongo: () => DB = mongoDB.mongoConnector.db
 }
