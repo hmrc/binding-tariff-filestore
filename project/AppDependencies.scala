@@ -30,7 +30,7 @@ object AppDependencies {
     "uk.gov.hmrc"             %% "hmrctest"                 % "3.9.0-play-26" % scope,
     "uk.gov.hmrc"             %% "http-verbs-test"          % "1.8.0-play-26" % scope,
     "uk.gov.hmrc"             %% "service-integration-test" % "0.9.0-play-26" % scope,
-    "uk.gov.hmrc"             %% "reactivemongo-test"       % "4.19.0-play-26" % scope,
+    "uk.gov.hmrc"             %% "reactivemongo-test"       % "4.21.0-play-26" % scope,
     "org.scalaj"              %% "scalaj-http"            % "2.4.2"          % scope,
 
     //Need to peg this version for wiremock - try removing this on next lib upgrade
