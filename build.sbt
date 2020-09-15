@@ -11,6 +11,7 @@ lazy val playSettings: Seq[Setting[_]] = Seq.empty
 
 lazy val microservice = (project in file("."))
   .enablePlugins(plugins: _*)
+  .disablePlugins(JUnitXmlReportPlugin) //Required to prevent https://github.com/scalatest/scalatest/issues/1427
   .settings(playSettings: _*)
   .settings(scalaSettings: _*)
   .settings(publishingSettings: _*)
@@ -18,7 +19,7 @@ lazy val microservice = (project in file("."))
   .settings(majorVersion := 0)
   .settings(
     name := appName,
-    scalaVersion := "2.12.10",
+    scalaVersion := "2.12.12",
     targetJvm := "jvm-1.8",
     playDefaultPort := 9583,
     scalacOptions ++= Seq("-Ywarn-unused-import", "-deprecation", "-feature"),
@@ -26,7 +27,13 @@ lazy val microservice = (project in file("."))
     evictionWarningOptions in update := EvictionWarningOptions.default.withWarnScalaVersionEviction(false),
     parallelExecution in Test := false,
     fork in Test := true,
-    retrieveManaged := true
+    retrieveManaged := true,
+    // Use the silencer plugin to suppress warnings from unused imports in compiled twirl templates
+    scalacOptions += "-P:silencer:pathFilters=views;routes",
+    libraryDependencies ++= Seq(
+      compilerPlugin("com.github.ghik" % "silencer-plugin" % "1.7.1" cross CrossVersion.full),
+      "com.github.ghik" % "silencer-lib" % "1.7.1" % Provided cross CrossVersion.full
+    )
   )
   .settings(inConfig(TemplateTest)(Defaults.testSettings): _*)
   .settings(
