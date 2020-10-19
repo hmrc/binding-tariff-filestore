@@ -35,10 +35,11 @@ import uk.gov.hmrc.bindingtarifffilestore.model.FileMetadataREST.format
 import uk.gov.hmrc.bindingtarifffilestore.model._
 import uk.gov.hmrc.bindingtarifffilestore.model.upscan.{ScanResult, SuccessfulScanResult, UploadDetails}
 import uk.gov.hmrc.bindingtarifffilestore.service.FileStoreService
+import uk.gov.hmrc.bindingtarifffilestore.util.{UnitSpec, WithFakeApplication}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpVerbs}
-import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
 
 import scala.concurrent.Future.{failed, successful}
+import scala.concurrent.ExecutionContext.Implicits.global
 
 class FileStoreControllerSpec extends UnitSpec with Matchers
   with WithFakeApplication with MockitoSugar with BeforeAndAfterEach {
@@ -47,9 +48,9 @@ class FileStoreControllerSpec extends UnitSpec with Matchers
 
   private val appConfig = mock[AppConfig]
   private val service = mock[FileStoreService]
-  lazy val defaultPlayBodyParsers: BodyParsers.Default = fakeApplication.injector.instanceOf[BodyParsers.Default]
+  lazy val playBodyParsers: PlayBodyParsers = fakeApplication.injector.instanceOf[PlayBodyParsers]
   lazy val cc: MessagesControllerComponents = fakeApplication.injector.instanceOf[MessagesControllerComponents]
-  private val controller = new FileStoreController(appConfig, service, defaultPlayBodyParsers, cc)
+  private val controller = new FileStoreController(appConfig, service, playBodyParsers, cc)
 
   private val fakeRequest = FakeRequest()
 
@@ -124,7 +125,7 @@ class FileStoreControllerSpec extends UnitSpec with Matchers
 
   "Get By ID" should {
     "return 200 when found" in {
-      val attachment = FileMetadata(id="id", fileName = "file", mimeType = "type")
+      val attachment = FileMetadata(id="id", fileName = Some("file"), mimeType = Some("type"))
       when(service.find(id = "id")).thenReturn(successful(Some(attachment)))
 
       val result = await(controller.get("id")(fakeRequest))
@@ -153,8 +154,8 @@ class FileStoreControllerSpec extends UnitSpec with Matchers
     }
 
     "return 200 with non empty array" in {
-      val attachment1 = FileMetadata(id = "id1", fileName = "file1", mimeType = "type1")
-      val attachment2 = FileMetadata(id = "id2", fileName = "file2", mimeType = "type2")
+      val attachment1 = FileMetadata(id = "id1", fileName = Some("file1"), mimeType = Some("type1"))
+      val attachment2 = FileMetadata(id = "id2", fileName = Some("file2"), mimeType = Some("type2"))
 
       when(service.find(Search(ids = Some(Set("id1", "id2"))), Pagination.max)).thenReturn(successful(Paged(Seq(attachment1, attachment2))))
 
@@ -165,8 +166,8 @@ class FileStoreControllerSpec extends UnitSpec with Matchers
     }
 
     "return 200 with pagination and non empty pager" in {
-      val attachment1 = FileMetadata(id = "id1", fileName = "file1", mimeType = "type1")
-      val attachment2 = FileMetadata(id = "id2", fileName = "file2", mimeType = "type2")
+      val attachment1 = FileMetadata(id = "id1", fileName = Some("file1"), mimeType = Some("type1"))
+      val attachment2 = FileMetadata(id = "id2", fileName = Some("file2"), mimeType = Some("type2"))
 
       when(service.find(Search(ids = Some(Set("id1", "id2"))), Pagination())).thenReturn(successful(Paged(Seq(attachment1, attachment2))))
 
@@ -179,9 +180,9 @@ class FileStoreControllerSpec extends UnitSpec with Matchers
 
   "Notify" should {
     "return 201 when found" in {
-      val scanResult = SuccessfulScanResult("ref", "url", UploadDetails(Instant.now(), "checksum"))
-      val attachment = FileMetadata(id = "id", fileName = "file", mimeType = "type")
-      val attachmentUpdated = FileMetadata(id = "id", fileName = "file", mimeType = "type", url = Some("url"))
+      val scanResult = SuccessfulScanResult("ref", "url", UploadDetails("file", "type", Instant.now(), "checksum"))
+      val attachment = FileMetadata(id = "id", fileName = Some("file"), mimeType = Some("type"))
+      val attachmentUpdated = FileMetadata(id = "id", fileName = Some("file"), mimeType = Some("type"), url = Some("url"))
       when(service.find(id = "id")).thenReturn(successful(Some(attachment)))
       when(service.notify(refEq(attachment), refEq(scanResult))(any[HeaderCarrier])).thenReturn(successful(Some(attachmentUpdated)))
 
@@ -193,7 +194,7 @@ class FileStoreControllerSpec extends UnitSpec with Matchers
     }
 
     "return 404 when not found" in {
-      val scanResult = SuccessfulScanResult("ref", "url", UploadDetails(Instant.now(), "checksum"))
+      val scanResult = SuccessfulScanResult("ref", "url", UploadDetails("file", "type", Instant.now(), "checksum"))
       when(service.find("id")).thenReturn(successful(None))
 
       val request: FakeRequest[JsValue] = fakeRequest.withBody(Json.toJson[ScanResult](scanResult))
@@ -205,8 +206,8 @@ class FileStoreControllerSpec extends UnitSpec with Matchers
 
   "Publish" should {
     "return 201 when found" in {
-      val attachmentExisting = FileMetadata(id = "id", fileName = "file", mimeType = "type", scanStatus = Some(ScanStatus.READY))
-      val attachmentUpdated = FileMetadata(id = "id", fileName = "file", mimeType = "type", scanStatus = Some(ScanStatus.READY), url = Some("url"))
+      val attachmentExisting = FileMetadata(id = "id", fileName = Some("file"), mimeType = Some("type"), scanStatus = Some(ScanStatus.READY))
+      val attachmentUpdated = FileMetadata(id = "id", fileName = Some("file"), mimeType = Some("type"), scanStatus = Some(ScanStatus.READY), url = Some("url"))
       when(service.find(id = "id")).thenReturn(successful(Some(attachmentExisting)))
       when(service.publish(refEq(attachmentExisting))(any[HeaderCarrier])).thenReturn(successful(Some(attachmentUpdated)))
 
@@ -225,7 +226,7 @@ class FileStoreControllerSpec extends UnitSpec with Matchers
     }
 
     "return 404 when publish returns not found" in {
-      val attachmentExisting = FileMetadata(id="id", fileName = "file", mimeType = "type", scanStatus = Some(ScanStatus.READY))
+      val attachmentExisting = FileMetadata(id="id", fileName = Some("file"), mimeType = Some("type"), scanStatus = Some(ScanStatus.READY))
       when(service.find(id = "id")).thenReturn(successful(Some(attachmentExisting)))
       when(service.publish(refEq(attachmentExisting))(any[HeaderCarrier])).thenReturn(successful(None))
 
@@ -265,8 +266,8 @@ class FileStoreControllerSpec extends UnitSpec with Matchers
 
       val metadata = theFileInitiated
       metadata.publishable shouldBe true
-      metadata.fileName shouldBe "file.txt"
-      metadata.mimeType shouldBe "text/plain"
+      metadata.fileName shouldBe Some("file.txt")
+      metadata.mimeType shouldBe Some("text/plain")
     }
 
     "return 202 on valid json with ID" in {
@@ -284,13 +285,13 @@ class FileStoreControllerSpec extends UnitSpec with Matchers
       val metadata = theFileInitiated
       metadata.id shouldBe "id"
       metadata.publishable shouldBe true
-      metadata.fileName shouldBe "file.txt"
-      metadata.mimeType shouldBe "text/plain"
+      metadata.fileName shouldBe Some("file.txt")
+      metadata.mimeType shouldBe Some("text/plain")
     }
 
     "return 202 on valid file" in {
       // Given
-      val metadataUploaded = FileMetadata(id = "id", fileName = fileName, mimeType = mimeType)
+      val metadataUploaded = FileMetadata(id = "id", fileName = Some(fileName), mimeType = Some(mimeType))
       when(service.upload(any[FileWithMetadata])(any[HeaderCarrier])).thenReturn(successful(metadataUploaded))
 
       // When
@@ -304,13 +305,13 @@ class FileStoreControllerSpec extends UnitSpec with Matchers
 
       val metadata = theFileUploaded.metadata
       metadata.published shouldBe false
-      metadata.fileName shouldBe "file.txt"
-      metadata.mimeType shouldBe "text/plain"
+      metadata.fileName shouldBe Some("file.txt")
+      metadata.mimeType shouldBe Some("text/plain")
     }
 
     "return 202 on valid file with id" in {
       // Given
-      val metadataUploaded = FileMetadata(id = "id", fileName = fileName, mimeType = mimeType)
+      val metadataUploaded = FileMetadata(id = "id", fileName = Some(fileName), mimeType = Some(mimeType))
       when(service.upload(any[FileWithMetadata])(any[HeaderCarrier])).thenReturn(successful(metadataUploaded))
 
       // When
@@ -325,13 +326,13 @@ class FileStoreControllerSpec extends UnitSpec with Matchers
       val metadata = theFileUploaded.metadata
       metadata.id shouldBe "id"
       metadata.published shouldBe false
-      metadata.fileName shouldBe "file.txt"
-      metadata.mimeType shouldBe "text/plain"
+      metadata.fileName shouldBe Some("file.txt")
+      metadata.mimeType shouldBe Some("text/plain")
     }
 
     "return 202 on valid file with publish=true" in {
       // Given
-      val metadataUploaded = FileMetadata(id = "id", fileName = "name", mimeType = mimeType, published = true)
+      val metadataUploaded = FileMetadata(id = "id", fileName = Some("name"), mimeType = Some(mimeType), published = true)
       when(service.upload(any[FileWithMetadata])(any[HeaderCarrier])).thenReturn(successful(metadataUploaded))
 
       // When=
@@ -345,13 +346,13 @@ class FileStoreControllerSpec extends UnitSpec with Matchers
 
       val metadata = theFileUploaded.metadata
       metadata.publishable shouldBe true
-      metadata.fileName shouldBe "file.txt"
-      metadata.mimeType shouldBe "text/plain"
+      metadata.fileName shouldBe Some("file.txt")
+      metadata.mimeType shouldBe Some("text/plain")
     }
 
     "return 202 on valid file with publish=false" in {
       // Given
-      val metadataUploaded = FileMetadata(id = "id", fileName = "name", mimeType = mimeType, published = true)
+      val metadataUploaded = FileMetadata(id = "id", fileName = Some("name"), mimeType = Some(mimeType), published = true)
       when(service.upload(any[FileWithMetadata])(any[HeaderCarrier])).thenReturn(successful(metadataUploaded))
 
       // When=
@@ -365,8 +366,8 @@ class FileStoreControllerSpec extends UnitSpec with Matchers
 
       val metadata = theFileUploaded.metadata
       metadata.published shouldBe false
-      metadata.fileName shouldBe "file.txt"
-      metadata.mimeType shouldBe "text/plain"
+      metadata.fileName shouldBe Some("file.txt")
+      metadata.mimeType shouldBe Some("text/plain")
     }
 
     "Throw exception on missing mime type" in {

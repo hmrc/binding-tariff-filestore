@@ -17,9 +17,8 @@
 package uk.gov.hmrc.bindingtarifffilestore.model
 
 import java.time.Instant
-
 import play.api.libs.json._
-import uk.gov.hmrc.play.test.UnitSpec
+import uk.gov.hmrc.bindingtarifffilestore.util.UnitSpec
 
 class FileMetadataSpec extends UnitSpec {
 
@@ -27,8 +26,8 @@ class FileMetadataSpec extends UnitSpec {
 
     val model = FileMetadata(
       id = "id",
-      fileName = "fileName",
-      mimeType = "type",
+      fileName = Some("fileName"),
+      mimeType = Some("type"),
       url = Some("url"),
       publishable = true,
       published = true,
@@ -118,13 +117,13 @@ class FileMetadataSpec extends UnitSpec {
     }
 
     "Calculate liveness of signed URL" in {
-      def metadata(url: String): FileMetadata = FileMetadata("id", "file", "type", Some(url))
+      def metadata(url: String): FileMetadata = FileMetadata("id", Some("file"), Some("type"), Some(url))
 
       metadata("https://s3.amazonaws.com/bucket/abc?X-Amz-Date=30000101T000000Zkey=value&X-Amz-Expires=86400").isLive shouldBe true
       metadata("https://s3.amazonaws.com/bucket/abc?X-Amz-Expires=86400&X-Amz-Date=30000101T000000Zkey=value").isLive shouldBe true
       metadata("https://s3.amazonaws.com/bucket/file?X-Amz-Date=20190101T000000Z&X-Amz-Expires=0").isLive shouldBe false
       metadata("url").isLive shouldBe true
-      FileMetadata("id", "file", "type").isLive shouldBe true
+      FileMetadata("id", Some("file"), Some("type")).isLive shouldBe true
     }
 
   }

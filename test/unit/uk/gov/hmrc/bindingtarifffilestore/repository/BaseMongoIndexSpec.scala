@@ -18,7 +18,7 @@ package uk.gov.hmrc.bindingtarifffilestore.repository
 
 import reactivemongo.api.indexes.Index
 import reactivemongo.play.json.collection.JSONCollection
-import uk.gov.hmrc.play.test.UnitSpec
+import uk.gov.hmrc.bindingtarifffilestore.util.UnitSpec
 
 import scala.concurrent.ExecutionContext.Implicits.global
 

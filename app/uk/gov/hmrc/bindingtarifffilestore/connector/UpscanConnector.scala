@@ -28,6 +28,7 @@ import play.api.Logger
 import uk.gov.hmrc.bindingtarifffilestore.config.AppConfig
 import uk.gov.hmrc.bindingtarifffilestore.model.FileWithMetadata
 import uk.gov.hmrc.bindingtarifffilestore.model.upscan.{UpscanTemplate, UploadSettings, UpscanInitiateResponse}
+import uk.gov.hmrc.bindingtarifffilestore.model.upscan.v2
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.bootstrap.http.HttpClient
 
@@ -42,6 +43,10 @@ class UpscanConnector @Inject()(appConfig: AppConfig, http: HttpClient)(
   def initiate(uploadSettings: UploadSettings)
               (implicit headerCarrier: HeaderCarrier): Future[UpscanInitiateResponse] = {
     http.POST[UploadSettings, UpscanInitiateResponse](s"${appConfig.upscanInitiateUrl}/upscan/initiate", uploadSettings)
+  }
+
+  def initiateV2(uploadRequest: v2.UpscanInitiateRequest)(implicit hc: HeaderCarrier): Future[v2.UpscanInitiateResponse] = {
+    http.POST[v2.UpscanInitiateRequest, v2.UpscanInitiateResponse](s"${appConfig.upscanInitiateUrl}/upscan/v2/initiate", uploadRequest)
   }
 
   def upload(template: UpscanTemplate, fileWithMetaData: FileWithMetadata): Future[Unit] = {

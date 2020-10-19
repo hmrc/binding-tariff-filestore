@@ -68,7 +68,7 @@ class AmazonS3Connector @Inject()(config: AppConfig) {
     val url: URL = new URL(fileMetaData.url.getOrElse(throw new IllegalArgumentException("Missing URL")))
 
     val metadata = new ObjectMetadata
-    metadata.setContentType(fileMetaData.mimeType)
+    metadata.setContentType(fileMetaData.mimeType.get)
     metadata.setContentLength(contentLengthOf(url))
 
     val request = new PutObjectRequest(

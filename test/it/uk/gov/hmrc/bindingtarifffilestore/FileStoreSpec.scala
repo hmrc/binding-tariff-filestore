@@ -37,14 +37,13 @@ import uk.gov.hmrc.bindingtarifffilestore.repository.FileMetadataMongoRepository
 import uk.gov.hmrc.bindingtarifffilestore.util.{ResourceFiles, WiremockFeatureTestServer}
 
 import scala.collection.Map
+import scala.collection.JavaConverters._
 import scala.concurrent.Await.result
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.util.Try
 
 class FileStoreSpec extends WiremockFeatureTestServer with ResourceFiles {
-
-  override lazy val port = 14681
 
   private val timeout: FiniteDuration = 2.seconds
   private val serviceUrl = s"http://localhost:$port"
@@ -262,7 +261,7 @@ class FileStoreSpec extends WiremockFeatureTestServer with ResourceFiles {
 
       When("Notify is Called")
       val uri = new File(filePath).toURI
-      val response = notifySuccess(id, uri)
+      val response = notifySuccess(id, "some-file.txt", uri)
 
       Then("The response code should be Created")
       response.code shouldBe Status.CREATED
@@ -302,7 +301,7 @@ class FileStoreSpec extends WiremockFeatureTestServer with ResourceFiles {
       Given("A File has been uploaded and marked as safe")
       val id = upload("some-file.txt", "text/plain")
         .body("id").as[JsString].value
-      notifySuccess(id)
+      notifySuccess(id, "some-file.txt")
 
       When("It is Published")
       val response = publishSafeFile(id)
@@ -356,7 +355,7 @@ class FileStoreSpec extends WiremockFeatureTestServer with ResourceFiles {
       val id = upload("some-file.txt", "text/plain")
         .body("id").as[JsString].value
       val uri = new File(filePath).toURI
-      notifySuccess(id, uri = new URI(uri.toString + "?X-Amz-Date=19700101T000000Z&X-Amz-Expires=0"))
+      notifySuccess(id, "some-file.txt", uri = new URI(uri.toString + "?X-Amz-Date=19700101T000000Z&X-Amz-Expires=0"))
 
       When("It is Published")
       val response = publishSafeFile(id)
@@ -410,9 +409,9 @@ class FileStoreSpec extends WiremockFeatureTestServer with ResourceFiles {
       .execute(convertingResponseToJS)
   }
 
-  private def notifySuccess(id: String, uri: URI = new File(filePath).toURI): HttpResponse[Map[String, JsValue]] = {
+  private def notifySuccess(id: String, fileName: String, uri: URI = new File(filePath).toURI): HttpResponse[Map[String, JsValue]] = {
     val url = uri.toURL.toString
-    val model = SuccessfulScanResult("reference", url, UploadDetails(Instant.now(), "checksum"))
+    val model = SuccessfulScanResult("reference", url, UploadDetails(fileName, "text/plain", Instant.now(), "checksum"))
 
     Http(s"$serviceUrl/file/$id/notify")
       .postData(Json.toJson(model).toString())
@@ -434,12 +433,17 @@ class FileStoreSpec extends WiremockFeatureTestServer with ResourceFiles {
   private def upload(filename: String, contentType: String): HttpResponse[Map[String, JsValue]] = {
     stubUpscanInitiate
     stubUpscanUpload
+
+    val tempFile = SingletonTemporaryFileCreator.create(filename)
+    Files.write(tempFile.path, List("foo").asJava)
+
     val form = MultiPart(
       "file",
       filename,
       contentType,
-      Files.readAllBytes(SingletonTemporaryFileCreator.create(filename).path)
+      Files.readAllBytes(tempFile.path)
     )
+
     Http(s"$serviceUrl/file")
       .header(apiTokenKey, appConfig.authorization)
       .postMulti(form)
