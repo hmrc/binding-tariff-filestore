@@ -68,6 +68,8 @@ class AmazonS3Connector @Inject()(config: AppConfig) {
     val url: URL = new URL(fileMetaData.url.getOrElse(throw new IllegalArgumentException("Missing URL")))
 
     val metadata = new ObjectMetadata
+    // This .get is scary but our file must have received a positive scan
+    // result and received metadata from Upscan if it is being published
     metadata.setContentType(fileMetaData.mimeType.get)
     metadata.setContentLength(contentLengthOf(url))
 
