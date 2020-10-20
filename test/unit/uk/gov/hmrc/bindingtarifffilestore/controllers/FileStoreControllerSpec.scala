@@ -40,6 +40,9 @@ import uk.gov.hmrc.http.{HeaderCarrier, HttpVerbs}
 
 import scala.concurrent.Future.{failed, successful}
 import scala.concurrent.ExecutionContext.Implicits.global
+import uk.gov.hmrc.bindingtarifffilestore.model.upscan.v2.FileStoreInitiateRequest
+import uk.gov.hmrc.bindingtarifffilestore.model.upscan.v2.FileStoreInitiateResponse
+import uk.gov.hmrc.bindingtarifffilestore.model.upscan.v2.UpscanFormTemplate
 
 class FileStoreControllerSpec extends UnitSpec with Matchers
   with WithFakeApplication with MockitoSugar with BeforeAndAfterEach {
@@ -53,6 +56,11 @@ class FileStoreControllerSpec extends UnitSpec with Matchers
   private val controller = new FileStoreController(appConfig, service, playBodyParsers, cc)
 
   private val fakeRequest = FakeRequest()
+
+  private def jsonRequest[T](body: T)(implicit writes: Writes[T]): Request[AnyContent] = {
+    fakeRequest.withJsonBody(Json.toJson(body))
+      .withHeaders("Content-Type" -> "application/json")
+  }
 
   override protected def afterEach(): Unit = {
     super.afterEach()
@@ -236,6 +244,42 @@ class FileStoreControllerSpec extends UnitSpec with Matchers
     }
   }
 
+  "Initiate" should {
+    "return 202 on valid json" in {
+      // Given
+      val response = FileStoreInitiateResponse("id", "ref", UpscanFormTemplate("href", Map()))
+      when(service.initiateV2(any[FileStoreInitiateRequest])(any[HeaderCarrier])).thenReturn(successful(response))
+
+      // When
+      val request = FileStoreInitiateRequest(publishable = true)
+      val result: Result = await(controller.initiate(jsonRequest(request)))
+
+      // Then
+      status(result) shouldBe ACCEPTED
+    }
+
+    "return 202 on valid json with ID" in {
+      // Given
+      val response = FileStoreInitiateResponse("id", "ref", UpscanFormTemplate("href", Map()))
+      when(service.initiateV2(any[FileStoreInitiateRequest])(any[HeaderCarrier])).thenReturn(successful(response))
+
+      // When
+      val request = FileStoreInitiateRequest(id = Some("id"), publishable = true)
+      val result: Result = await(controller.initiate(jsonRequest(request)))
+
+      // Then
+      status(result) shouldBe ACCEPTED
+    }
+
+    "return 400 on invalid json" in {
+      // When
+      val result: Result = await(controller.initiate(jsonRequest(Json.obj())))
+
+      // Then
+      status(result) shouldBe BAD_REQUEST
+    }
+  }
+
   "Upload" should {
 
     val fileName = "file.txt"
@@ -245,11 +289,6 @@ class FileStoreControllerSpec extends UnitSpec with Matchers
     def multipartRequest(body: MultipartFormData[TemporaryFile]): Request[AnyContent] = {
       fakeRequest.withMultipartFormDataBody(body)
         .withHeaders("Content-Type" -> "multipart/form-data")
-    }
-
-    def jsonRequest[T](body: T)(implicit writes: Writes[T]): Request[AnyContent] = {
-      fakeRequest.withJsonBody(Json.toJson(body))
-        .withHeaders("Content-Type" -> "application/json")
     }
 
     "return 202 on valid json" in {

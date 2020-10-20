@@ -173,6 +173,32 @@ class FileStoreServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfte
     }
   }
 
+  "Service 'initiateV2'" should {
+    "Delegate to Connector" in {
+      val fileMetadata = FileMetadata(id = "id", fileName = Some("file"), mimeType = Some("text/plain"))
+      val fileMetaDataCreated = mock[FileMetadata]
+      val uploadTemplate = UpscanTemplate(href = "href", fields = Map("key" -> "value"))
+      val initiateResponse = UpscanInitiateResponse("ref", uploadTemplate)
+
+      given(config.filestoreUrl).willReturn("host")
+      given(config.fileStoreSizeConfiguration).willReturn(FileStoreSizeConfiguration(1, 1000))
+      given(config.authorization).willReturn("auth-token")
+      given(repository.insertFile(fileMetadata)).willReturn(successful(fileMetaDataCreated))
+      given(upscanConnector.initiate(any[UploadSettings])(any[HeaderCarrier])).willReturn(successful(initiateResponse))
+
+      await(service.initiate(fileMetadata)) shouldBe UploadTemplate(id = "id", href = "href", fields = Map("key" -> "value"))
+
+      verify(auditService, times(1)).auditUpScanInitiated(fileId = "id", fileName = Some("file"), upScanRef = "ref")
+      verifyNoMoreInteractions(auditService)
+
+      theInitatePayload shouldBe UploadSettings(
+        "http://host/file/id/notify?X-Api-Token=2yL0YYIInq0TGnTCyaUwQhXpxtIktdzWH7QIx9mmMWU=",
+        1,
+        1000
+      )
+    }
+  }
+
   "Service 'upload' " should {
 
     "Delegate to Connector" in {

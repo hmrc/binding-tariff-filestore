@@ -159,6 +159,44 @@ class FileStoreSpec extends WiremockFeatureTestServer with ResourceFiles {
     }
   }
 
+  feature("Initiate V2") {
+    scenario("Should accept initiate requests without ID") {
+      Given("A Client of the FileStore needs an upload form")
+      When("It is requested")
+      val response: HttpResponse[Map[String, JsValue]] = initiateV2()
+
+      Then("The response code should be Accepted")
+      response.code shouldBe Status.ACCEPTED
+
+      And("The response body contains the file upload template")
+
+      response.body("id") shouldBe a[JsString]
+
+      response.body("uploadRequest") shouldBe Json.obj(
+        "href" -> "http://localhost:20001/upscan/upload",
+        "fields" -> Json.obj("key" -> "value")
+      )
+    }
+
+    scenario("Should accept initiate requests with client generated ID") {
+      Given("A Client of the FileStore needs an upload form")
+      When("It is requested")
+      val response: HttpResponse[Map[String, JsValue]] = initiateV2(Some("slurm"))
+
+      Then("The response code should be Accepted")
+      response.code shouldBe Status.ACCEPTED
+
+      And("The response body contains the file upload template")
+
+      response.body("id") shouldBe JsString("slurm")
+
+      response.body("uploadRequest") shouldBe Json.obj(
+        "href" -> "http://localhost:20001/upscan/upload",
+        "fields" -> Json.obj("key" -> "value")
+      )
+    }
+  }
+
   feature("Get") {
     scenario("Should show the file is persisted") {
       Given("A file has been uploaded")
@@ -460,6 +498,16 @@ class FileStoreSpec extends WiremockFeatureTestServer with ResourceFiles {
       .execute(convertingResponseToJS)
   }
 
+  private def initiateV2(id: Option[String] = None): HttpResponse[Map[String, JsValue]] = {
+    stubUpscanInitiateV2
+
+    Http(s"$serviceUrl/file/initiate")
+      .header("Content-Type", "application/json")
+      .header(apiTokenKey, appConfig.authorization)
+      .postData(Json.toJson(v2.FileStoreInitiateRequest(id = id)).toString())
+      .execute(convertingResponseToJS)
+  }
+
   private def stubUpscanUpload = {
     stubFor(
       post("/upscan/upload")
@@ -473,6 +521,16 @@ class FileStoreSpec extends WiremockFeatureTestServer with ResourceFiles {
   private def stubUpscanInitiate = {
     stubFor(
       post("/upscan/initiate")
+        .willReturn(
+          aResponse()
+            .withBody(fromFile("upscan/initiate_wiremock-response.json"))
+        )
+    )
+  }
+
+  private def stubUpscanInitiateV2 = {
+    stubFor(
+      post("/upscan/v2/initiate")
         .willReturn(
           aResponse()
             .withBody(fromFile("upscan/initiate_wiremock-response.json"))
