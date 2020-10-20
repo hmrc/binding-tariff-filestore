@@ -26,9 +26,8 @@ import uk.gov.hmrc.bindingtarifffilestore.util.{BaseFeatureSpec, ResourceFiles}
 
 class AuthSpec extends BaseFeatureSpec with ResourceFiles {
 
-  override lazy val port = 14682
-
   private val serviceUrl = s"http://localhost:$port"
+
   private val hashedTokenValue = BaseEncoding.base64Url().encode(
     MessageDigest.getInstance("SHA-256")
       .digest(appConfig.authorization.getBytes("UTF-8"))

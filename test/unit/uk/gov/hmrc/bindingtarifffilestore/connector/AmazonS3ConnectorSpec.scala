@@ -25,8 +25,7 @@ import play.api.http.Status
 import play.api.libs.Files.SingletonTemporaryFileCreator
 import uk.gov.hmrc.bindingtarifffilestore.config.{AppConfig, S3Configuration}
 import uk.gov.hmrc.bindingtarifffilestore.model.FileMetadata
-import uk.gov.hmrc.bindingtarifffilestore.util.{ResourceFiles, WiremockTestServer}
-import uk.gov.hmrc.play.test.UnitSpec
+import uk.gov.hmrc.bindingtarifffilestore.util.{ResourceFiles, UnitSpec, WiremockTestServer}
 
 class AmazonS3ConnectorSpec extends UnitSpec with WiremockTestServer
   with MockitoSugar with BeforeAndAfterEach with ResourceFiles {
@@ -80,19 +79,19 @@ class AmazonS3ConnectorSpec extends UnitSpec with WiremockTestServer
       )
 
       val url = SingletonTemporaryFileCreator.create("example.txt").path.toUri.toURL.toString
-      val fileUploading = FileMetadata("id", "file.txt", "text/plain", Some(url))
+      val fileUploading = FileMetadata("id", Some("file.txt"), Some("text/plain"), Some(url))
 
       // Then
       val result = connector.upload(fileUploading)
       result.id shouldBe "id"
-      result.fileName shouldBe "file.txt"
-      result.mimeType shouldBe "text/plain"
+      result.fileName shouldBe Some("file.txt")
+      result.mimeType shouldBe Some("text/plain")
       result.url.get shouldBe s"$wireMockUrl/bucket/id"
     }
 
     "Throw Exception on missing URL" in {
       // Given
-      val fileUploading = FileMetadata("id", "file.txt", "text/plain")
+      val fileUploading = FileMetadata("id", Some("file.txt"), Some("text/plain"))
 
       // Then
       val exception = intercept[IllegalArgumentException] {
@@ -113,20 +112,20 @@ class AmazonS3ConnectorSpec extends UnitSpec with WiremockTestServer
           )
       )
       val url = SingletonTemporaryFileCreator.create("example.txt").path.toUri.toURL.toString
-      val fileUploading = FileMetadata("id", "file.txt", "text/plain", Some(url))
+      val fileUploading = FileMetadata("id", Some("file.txt"), Some("text/plain"), Some(url))
 
       // Then
       val exception = intercept[AmazonS3Exception] {
         connector.upload(fileUploading)
       }
-      exception.getMessage shouldBe "Bad Gateway (Service: Amazon S3; Status Code: 502; Error Code: 502 Bad Gateway; Request ID: null; S3 Extended Request ID: null)"
+      exception.getMessage shouldBe "Bad Gateway (Service: Amazon S3; Status Code: 502; Error Code: 502 Bad Gateway; Request ID: null; S3 Extended Request ID: null; Proxy: null)"
     }
   }
 
   "Sign" should {
     "append token to URL" in {
       // Given
-      val file = FileMetadata("id", "file.txt", "text/plain", Some("url"))
+      val file = FileMetadata("id", Some("file.txt"), Some("text/plain"), Some("url"))
 
       // When
       connector.sign(file).url.get should startWith(s"$wireMockUrl/bucket/id?X-Amz-Algorithm=AWS4-HMAC-SHA256")
@@ -134,7 +133,7 @@ class AmazonS3ConnectorSpec extends UnitSpec with WiremockTestServer
 
     "not append token to empty URL" in {
       // Given
-      val file = FileMetadata("id", "file.txt", "text/plain", None)
+      val file = FileMetadata("id", Some("file.txt"), Some("text/plain"), None)
 
       // When
       connector.sign(file).url shouldBe None

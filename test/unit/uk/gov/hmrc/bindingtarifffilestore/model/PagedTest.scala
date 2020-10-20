@@ -17,7 +17,7 @@
 package uk.gov.hmrc.bindingtarifffilestore.model
 
 import play.api.libs.json.{JsObject, Json}
-import uk.gov.hmrc.play.test.UnitSpec
+import uk.gov.hmrc.bindingtarifffilestore.util.UnitSpec
 
 class PagedTest extends UnitSpec {
 
