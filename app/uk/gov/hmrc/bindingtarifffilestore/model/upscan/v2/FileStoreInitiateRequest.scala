@@ -22,8 +22,6 @@ case class FileStoreInitiateRequest(
   id: Option[String] = None,
   successRedirect: Option[String] = None,
   errorRedirect: Option[String] = None,
-  minimumFileSize: Option[Long] = None,
-  maximumFileSize: Option[Long] = None,
   expectedContentType: Option[String] = None,
   publishable: Boolean = false
 )

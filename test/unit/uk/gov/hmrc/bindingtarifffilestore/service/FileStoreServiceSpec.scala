@@ -175,28 +175,38 @@ class FileStoreServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfte
 
   "Service 'initiateV2'" should {
     "Delegate to Connector" in {
-      val fileMetadata = FileMetadata(id = "id", fileName = Some("file"), mimeType = Some("text/plain"))
-      val fileMetaDataCreated = mock[FileMetadata]
-      val uploadTemplate = UpscanTemplate(href = "href", fields = Map("key" -> "value"))
-      val initiateResponse = UpscanInitiateResponse("ref", uploadTemplate)
+      val initiateRequest = v2.FileStoreInitiateRequest(id = Some("id"))
+      val fileMetadata = FileMetadata("id", None, None)
+      val uploadTemplate = v2.UpscanFormTemplate(href = "href", fields = Map("key" -> "value"))
+      val initiateResponse = v2.UpscanInitiateResponse("ref", uploadTemplate)
 
+      given(config.filestoreSSL).willReturn(false)
       given(config.filestoreUrl).willReturn("host")
       given(config.fileStoreSizeConfiguration).willReturn(FileStoreSizeConfiguration(1, 1000))
       given(config.authorization).willReturn("auth-token")
-      given(repository.insertFile(fileMetadata)).willReturn(successful(fileMetaDataCreated))
-      given(upscanConnector.initiate(any[UploadSettings])(any[HeaderCarrier])).willReturn(successful(initiateResponse))
+      given(repository.insertFile(any[FileMetadata])(any[ExecutionContext])).willReturn(successful(fileMetadata))
+      given(upscanConnector.initiateV2(any[v2.UpscanInitiateRequest])(any[HeaderCarrier])).willReturn(successful(initiateResponse))
 
-      await(service.initiate(fileMetadata)) shouldBe UploadTemplate(id = "id", href = "href", fields = Map("key" -> "value"))
+      await(service.initiateV2(initiateRequest)) shouldBe v2.FileStoreInitiateResponse("id", "ref", initiateResponse.uploadRequest)
 
-      verify(auditService, times(1)).auditUpScanInitiated(fileId = "id", fileName = Some("file"), upScanRef = "ref")
+      verify(auditService, times(1)).auditUpScanInitiated(fileId = "id", fileName = None, upScanRef = "ref")
       verifyNoMoreInteractions(auditService)
 
-      theInitatePayload shouldBe UploadSettings(
-        "http://host/file/id/notify?X-Api-Token=2yL0YYIInq0TGnTCyaUwQhXpxtIktdzWH7QIx9mmMWU=",
-        1,
-        1000
+      theInitiateV2Payload shouldBe v2.UpscanInitiateRequest(
+        callbackUrl = "http://host/file/id/notify?X-Api-Token=2yL0YYIInq0TGnTCyaUwQhXpxtIktdzWH7QIx9mmMWU=",
+        successRedirect = None,
+        errorRedirect = None,
+        minimumFileSize = Some(1),
+        maximumFileSize = Some(1000),
+        expectedContentType = None
       )
     }
+  }
+
+  private def theInitiateV2Payload: v2.UpscanInitiateRequest = {
+    val captor: ArgumentCaptor[v2.UpscanInitiateRequest] = ArgumentCaptor.forClass(classOf[v2.UpscanInitiateRequest])
+    verify(upscanConnector).initiateV2(captor.capture())(any[HeaderCarrier])
+    captor.getValue
   }
 
   "Service 'upload' " should {

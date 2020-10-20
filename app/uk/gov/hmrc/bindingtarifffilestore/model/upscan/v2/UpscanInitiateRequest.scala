@@ -17,6 +17,7 @@
 package uk.gov.hmrc.bindingtarifffilestore.model.upscan.v2
 
 import play.api.libs.json.{ OFormat, Json }
+import uk.gov.hmrc.bindingtarifffilestore.config.AppConfig
 
 case class UpscanInitiateRequest(
   callbackUrl: String,
@@ -30,13 +31,13 @@ case class UpscanInitiateRequest(
 object UpscanInitiateRequest {
   implicit val format: OFormat[UpscanInitiateRequest] = Json.format[UpscanInitiateRequest]
 
-  def fromFileStoreRequest(callbackUrl: String, request: FileStoreInitiateRequest) =
+  def fromFileStoreRequest(callbackUrl: String, appConfig: AppConfig, request: FileStoreInitiateRequest) =
     UpscanInitiateRequest(
       callbackUrl = callbackUrl,
       successRedirect = request.successRedirect,
       errorRedirect = request.errorRedirect,
-      minimumFileSize = request.minimumFileSize,
-      maximumFileSize = request.maximumFileSize,
+      minimumFileSize = Some(appConfig.fileStoreSizeConfiguration.minFileSize),
+      maximumFileSize = Some(appConfig.fileStoreSizeConfiguration.maxFileSize),
       expectedContentType = request.expectedContentType
     )
 }
