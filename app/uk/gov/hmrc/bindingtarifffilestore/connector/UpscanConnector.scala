@@ -55,7 +55,17 @@ class UpscanConnector @Inject()(appConfig: AppConfig, http: HttpClient)(
     val builder: MultipartEntityBuilder = MultipartEntityBuilder.create
 
     template.fields.foreach(entry => builder.addPart(entry._1, new StringBody(entry._2, ContentType.TEXT_PLAIN)))
-    builder.addPart("file", new FileBody(fileWithMetaData.file.file))
+
+    builder.addPart(
+      "file",
+      new FileBody(
+        fileWithMetaData.file.file,
+        fileWithMetaData.metadata.mimeType
+          .flatMap(typ => Option(ContentType.getByMimeType(typ)))
+          .getOrElse(ContentType.DEFAULT_BINARY),
+        fileWithMetaData.metadata.fileName.getOrElse(fileWithMetaData.file.file.getName())
+      )
+    )
 
     val request: HttpPost = new HttpPost(template.href)
     request.setEntity(builder.build())

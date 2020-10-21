@@ -114,7 +114,8 @@ class FileStoreService @Inject()(appConfig: AppConfig,
       case FailedScanResult(_, details) =>
         log(attachment.id, s"Scan failed because it was [${details.failureReason}] with message [${details.message}]")
         repository.update(updatedAttachment)
-      case SuccessfulScanResult(_, _, _) =>
+      case SuccessfulScanResult(_, _, details) =>
+        log(attachment.id, s"Scan succeeded with details [${details.fileName}, ${details.fileMimeType}, ${details.checksum}, ${details.uploadTimestamp}]")
         if (updatedAttachment.publishable) {
           for {
             updated: Option[FileMetadata] <- repository.update(updatedAttachment)
