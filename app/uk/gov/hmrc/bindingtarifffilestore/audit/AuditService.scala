@@ -27,7 +27,7 @@ class AuditService @Inject()(auditConnector: DefaultAuditConnector) {
 
   import AuditPayloadType._
 
-  def auditUpScanInitiated(fileId: String, fileName: Option[String], upScanRef: String)
+  def auditUpScanInitiated(fileId: String, fileName: String, upScanRef: String)
                           (implicit hc: HeaderCarrier): Unit = {
     sendExplicitAuditEvent(
       auditEventType = UpScanInitiated,
@@ -35,7 +35,7 @@ class AuditService @Inject()(auditConnector: DefaultAuditConnector) {
     )
   }
 
-  def auditFileScanned(fileId: String, fileName: Option[String], upScanRef: String, upScanStatus: String)
+  def auditFileScanned(fileId: String, fileName: String, upScanRef: String, upScanStatus: String)
                       (implicit hc: HeaderCarrier): Unit = {
     sendExplicitAuditEvent(
       auditEventType = FileScanned,
@@ -58,12 +58,6 @@ class AuditService @Inject()(auditConnector: DefaultAuditConnector) {
     )
   }
 
-  private def fileDetailsAuditPayload(fileId: String, fileName: Option[String]): Map[String, String] = {
-    Map(
-      "fileId" -> fileId
-    ) ++ fileName.map(name => Map("fileName" -> name)).getOrElse(Map.empty)
-  }
-
   private def sendExplicitAuditEvent(auditEventType: String, auditPayload: Map[String, String])
                                     (implicit hc: HeaderCarrier): Unit = {
     auditConnector.sendExplicitAudit(auditType = auditEventType, detail = auditPayload)
@@ -72,6 +66,7 @@ class AuditService @Inject()(auditConnector: DefaultAuditConnector) {
 }
 
 object AuditPayloadType {
+
   val UpScanInitiated = "upScanInitiated"
   val FileScanned = "fileScanned"
   val FilePublished = "filePublished"

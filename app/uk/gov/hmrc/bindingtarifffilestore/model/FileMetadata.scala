@@ -17,17 +17,15 @@
 package uk.gov.hmrc.bindingtarifffilestore.model
 
 import java.time.{Instant, LocalDateTime, ZoneOffset}
-import java.{util => ju}
+
 import play.api.libs.json._
 import uk.gov.hmrc.bindingtarifffilestore.model.ScanStatus._
-import uk.gov.hmrc.bindingtarifffilestore.model.upscan._
-import uk.gov.hmrc.bindingtarifffilestore.model.upscan.v2
 
 case class FileMetadata
 (
   id: String,
-  fileName: Option[String],
-  mimeType: Option[String],
+  fileName: String,
+  mimeType: String,
   url: Option[String] = None,
   scanStatus: Option[ScanStatus] = None,
   publishable: Boolean = false,
@@ -64,36 +62,6 @@ case class FileMetadata
       }
     }
   }
-
-  def withScanResult(scanResult: ScanResult) = scanResult match {
-    case SuccessfulScanResult(reference, downloadUrl, uploadDetails) =>
-      copy(
-        fileName = Some(uploadDetails.fileName),
-        mimeType = Some(uploadDetails.fileMimeType),
-        url = Some(downloadUrl),
-        scanStatus = Some(ScanStatus.READY)
-      )
-    case FailedScanResult(reference, failureDetails) =>
-      copy(scanStatus = Some(ScanStatus.FAILED))
-  }
-}
-
-object FileMetadata {
-  def fromUploadRequest(uploadRequest: UploadRequest) =
-    FileMetadata(
-      id = uploadRequest.id.getOrElse(ju.UUID.randomUUID().toString),
-      fileName = Some(uploadRequest.fileName),
-      mimeType = Some(uploadRequest.mimeType),
-      publishable = uploadRequest.publishable
-    )
-
-  def fromInitiateRequestV2(id: String, request: v2.FileStoreInitiateRequest) =
-    FileMetadata(
-      id = id,
-      fileName = None,
-      mimeType = None,
-      publishable = request.publishable
-    )
 }
 
 object FileMetadataREST {
@@ -102,12 +70,12 @@ object FileMetadataREST {
       JsObject(
         Map[String, JsValue](
           "id" -> JsString(o.id),
+          "fileName" -> JsString(o.fileName),
+          "mimeType" -> JsString(o.mimeType),
           "publishable" -> JsBoolean(o.publishable),
           "published" -> JsBoolean(o.published),
           "lastUpdated" -> JsString(o.lastUpdated.toString)
         )
-          ++ o.fileName.map("fileName" -> Json.toJson(_))
-          ++ o.mimeType.map("mimeType" -> Json.toJson(_))
           ++ o.scanStatus.map("scanStatus" -> Json.toJson(_))
           ++ o.url.filter(_ => o.scanStatus.contains(READY)).map("url" -> JsString(_))
       )

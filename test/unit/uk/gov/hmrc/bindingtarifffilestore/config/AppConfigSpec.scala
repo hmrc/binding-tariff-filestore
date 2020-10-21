@@ -22,8 +22,8 @@ import org.mockito.Mockito.when
 import org.scalatest.BeforeAndAfterEach
 import org.scalatestplus.mockito.MockitoSugar
 import play.api.Configuration
-import uk.gov.hmrc.bindingtarifffilestore.util.{UnitSpec, WithFakeApplication}
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
+import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
 
 class AppConfigSpec extends UnitSpec with WithFakeApplication with MockitoSugar with BeforeAndAfterEach {
   val serviceConfig: ServicesConfig = mock[ServicesConfig]

@@ -16,9 +16,8 @@
 
 package uk.gov.hmrc.bindingtarifffilestore.service
 
-import java.{util => ju}
 import javax.inject.{Inject, Singleton}
-import play.api.Logging
+import play.api.Logger
 import uk.gov.hmrc.bindingtarifffilestore.audit.AuditService
 import uk.gov.hmrc.bindingtarifffilestore.config.AppConfig
 import uk.gov.hmrc.bindingtarifffilestore.connector.{AmazonS3Connector, UpscanConnector}
@@ -26,20 +25,19 @@ import uk.gov.hmrc.bindingtarifffilestore.controllers.routes
 import uk.gov.hmrc.bindingtarifffilestore.model.ScanStatus.{FAILED, READY}
 import uk.gov.hmrc.bindingtarifffilestore.model._
 import uk.gov.hmrc.bindingtarifffilestore.model.upscan._
-import uk.gov.hmrc.bindingtarifffilestore.model.upscan.v2
 import uk.gov.hmrc.bindingtarifffilestore.repository.FileMetadataMongoRepository
 import uk.gov.hmrc.bindingtarifffilestore.util.HashUtil
 import uk.gov.hmrc.http.HeaderCarrier
 
-import scala.concurrent.{ ExecutionContext, Future }
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
 @Singleton()
 class FileStoreService @Inject()(appConfig: AppConfig,
-  fileStoreConnector: AmazonS3Connector,
-  repository: FileMetadataMongoRepository,
-  upscanConnector: UpscanConnector,
-  auditService: AuditService
-)(implicit ec: ExecutionContext) extends Logging {
+                                 fileStoreConnector: AmazonS3Connector,
+                                 repository: FileMetadataMongoRepository,
+                                 upscanConnector: UpscanConnector,
+                                 auditService: AuditService) {
 
   private lazy val authToken = HashUtil.hash(appConfig.authorization)
 
@@ -53,26 +51,6 @@ class FileStoreService @Inject()(appConfig: AppConfig,
       initiateResponse <- upscanInitiate(metadata)
       template = initiateResponse.uploadRequest
     } yield UploadTemplate(fileId, template.href, template.fields)
-  }
-
-  def initiateV2(request: v2.FileStoreInitiateRequest)(implicit hc: HeaderCarrier): Future[v2.FileStoreInitiateResponse] = {
-    val fileId = request.id.getOrElse(ju.UUID.randomUUID().toString())
-
-    log(fileId, "Initiating")
-
-    val callbackUrl = routes.FileStoreController
-        .notification(fileId)
-        .absoluteURL(appConfig.filestoreSSL, appConfig.filestoreUrl) + s"?X-Api-Token=$authToken"
-
-    val fileMetadata = FileMetadata.fromInitiateRequestV2(fileId, request)
-    val upscanRequest = v2.UpscanInitiateRequest.fromFileStoreRequest(callbackUrl, appConfig, request)
-
-    for {
-      update <- repository.insertFile(fileMetadata)
-      initiateResponse <- upscanConnector.initiateV2(upscanRequest)
-      _ = log(fileId, s"Upscan Initiated with url [${initiateResponse.uploadRequest.href}] and Upscan reference [${initiateResponse.reference}]")
-      _ = auditService.auditUpScanInitiated(update.id, update.fileName, initiateResponse.reference)
-    } yield v2.FileStoreInitiateResponse.fromUpscanResponse(fileId, initiateResponse)
   }
 
   // Initiates an upload and Uploads the file direct
@@ -107,27 +85,26 @@ class FileStoreService @Inject()(appConfig: AppConfig,
   def notify(attachment: FileMetadata, scanResult: ScanResult)(implicit hc: HeaderCarrier): Future[Option[FileMetadata]] = {
     log(attachment.id, s"Scan completed with status [${scanResult.fileStatus}] and Upscan reference [${scanResult.reference}]")
     auditService.auditFileScanned(attachment.id, attachment.fileName, scanResult.reference, scanResult.fileStatus.toString)
-
-    val updatedAttachment = attachment.withScanResult(scanResult)
-
-    scanResult match {
-      case FailedScanResult(_, details) =>
+    scanResult.fileStatus match {
+      case FAILED =>
+        val details = scanResult.asInstanceOf[FailedScanResult].failureDetails
         log(attachment.id, s"Scan failed because it was [${details.failureReason}] with message [${details.message}]")
-        repository.update(updatedAttachment)
-      case SuccessfulScanResult(_, _, _) =>
-        if (updatedAttachment.publishable) {
+        repository.update(attachment.copy(scanStatus = Some(FAILED)))
+      case READY =>
+        val result = scanResult.asInstanceOf[SuccessfulScanResult]
+        val update = attachment.copy(url = Some(result.downloadUrl), scanStatus = Some(READY))
+        if (update.publishable) {
           for {
-            updated: Option[FileMetadata] <- repository.update(updatedAttachment)
+            updated: Option[FileMetadata] <- repository.update(update)
             published: Option[FileMetadata] <- updated match {
-              case Some(metadata) =>
-                publish(metadata)
+              case Some(metadata) => publish(metadata)
               case _ =>
-                log(attachment.id, s"Scan completed as READY but it couldn't be published as it no longer exists")
+                log(attachment.id, s"Scan completed as READY but it couldn't be published as it no longer exits")
                 Future.successful(None)
             }
           } yield published
         } else {
-          repository.update(updatedAttachment)
+          repository.update(update)
         }
     }
   }
@@ -141,7 +118,7 @@ class FileStoreService @Inject()(appConfig: AppConfig,
       case (Some(READY), false) if att.isLive =>
         log(att.id, "Publishing file to Permanent Storage")
         val metadata = fileStoreConnector.upload(att)
-        auditService.auditFilePublished(att.id, att.fileName.get)
+        auditService.auditFilePublished(att.id, att.fileName)
         log(att.id, "Published file to Permanent Storage")
         repository.update(metadata.copy(publishable = true, published = true))
           .map(signingPermanentURL)
@@ -197,11 +174,11 @@ class FileStoreService @Inject()(appConfig: AppConfig,
   }
 
   private def error(id: String, message: String, error: Throwable): Unit = {
-    logger.error(s"File [$id]: $message", error)
+    Logger.error(s"File [$id]: $message", error)
   }
 
   private def log(id: String, message: String): Unit = {
-    logger.info(s"File [$id]: $message")
+    Logger.info(s"File [$id]: $message")
   }
 
 }

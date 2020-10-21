@@ -20,6 +20,7 @@ import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.client.{MappingBuilder, WireMock}
 import com.github.tomakehurst.wiremock.stubbing.StubMapping
 import org.scalatest.BeforeAndAfterEach
+import uk.gov.hmrc.play.test.UnitSpec
 
 trait WiremockTestServer extends UnitSpec with BeforeAndAfterEach {
 

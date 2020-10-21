@@ -19,124 +19,89 @@ package uk.gov.hmrc.bindingtarifffilestore.controllers
 import java.util.UUID
 
 import javax.inject.{Inject, Singleton}
-import play.api.Logging
 import play.api.libs.Files.TemporaryFile
-import play.api.libs.json.Json
+import play.api.libs.json.{JsValue, Json}
 import play.api.mvc._
 import uk.gov.hmrc.bindingtarifffilestore.config.AppConfig
+import uk.gov.hmrc.bindingtarifffilestore.model.ErrorCode.NOTFOUND
 import uk.gov.hmrc.bindingtarifffilestore.model.FileMetadataREST._
 import uk.gov.hmrc.bindingtarifffilestore.model._
 import uk.gov.hmrc.bindingtarifffilestore.model.upscan.ScanResult
-import uk.gov.hmrc.bindingtarifffilestore.model.upscan.v2._
 import uk.gov.hmrc.bindingtarifffilestore.service.FileStoreService
 import uk.gov.hmrc.http.HeaderCarrier
-import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
-import scala.concurrent.{ ExecutionContext, Future }
-import play.api.libs.json.JsValue
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
+import scala.concurrent.Future.successful
 
 @Singleton
 class FileStoreController @Inject()(
-  appConfig: AppConfig,
-  service: FileStoreService,
-  parse: PlayBodyParsers,
-  mcc: MessagesControllerComponents
-)(implicit ec: ExecutionContext) extends BackendController(mcc) with ErrorHandling with JsonParsing with Logging {
+                                     appConfig: AppConfig,
+                                     service: FileStoreService,
+                                     parser: BodyParsers.Default,
+                                     mcc: MessagesControllerComponents
+                                   ) extends CommonController(mcc) {
 
-  private lazy val FileNotFound =
-    NotFound(JsErrorResponse(ErrorCode.NOTFOUND, "File Not Found"))
+  lazy private val testModeFilter = TestMode.actionFilter(appConfig, parser)
 
-  private def withFileMetadata(id: String)(f: FileMetadata => Future[Result]): Future[Result] =
-    service.find(id).flatMap {
-      case Some(meta) =>
-        f(meta)
-      case None =>
-        Future.successful(FileNotFound)
-    }
-
-  lazy private val testModeFilter = TestMode.actionFilter(appConfig, parse.default)
-
-  def deleteAll(): Action[AnyContent] = withErrorHandling {
-    testModeFilter.async {
-      service
-        .deleteAll()
-        .map(_ => NoContent)
-    }
+  def deleteAll(): Action[AnyContent] = testModeFilter.async {
+    service.deleteAll() map (_ => NoContent) recover recovery
   }
 
-  def delete(id: String): Action[AnyContent] = withErrorHandling { _ =>
-    service
-      .delete(id)
-      .map(_ => NoContent)
+  def delete(id: String): Action[AnyContent] = Action.async {
+    service.delete(id) map (_ => NoContent) recover recovery
   }
 
-  def initiate = withErrorHandling {
-    Action.async { implicit request =>
-      asJson[FileStoreInitiateRequest] { fileStoreRequest =>
-        service
-          .initiateV2(fileStoreRequest)
-          .map { response =>
-            Accepted(Json.toJson(response))
-          }
-      }
-    }
-  }
-
-  def upload: Action[AnyContent] = withErrorHandling { implicit request =>
+  def upload: Action[AnyContent] = Action.async { implicit request: Request[AnyContent] =>
     if (request.contentType.contains("application/json")) {
-      asJson[UploadRequest] { uploadRequest =>
-        service
-          .initiate(FileMetadata.fromUploadRequest(uploadRequest))
-          .map(template => Accepted(Json.toJson(template)))
-      }
+      asJson[UploadRequest](initiate)
     } else if (request.contentType.contains("multipart/form-data")) {
       request.body
         .asMultipartFormData.map(upload)
-        .getOrElse(Future.successful(BadRequest))
+        .getOrElse(successful(BadRequest))
     } else {
-      Future.successful(BadRequest("Content-Type must be one of [application/json, multipart/form-data]"))
+      successful(BadRequest("Content-Type must be one of [application/json, multipart/form-data]"))
     }
   }
 
   def get(id: String): Action[AnyContent] = Action.async {
-    withFileMetadata(id) { meta =>
-      Future.successful(Ok(Json.toJson(meta)))
+    handleNotFound(id, (att: FileMetadata) => successful(Ok(Json.toJson(att))))
+  }
+
+  def notification(id: String): Action[JsValue] = Action.async(parse.json) { implicit request =>
+    withJsonBody[ScanResult] { scanResult =>
+      handleNotFound(id, (att: FileMetadata) => service.notify(att, scanResult).map(f => Created(Json.toJson(f)))) recover recovery
     }
   }
 
-  def notification(id: String): Action[JsValue] = withErrorHandling {
-    Action(parse.json).async { implicit req =>
-      withJsonBody[ScanResult] { scanResult =>
-        withFileMetadata(id) { meta =>
-          service
-            .notify(meta, scanResult)
-            .map { updatedMeta =>
-              Created(Json.toJson(updatedMeta))
-            }
-        }
+  def publish(id: String): Action[AnyContent] = Action.async { implicit request =>
+    handleNotFound(id, (att: FileMetadata) =>
+      service.publish(att) map {
+        case Some(metadata) => Accepted(Json.toJson(metadata))
+        case None => NotFound(JsErrorResponse(NOTFOUND, "File Not Found"))
       }
-    }
+    ) recover recovery
   }
 
-  def publish(id: String): Action[AnyContent] = withErrorHandling { implicit request =>
-    withFileMetadata(id) { meta =>
-      service.publish(meta).map {
-        case Some(updatedMeta) =>
-          Accepted(Json.toJson(updatedMeta))
-        case None =>
-          FileNotFound
-      }
-    }
-  }
-
-  def getAll(search: Search, pagination: Option[Pagination]): Action[AnyContent] = withErrorHandling { _ =>
-    service.find(search, pagination.getOrElse(Pagination.max)).map { pagedResults =>
-      if (pagination.isDefined) {
+  def getAll(search: Search, pagination: Option[Pagination]): Action[AnyContent] = Action.async {
+    service.find(search, pagination.getOrElse(Pagination.max)) map { pagedResults =>
+      if(pagination.isDefined) {
         Ok(Json.toJson(pagedResults))
       } else {
         Ok(Json.toJson(pagedResults.results))
       }
-    }
+    } recover recovery
+  }
+
+  private def initiate(template: UploadRequest)(implicit hc: HeaderCarrier): Future[Result] = {
+    service.initiate(
+      FileMetadata(
+        id = template.id.getOrElse(UUID.randomUUID().toString),
+        fileName = template.fileName,
+        mimeType = template.mimeType,
+        publishable = template.publishable
+      )
+    ).map(t => Accepted(Json.toJson(t))) recover recovery
   }
 
   private def upload(body: MultipartFormData[TemporaryFile])(implicit hc: HeaderCarrier): Future[Result] = {
@@ -149,8 +114,8 @@ class FileStoreController @Inject()(
         file.ref,
         FileMetadata(
           id = id,
-          fileName = Some(file.filename),
-          mimeType = Some(file.contentType.getOrElse(throw new RuntimeException("Missing file type"))),
+          fileName = file.filename,
+          mimeType = file.contentType.getOrElse(throw new RuntimeException("Missing file type")),
           publishable = publishable
         )
       )
@@ -158,6 +123,14 @@ class FileStoreController @Inject()(
 
     attachment
       .map(service.upload(_).map(f => Accepted(Json.toJson(f))))
-      .getOrElse(Future.successful(BadRequest(JsErrorResponse(ErrorCode.INVALID_REQUEST_PAYLOAD, "Invalid File"))))
+      .getOrElse(successful(BadRequest(JsErrorResponse(ErrorCode.INVALID_REQUEST_PAYLOAD, "Invalid File")))) recover recovery
   }
+
+  private def handleNotFound(id: String, result: FileMetadata => Future[Result]): Future[Result] = {
+    service.find(id) flatMap {
+      case Some(att: FileMetadata) => result(att)
+      case _ => successful(NotFound(JsErrorResponse(NOTFOUND, "File Not Found")))
+    }
+  }
+
 }

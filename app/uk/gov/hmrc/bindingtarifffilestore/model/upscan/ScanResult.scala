@@ -61,8 +61,6 @@ object ScanResult {
 
 case class UploadDetails
 (
-  fileName: String,
-  fileMimeType: String, 
   uploadTimestamp: Instant,
   checksum: String
 )

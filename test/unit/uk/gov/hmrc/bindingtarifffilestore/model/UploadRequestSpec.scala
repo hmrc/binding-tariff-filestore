@@ -17,7 +17,7 @@
 package uk.gov.hmrc.bindingtarifffilestore.model
 
 import play.api.libs.json.Json
-import uk.gov.hmrc.bindingtarifffilestore.util.UnitSpec
+import uk.gov.hmrc.play.test.UnitSpec
 
 class UploadRequestSpec extends UnitSpec {
 

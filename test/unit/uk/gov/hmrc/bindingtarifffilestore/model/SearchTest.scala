@@ -17,7 +17,8 @@
 package uk.gov.hmrc.bindingtarifffilestore.model
 
 import java.net.URLDecoder
-import uk.gov.hmrc.bindingtarifffilestore.util.UnitSpec
+
+import uk.gov.hmrc.play.test.UnitSpec
 
 class SearchTest extends UnitSpec {
 

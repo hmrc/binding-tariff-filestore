@@ -19,18 +19,16 @@ package uk.gov.hmrc.bindingtarifffilestore.model.upscan
 import java.time.Instant
 
 import play.api.libs.json.{JsObject, JsString, Json}
-import uk.gov.hmrc.bindingtarifffilestore.util.UnitSpec
+import uk.gov.hmrc.play.test.UnitSpec
 
 class ScanResultSpec extends UnitSpec {
 
   "Successful Scan Result" should {
-    val model = SuccessfulScanResult("ref", "url", UploadDetails("file", "type", Instant.EPOCH, "checksum"))
+    val model = SuccessfulScanResult("ref", "url", UploadDetails(Instant.EPOCH, "checksum"))
     val json = JsObject(Map(
       "reference" -> JsString("ref"),
       "downloadUrl" -> JsString("url"),
       "uploadDetails" -> JsObject(Map(
-        "fileName" -> JsString("file"),
-        "fileMimeType" -> JsString("type"),
         "uploadTimestamp" -> JsString("1970-01-01T00:00:00Z"),
         "checksum" -> JsString("checksum")
       )),

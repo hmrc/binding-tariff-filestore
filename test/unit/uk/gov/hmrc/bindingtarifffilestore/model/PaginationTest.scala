@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.bindingtarifffilestore.model
 
-import uk.gov.hmrc.bindingtarifffilestore.util.UnitSpec
+import uk.gov.hmrc.play.test.UnitSpec
 
 class PaginationTest extends UnitSpec {
 

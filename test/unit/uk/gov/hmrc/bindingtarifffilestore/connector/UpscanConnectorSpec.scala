@@ -27,10 +27,11 @@ import play.api.libs.ws.WSClient
 import uk.gov.hmrc.bindingtarifffilestore.config.AppConfig
 import uk.gov.hmrc.bindingtarifffilestore.model.upscan.{UploadSettings, UpscanInitiateResponse, UpscanTemplate}
 import uk.gov.hmrc.bindingtarifffilestore.model.{FileMetadata, FileWithMetadata}
-import uk.gov.hmrc.bindingtarifffilestore.util._
+import uk.gov.hmrc.bindingtarifffilestore.util.{ResourceFiles, WiremockTestServer}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.audit.http.HttpAuditing
 import uk.gov.hmrc.play.bootstrap.http.DefaultHttpClient
+import uk.gov.hmrc.play.test.{UnitSpec, WithFakeApplication}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
@@ -92,7 +93,7 @@ class UpscanConnectorSpec extends UnitSpec with WithFakeApplication with Wiremoc
       )
       val fileUploading = FileWithMetadata(
         SingletonTemporaryFileCreator.create("example-file.json"),
-        FileMetadata("id", Some("file.txt"), Some("text/plain"))
+        FileMetadata("id", "file.txt", "text/plain")
       )
 
       await(connector.upload(templateUploading, fileUploading))
@@ -116,7 +117,7 @@ class UpscanConnectorSpec extends UnitSpec with WithFakeApplication with Wiremoc
       )
       val fileUploading = FileWithMetadata(
         SingletonTemporaryFileCreator.create("example-file.json"),
-        FileMetadata("id", Some("file.txt"), Some("text/plain"))
+        FileMetadata("id", "file.txt", "text/plain")
       )
 
       intercept[RuntimeException] {

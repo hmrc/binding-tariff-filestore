@@ -21,9 +21,9 @@ import org.mockito.Mockito.{reset, verify}
 import org.scalatest.BeforeAndAfterEach
 import org.scalatestplus.mockito.MockitoSugar
 import uk.gov.hmrc.bindingtarifffilestore.audit.AuditPayloadType._
-import uk.gov.hmrc.bindingtarifffilestore.util.UnitSpec
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.bootstrap.audit.DefaultAuditConnector
+import uk.gov.hmrc.play.test.UnitSpec
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
@@ -47,7 +47,7 @@ class AuditServiceTest extends UnitSpec with MockitoSugar with BeforeAndAfterEac
   "auditUpScanInitiated()" should {
 
     "send the expected payload to the audit connector" in {
-      service.auditUpScanInitiated(fileId, Some(fileName), upScanRef)
+      service.auditUpScanInitiated(fileId, fileName, upScanRef)
 
       val payload = auditPayload(fileId, fileName) + ("upScanReference" -> upScanRef)
 
@@ -58,7 +58,7 @@ class AuditServiceTest extends UnitSpec with MockitoSugar with BeforeAndAfterEac
   "auditFileScanned()" should {
 
     "send the expected payload to the audit connector" in {
-      service.auditFileScanned(fileId, Some(fileName), upScanRef, upScanStatus)
+      service.auditFileScanned(fileId, fileName, upScanRef, upScanStatus)
 
       val payload = auditPayload(fileId, fileName) + ("upScanReference" -> upScanRef, "upScanStatus" -> upScanStatus)
 

@@ -104,7 +104,7 @@ class FileMetadataRepositorySpec extends BaseMongoIndexSpec
       await(repository.insertFile(att1))
       val size = collectionSize
 
-      val updated = att1.copy(mimeType = Some(generateString), fileName = Some(generateString))
+      val updated = att1.copy(mimeType = generateString, fileName = generateString)
       await(repository.update(updated))
       collectionSize shouldBe size
 
@@ -225,8 +225,8 @@ class FileMetadataRepositorySpec extends BaseMongoIndexSpec
 
   private def generateAttachment = FileMetadata(
     id = generateString,
-    fileName = Some(generateString),
-    mimeType = Some(generateString)
+    fileName = generateString,
+    mimeType = generateString
   )
 
   private def generateString = UUID.randomUUID().toString
