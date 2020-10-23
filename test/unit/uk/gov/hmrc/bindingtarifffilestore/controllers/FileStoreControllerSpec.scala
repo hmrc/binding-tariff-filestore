@@ -251,7 +251,7 @@ class FileStoreControllerSpec extends UnitSpec with Matchers
       when(service.initiateV2(any[FileStoreInitiateRequest])(any[HeaderCarrier])).thenReturn(successful(response))
 
       // When
-      val request = FileStoreInitiateRequest(publishable = true)
+      val request = FileStoreInitiateRequest(callbackUrl = "http://localhost/notify", publishable = true)
       val result: Result = await(controller.initiate(jsonRequest(request)))
 
       // Then
@@ -264,7 +264,7 @@ class FileStoreControllerSpec extends UnitSpec with Matchers
       when(service.initiateV2(any[FileStoreInitiateRequest])(any[HeaderCarrier])).thenReturn(successful(response))
 
       // When
-      val request = FileStoreInitiateRequest(id = Some("id"), publishable = true)
+      val request = FileStoreInitiateRequest(id = Some("id"), callbackUrl = "http://localhost/notify", publishable = true)
       val result: Result = await(controller.initiate(jsonRequest(request)))
 
       // Then

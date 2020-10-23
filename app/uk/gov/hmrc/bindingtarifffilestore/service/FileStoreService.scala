@@ -60,12 +60,8 @@ class FileStoreService @Inject()(appConfig: AppConfig,
 
     log(fileId, "Initiating")
 
-    val callbackUrl = routes.FileStoreController
-        .notification(fileId)
-        .absoluteURL(appConfig.filestoreSSL, appConfig.filestoreUrl) + s"?X-Api-Token=$authToken"
-
     val fileMetadata = FileMetadata.fromInitiateRequestV2(fileId, request)
-    val upscanRequest = v2.UpscanInitiateRequest.fromFileStoreRequest(callbackUrl, appConfig, request)
+    val upscanRequest = v2.UpscanInitiateRequest.fromFileStoreRequest(appConfig, request)
 
     for {
       update <- repository.insertFile(fileMetadata)
