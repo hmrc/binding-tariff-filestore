@@ -501,10 +501,15 @@ class FileStoreSpec extends WiremockFeatureTestServer with ResourceFiles {
   private def initiateV2(id: Option[String] = None): HttpResponse[Map[String, JsValue]] = {
     stubUpscanInitiateV2
 
+    val initiateRequest = v2.FileStoreInitiateRequest(
+      id = id,
+      callbackUrl = "http://localhost/notify"
+    )
+
     Http(s"$serviceUrl/file/initiate")
       .header("Content-Type", "application/json")
       .header(apiTokenKey, appConfig.authorization)
-      .postData(Json.toJson(v2.FileStoreInitiateRequest(id = id)).toString())
+      .postData(Json.toJson(initiateRequest).toString)
       .execute(convertingResponseToJS)
   }
 
