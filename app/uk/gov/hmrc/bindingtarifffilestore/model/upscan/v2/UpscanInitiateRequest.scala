@@ -31,9 +31,9 @@ case class UpscanInitiateRequest(
 object UpscanInitiateRequest {
   implicit val format: OFormat[UpscanInitiateRequest] = Json.format[UpscanInitiateRequest]
 
-  def fromFileStoreRequest(appConfig: AppConfig, request: FileStoreInitiateRequest) =
+  def fromFileStoreRequest(callbackUrl: String, appConfig: AppConfig, request: FileStoreInitiateRequest) =
     UpscanInitiateRequest(
-      callbackUrl = request.callbackUrl,
+      callbackUrl = callbackUrl,
       successRedirect = request.successRedirect,
       errorRedirect = request.errorRedirect,
       minimumFileSize = Some(appConfig.fileStoreSizeConfiguration.minFileSize),
