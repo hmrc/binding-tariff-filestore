@@ -175,7 +175,7 @@ class FileStoreServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfte
 
   "Service 'initiateV2'" should {
     "Delegate to Connector" in {
-      val initiateRequest = v2.FileStoreInitiateRequest(id = Some("id"), callbackUrl = "http://localhost/notify")
+      val initiateRequest = v2.FileStoreInitiateRequest(id = Some("id"))
       val fileMetadata = FileMetadata("id", None, None)
       val uploadTemplate = v2.UpscanFormTemplate(href = "href", fields = Map("key" -> "value"))
       val initiateResponse = v2.UpscanInitiateResponse("ref", uploadTemplate)
@@ -193,7 +193,7 @@ class FileStoreServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfte
       verifyNoMoreInteractions(auditService)
 
       theInitiateV2Payload shouldBe v2.UpscanInitiateRequest(
-        callbackUrl = "http://localhost/notify",
+        callbackUrl = "http://host/file/id/notify?X-Api-Token=2yL0YYIInq0TGnTCyaUwQhXpxtIktdzWH7QIx9mmMWU=",
         successRedirect = None,
         errorRedirect = None,
         minimumFileSize = Some(1),
