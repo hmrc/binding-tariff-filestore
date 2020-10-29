@@ -36,8 +36,8 @@ object UpscanInitiateRequest {
       callbackUrl = callbackUrl,
       successRedirect = request.successRedirect,
       errorRedirect = request.errorRedirect,
-      minimumFileSize = Some(appConfig.fileStoreSizeConfiguration.minFileSize),
-      maximumFileSize = Some(appConfig.fileStoreSizeConfiguration.maxFileSize),
+      minimumFileSize = Some(request.minFileSize.getOrElse(appConfig.fileStoreSizeConfiguration.minFileSize).toLong),
+      maximumFileSize = Some(request.maxFileSize.getOrElse(appConfig.fileStoreSizeConfiguration.maxFileSize).toLong),
       expectedContentType = request.expectedContentType
     )
 }
