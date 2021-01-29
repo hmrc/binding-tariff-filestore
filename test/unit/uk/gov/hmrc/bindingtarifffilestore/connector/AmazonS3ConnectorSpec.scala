@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 HM Revenue & Customs
+ * Copyright 2021 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,8 +16,12 @@
 
 package uk.gov.hmrc.bindingtarifffilestore.connector
 
+import better.files._
 import com.amazonaws.services.s3.model.AmazonS3Exception
+import com.drew.imaging.ImageMetadataReader
+import com.drew.metadata.exif.GpsDirectory
 import com.github.tomakehurst.wiremock.client.WireMock._
+import java.nio.file.{Files, Paths}
 import org.mockito.BDDMockito.given
 import org.scalatest.BeforeAndAfterEach
 import org.scalatestplus.mockito.MockitoSugar
@@ -26,6 +30,9 @@ import play.api.libs.Files.SingletonTemporaryFileCreator
 import uk.gov.hmrc.bindingtarifffilestore.config.{AppConfig, S3Configuration}
 import uk.gov.hmrc.bindingtarifffilestore.model.FileMetadata
 import uk.gov.hmrc.bindingtarifffilestore.util.{ResourceFiles, UnitSpec, WiremockTestServer}
+import org.apache.pdfbox.pdmodel.PDDocument
+import org.apache.pdfbox.io.MemoryUsageSetting
+import org.apache.poi.xwpf.usermodel.XWPFDocument
 
 class AmazonS3ConnectorSpec extends UnitSpec with WiremockTestServer
   with MockitoSugar with BeforeAndAfterEach with ResourceFiles {
@@ -33,7 +40,7 @@ class AmazonS3ConnectorSpec extends UnitSpec with WiremockTestServer
   private val s3Config = S3Configuration("key", "secret", "region", "bucket", Some(s"http://localhost:$wirePort"))
   private val config = mock[AppConfig]
 
-  private val connector = new AmazonS3Connector(config)
+  private val connector = new AmazonS3Connector(config, SingletonTemporaryFileCreator)
 
   override protected def beforeEach(): Unit = {
     super.beforeEach()
@@ -119,6 +126,72 @@ class AmazonS3ConnectorSpec extends UnitSpec with WiremockTestServer
         connector.upload(fileUploading)
       }
       exception.getMessage shouldBe "Bad Gateway (Service: Amazon S3; Status Code: 502; Error Code: 502 Bad Gateway; Request ID: null; S3 Extended Request ID: null; Proxy: null)"
+    }
+
+    "Strip office metadata" in {
+      val testFileURI = getClass().getResource("/newwi.docx").toURI()
+      val testFilePath = Paths.get(testFileURI)
+      val testFile = SingletonTemporaryFileCreator.create(testFilePath)
+      val fileMetaData = FileMetadata("id", Some("test.docx"), Some("application/vnd.openxmlformats-officedocument.wordprocessingml.document"), None)
+
+      using(Files.newInputStream(testFilePath)) { testFileIs =>
+        using(new XWPFDocument(testFileIs)) { docBefore =>
+          docBefore.getProperties().getCoreProperties().getCreator() shouldNot be(null)
+
+          val strippedFile = connector.stripMetadata(fileMetaData, testFile)
+
+          using(Files.newInputStream(strippedFile.path)) { strippedFileIs =>
+            using(new XWPFDocument(strippedFileIs)) { docAfter =>
+              docAfter.getProperties().getCoreProperties().getCreator() shouldBe null
+            }
+          }
+        }
+      }
+    }
+
+    "Strip PDF metadata" in {
+      val testFileURI = getClass().getResource("/eb83_first_en.pdf").toURI()
+      val testFilePath = Paths.get(testFileURI)
+      val testFile = SingletonTemporaryFileCreator.create(testFilePath)
+      val fileMetaData = FileMetadata("id", Some("test.pdf"), Some("application/pdf"), None)
+
+      using(Files.newInputStream(testFile.path)) { testFileIs =>
+        using(PDDocument.load(testFileIs, MemoryUsageSetting.setupTempFileOnly())) { docBefore =>
+          val infoBefore = docBefore.getDocumentInformation()
+          infoBefore.getAuthor() shouldNot be(null)
+
+          val strippedFile = connector.stripMetadata(fileMetaData, testFile)
+
+          using(Files.newInputStream(strippedFile.path)) { strippedFileIs =>
+            using(PDDocument.load(strippedFileIs, MemoryUsageSetting.setupTempFileOnly())) { docAfter =>
+              val infoAfter = docAfter.getDocumentInformation()
+              infoAfter.getAuthor() shouldBe null
+            }
+          }
+        }
+      }
+    }
+
+    "Strip EXIF metadata" in {
+      val testFileURI = getClass().getResource("/Metadata_test_file.jpg").toURI()
+      val testFilePath = Paths.get(testFileURI)
+      val testFile = SingletonTemporaryFileCreator.create(testFilePath)
+      val fileMetaData = FileMetadata("id", Some("test.jpg"), Some("image/jpeg"), None)
+
+      using(Files.newInputStream(testFilePath)) { testFileIs =>
+        val metadataBefore = ImageMetadataReader.readMetadata(testFileIs)
+        metadataBefore.getDirectoryCount() should be > 0
+        val gpsBefore = metadataBefore.getFirstDirectoryOfType(classOf[GpsDirectory])
+        gpsBefore.getString(GpsDirectory.TAG_LONGITUDE) shouldNot be(null)
+
+        val strippedFile = connector.stripMetadata(fileMetaData, testFile)
+
+        using(Files.newInputStream(strippedFile.path)) { strippedFileIs =>
+          val metadataAfter = ImageMetadataReader.readMetadata(strippedFileIs)
+          metadataAfter.getDirectoryCount() shouldBe < (metadataBefore.getDirectoryCount())
+          metadataAfter.getFirstDirectoryOfType(classOf[GpsDirectory]) shouldBe null
+        }
+      }
     }
   }
 
