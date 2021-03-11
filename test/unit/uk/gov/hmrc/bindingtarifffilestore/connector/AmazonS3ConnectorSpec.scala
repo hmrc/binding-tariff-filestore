@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 HM Revenue & Customs
+ * Copyright 2021 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,11 +27,15 @@ import uk.gov.hmrc.bindingtarifffilestore.config.{AppConfig, S3Configuration}
 import uk.gov.hmrc.bindingtarifffilestore.model.FileMetadata
 import uk.gov.hmrc.bindingtarifffilestore.util.{ResourceFiles, UnitSpec, WiremockTestServer}
 
-class AmazonS3ConnectorSpec extends UnitSpec with WiremockTestServer
-  with MockitoSugar with BeforeAndAfterEach with ResourceFiles {
+class AmazonS3ConnectorSpec
+    extends UnitSpec
+    with WiremockTestServer
+    with MockitoSugar
+    with BeforeAndAfterEach
+    with ResourceFiles {
 
   private val s3Config = S3Configuration("key", "secret", "region", "bucket", Some(s"http://localhost:$wirePort"))
-  private val config = mock[AppConfig]
+  private val config   = mock[AppConfig]
 
   private val connector = new AmazonS3Connector(config)
 
@@ -46,7 +50,10 @@ class AmazonS3ConnectorSpec extends UnitSpec with WiremockTestServer
       // Given
       stubFor(
         get("/bucket/?encoding-type=url")
-          .withHeader("Authorization", matching(s"AWS4-HMAC-SHA256 Credential=${s3Config.key}/\\d+/${s3Config.region}/s3/aws4_request, .*"))
+          .withHeader(
+            "Authorization",
+            matching(s"AWS4-HMAC-SHA256 Credential=${s3Config.key}/\\d+/${s3Config.region}/s3/aws4_request, .*")
+          )
           .willReturn(
             aResponse()
               .withStatus(Status.OK)
@@ -58,7 +65,7 @@ class AmazonS3ConnectorSpec extends UnitSpec with WiremockTestServer
       val all: Seq[String] = connector.getAll
 
       // Then
-      all should have size 1
+      all      should have size 1
       all.head shouldBe "image.jpg"
     }
 
@@ -70,7 +77,10 @@ class AmazonS3ConnectorSpec extends UnitSpec with WiremockTestServer
       // Given
       stubFor(
         put("/bucket/id")
-          .withHeader("Authorization", matching(s"AWS4-HMAC-SHA256 Credential=${s3Config.key}/\\d+/${s3Config.region}/s3/aws4_request, .*"))
+          .withHeader(
+            "Authorization",
+            matching(s"AWS4-HMAC-SHA256 Credential=${s3Config.key}/\\d+/${s3Config.region}/s3/aws4_request, .*")
+          )
           .withHeader("Content-Type", equalTo("text/plain"))
           .willReturn(
             aResponse()
@@ -78,15 +88,15 @@ class AmazonS3ConnectorSpec extends UnitSpec with WiremockTestServer
           )
       )
 
-      val url = SingletonTemporaryFileCreator.create("example.txt").path.toUri.toURL.toString
+      val url           = SingletonTemporaryFileCreator.create("example.txt").path.toUri.toURL.toString
       val fileUploading = FileMetadata("id", Some("file.txt"), Some("text/plain"), Some(url))
 
       // Then
       val result = connector.upload(fileUploading)
-      result.id shouldBe "id"
+      result.id       shouldBe "id"
       result.fileName shouldBe Some("file.txt")
       result.mimeType shouldBe Some("text/plain")
-      result.url.get shouldBe s"$wireMockUrl/bucket/id"
+      result.url.get  shouldBe s"$wireMockUrl/bucket/id"
     }
 
     "Throw Exception on missing URL" in {
@@ -104,14 +114,17 @@ class AmazonS3ConnectorSpec extends UnitSpec with WiremockTestServer
       // Given
       stubFor(
         put("/bucket/id")
-          .withHeader("Authorization", matching(s"AWS4-HMAC-SHA256 Credential=${s3Config.key}/\\d+/${s3Config.region}/s3/aws4_request, .*"))
+          .withHeader(
+            "Authorization",
+            matching(s"AWS4-HMAC-SHA256 Credential=${s3Config.key}/\\d+/${s3Config.region}/s3/aws4_request, .*")
+          )
           .withHeader("Content-Type", equalTo("text/plain"))
           .willReturn(
             aResponse()
               .withStatus(Status.BAD_GATEWAY)
           )
       )
-      val url = SingletonTemporaryFileCreator.create("example.txt").path.toUri.toURL.toString
+      val url           = SingletonTemporaryFileCreator.create("example.txt").path.toUri.toURL.toString
       val fileUploading = FileMetadata("id", Some("file.txt"), Some("text/plain"), Some(url))
 
       // Then
@@ -144,7 +157,10 @@ class AmazonS3ConnectorSpec extends UnitSpec with WiremockTestServer
     "Delegate to S3" in {
       stubFor(
         get("/bucket/?encoding-type=url")
-          .withHeader("Authorization", matching(s"AWS4-HMAC-SHA256 Credential=${s3Config.key}/\\d+/${s3Config.region}/s3/aws4_request, .*"))
+          .withHeader(
+            "Authorization",
+            matching(s"AWS4-HMAC-SHA256 Credential=${s3Config.key}/\\d+/${s3Config.region}/s3/aws4_request, .*")
+          )
           .willReturn(
             aResponse()
               .withStatus(Status.OK)
@@ -153,7 +169,10 @@ class AmazonS3ConnectorSpec extends UnitSpec with WiremockTestServer
       )
       stubFor(
         post("/bucket/?delete")
-          .withHeader("Authorization", matching(s"AWS4-HMAC-SHA256 Credential=${s3Config.key}/\\d+/${s3Config.region}/s3/aws4_request, .*"))
+          .withHeader(
+            "Authorization",
+            matching(s"AWS4-HMAC-SHA256 Credential=${s3Config.key}/\\d+/${s3Config.region}/s3/aws4_request, .*")
+          )
           .willReturn(
             aResponse()
               .withStatus(Status.OK)
@@ -172,7 +191,10 @@ class AmazonS3ConnectorSpec extends UnitSpec with WiremockTestServer
     "Do nothing for no files" in {
       stubFor(
         get("/bucket/?encoding-type=url")
-          .withHeader("Authorization", matching(s"AWS4-HMAC-SHA256 Credential=${s3Config.key}/\\d+/${s3Config.region}/s3/aws4_request, .*"))
+          .withHeader(
+            "Authorization",
+            matching(s"AWS4-HMAC-SHA256 Credential=${s3Config.key}/\\d+/${s3Config.region}/s3/aws4_request, .*")
+          )
           .willReturn(
             aResponse()
               .withStatus(Status.OK)
@@ -190,7 +212,10 @@ class AmazonS3ConnectorSpec extends UnitSpec with WiremockTestServer
     "Delegate to S3" in {
       stubFor(
         delete("/bucket/id")
-          .withHeader("Authorization", matching(s"AWS4-HMAC-SHA256 Credential=${s3Config.key}/\\d+/${s3Config.region}/s3/aws4_request, .*"))
+          .withHeader(
+            "Authorization",
+            matching(s"AWS4-HMAC-SHA256 Credential=${s3Config.key}/\\d+/${s3Config.region}/s3/aws4_request, .*")
+          )
           .willReturn(
             aResponse()
               .withStatus(Status.OK)

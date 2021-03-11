@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 HM Revenue & Customs
+ * Copyright 2021 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,43 +20,42 @@ import play.api.mvc.QueryStringBindable
 import uk.gov.hmrc.bindingtarifffilestore.model.Pagination.{defaultPageSize, defaultPageStart}
 
 case class Pagination(
-                       page: Int = defaultPageStart,
-                       pageSize: Int = defaultPageSize
-                     )
+  page: Int     = defaultPageStart,
+  pageSize: Int = defaultPageSize
+)
 
 object Pagination {
   val defaultPageStart = 1
-  val defaultPageSize = 100
+  val defaultPageSize  = 100
 
   val max: Pagination = Pagination(1, Integer.MAX_VALUE)
 
-  private val pageKey = "page"
+  private val pageKey     = "page"
   private val pageSizeKey = "page_size"
 
-  implicit def bindable(implicit intBinder: QueryStringBindable[Int]): QueryStringBindable[Pagination] = new QueryStringBindable[Pagination] {
+  implicit def bindable(implicit intBinder: QueryStringBindable[Int]): QueryStringBindable[Pagination] =
+    new QueryStringBindable[Pagination] {
 
-    override def bind(key: String, params: Map[String, Seq[String]]): Option[Either[String, Pagination]] = {
-      def param(name: String): Option[Int] = intBinder.bind(name, params).filter(_.isRight).map(_.right.get)
+      override def bind(key: String, params: Map[String, Seq[String]]): Option[Either[String, Pagination]] = {
+        def param(name: String): Option[Int] = intBinder.bind(name, params).filter(_.isRight).map(_.right.get)
 
-      val page: Option[Int] = param(pageKey).filter(_ > 0)
-      val pageSize: Option[Int] = param(pageSizeKey)
+        val page: Option[Int]     = param(pageKey).filter(_ > 0)
+        val pageSize: Option[Int] = param(pageSizeKey)
 
-      (page, pageSize) match {
-        case (Some(p), Some(s)) => Some(Right(Pagination(page = p, pageSize = s)))
-        case (Some(p), _) => Some(Right(Pagination(page = p)))
-        case (_, Some(s)) => Some(Right(Pagination(pageSize = s)))
-        case _ => None
+        (page, pageSize) match {
+          case (Some(p), Some(s)) => Some(Right(Pagination(page = p, pageSize = s)))
+          case (Some(p), _)       => Some(Right(Pagination(page = p)))
+          case (_, Some(s))       => Some(Right(Pagination(pageSize = s)))
+          case _                  => None
+        }
       }
+
+      override def unbind(key: String, query: Pagination): String =
+        Seq[String](
+          intBinder.unbind(pageKey, query.page),
+          intBinder.unbind(pageSizeKey, query.pageSize)
+        ).mkString("&")
+
     }
-
-    override def unbind(key: String, query: Pagination): String = {
-      Seq[String](
-        intBinder.unbind(pageKey, query.page),
-        intBinder.unbind(pageSizeKey, query.pageSize)
-      ).mkString("&")
-
-    }
-
-  }
 
 }

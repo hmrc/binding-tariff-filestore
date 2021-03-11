@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 HM Revenue & Customs
+ * Copyright 2021 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,10 +21,10 @@ import play.api.Configuration
 import uk.gov.hmrc.play.bootstrap.config._
 
 @Singleton
-class AppConfig @Inject()(
-                           config: Configuration,
-                           servicesConfig: ServicesConfig
-                         ) {
+class AppConfig @Inject() (
+  config: Configuration,
+  servicesConfig: ServicesConfig
+) {
 
   lazy val authorization: String = config.get[String]("auth.api-token")
 
@@ -42,7 +42,7 @@ class AppConfig @Inject()(
     minFileSize = config.get[Int]("upscan.minFileSize")
   )
 
-  lazy val filestoreUrl: String = config.get[String]("filestore.url")
+  lazy val filestoreUrl: String  = config.get[String]("filestore.url")
   lazy val filestoreSSL: Boolean = config.get[Boolean]("filestore.ssl")
 
   private def base64Decode(text: String) = new String(java.util.Base64.getDecoder.decode(text))
@@ -50,8 +50,7 @@ class AppConfig @Inject()(
   lazy val isTestMode: Boolean = config.getOptional[Boolean]("testMode").getOrElse(false)
 }
 
-case class S3Configuration
-(
+case class S3Configuration(
   key: String,
   secret: String,
   region: String,
@@ -62,8 +61,7 @@ case class S3Configuration
   def baseUrl: String = endpoint.getOrElse(s"https://s3-$region.amazonaws.com")
 }
 
-case class FileStoreSizeConfiguration
-(
+case class FileStoreSizeConfiguration(
   minFileSize: Int,
   maxFileSize: Int
 )

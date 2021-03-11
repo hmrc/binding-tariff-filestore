@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 HM Revenue & Customs
+ * Copyright 2021 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -47,9 +47,9 @@ class AppConfigSpec extends UnitSpec with WithFakeApplication with MockitoSugar 
     var config = Map(
       "s3.secretKeyId" -> "",
       "s3.accessKeyId" -> "",
-      "s3.region" -> "",
-      "s3.bucket" -> "",
-      "s3.endpoint" -> ""
+      "s3.region"      -> "",
+      "s3.bucket"      -> "",
+      "s3.endpoint"    -> ""
     )
     pairs.foreach(e => config = config + e)
     new AppConfig(Configuration.from(config), serviceConfig).s3Configuration
@@ -60,9 +60,8 @@ class AppConfigSpec extends UnitSpec with WithFakeApplication with MockitoSugar 
     new AppConfig(Configuration.from(pairs.map(e => e._1 -> e._2).toMap), serviceConfig)
   }
 
-  private def configWith(pairs: (String, String)*): AppConfig = {
+  private def configWith(pairs: (String, String)*): AppConfig =
     new AppConfig(Configuration.from(pairs.map(e => e._1 -> e._2).toMap), serviceConfig)
-  }
 
   "Config" should {
     "decode AWS S3 Secret" in {

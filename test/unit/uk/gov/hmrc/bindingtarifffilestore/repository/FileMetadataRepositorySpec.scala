@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 HM Revenue & Customs
+ * Copyright 2021 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -35,26 +35,25 @@ import uk.gov.hmrc.mongo.MongoSpecSupport
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class FileMetadataRepositorySpec extends BaseMongoIndexSpec
-  with BeforeAndAfterAll
-  with BeforeAndAfterEach
-  with MongoSpecSupport
-  with Eventually
-  with MockitoSugar {
+class FileMetadataRepositorySpec
+    extends BaseMongoIndexSpec
+    with BeforeAndAfterAll
+    with BeforeAndAfterEach
+    with MongoSpecSupport
+    with Eventually
+    with MockitoSugar {
   self =>
 
   private val mongoDbProvider: MongoDbProvider = new MongoDbProvider {
     override val mongo: () => DB = self.mongo
   }
 
-  private val att1 = generateAttachment
-  private val att2 = generateAttachment
+  private val att1       = generateAttachment
+  private val att2       = generateAttachment
   private val repository = createMongoRepo
 
-
-  private def createMongoRepo = {
+  private def createMongoRepo =
     new FileMetadataMongoRepository(mongoDbProvider)
-  }
 
   override def beforeEach(): Unit = {
     super.beforeEach()
@@ -67,9 +66,8 @@ class FileMetadataRepositorySpec extends BaseMongoIndexSpec
     await(repository.drop)
   }
 
-  private def collectionSize: Int = {
+  private def collectionSize: Int =
     await(repository.collection.count())
-  }
 
   "deleteAll()" should {
 
@@ -81,7 +79,7 @@ class FileMetadataRepositorySpec extends BaseMongoIndexSpec
       collectionSize shouldBe 2 + size
 
       await(repository.deleteAll) shouldBe ((): Unit)
-      collectionSize shouldBe 0
+      collectionSize              shouldBe 0
     }
 
   }
@@ -91,8 +89,8 @@ class FileMetadataRepositorySpec extends BaseMongoIndexSpec
     "insert a new document in the collection" in {
       val size = collectionSize
 
-      await(repository.insertFile(att1)) shouldBe att1
-      collectionSize shouldBe 1 + size
+      await(repository.insertFile(att1))                                      shouldBe att1
+      collectionSize                                                          shouldBe 1 + size
       await(repository.collection.find(selectorById(att1)).one[FileMetadata]) shouldBe Some(att1)
     }
 
@@ -109,9 +107,9 @@ class FileMetadataRepositorySpec extends BaseMongoIndexSpec
       collectionSize shouldBe size
 
       val metadata = await(repository.collection.find(selectorById(updated)).one[FileMetadata])
-      metadata.map(_.id) shouldBe Some(att1.id)
-      metadata.map(_.mimeType) shouldBe Some(updated.mimeType)
-      metadata.map(_.fileName) shouldBe Some(updated.fileName)
+      metadata.map(_.id)                                           shouldBe Some(att1.id)
+      metadata.map(_.mimeType)                                     shouldBe Some(updated.mimeType)
+      metadata.map(_.fileName)                                     shouldBe Some(updated.fileName)
       metadata.map(_.lastUpdated).get.isAfter(updated.lastUpdated) shouldBe true
     }
 
@@ -119,7 +117,7 @@ class FileMetadataRepositorySpec extends BaseMongoIndexSpec
       val size = collectionSize
 
       await(repository.update(att1)) shouldBe None
-      collectionSize shouldBe size
+      collectionSize                 shouldBe size
     }
   }
 
@@ -148,7 +146,7 @@ class FileMetadataRepositorySpec extends BaseMongoIndexSpec
       collectionSize shouldBe 2
 
       await(repository.delete(att1.id))
-      collectionSize shouldBe 1
+      collectionSize                 shouldBe 1
       await(repository.get(att1.id)) shouldBe None
     }
 
@@ -174,7 +172,7 @@ class FileMetadataRepositorySpec extends BaseMongoIndexSpec
       import scala.concurrent.duration._
 
       val expectedIndexes = List(
-        Index(key = Seq("id" -> Ascending), name = Some("id_Index"), unique = true),
+        Index(key = Seq("id"  -> Ascending), name = Some("id_Index"), unique = true),
         Index(key = Seq("_id" -> Ascending), name = Some("_id_"))
       )
 
@@ -205,8 +203,12 @@ class FileMetadataRepositorySpec extends BaseMongoIndexSpec
       await(repository.insertFile(att2.copy(published = false)))
       collectionSize shouldBe 2
 
-      await(repository.get(Search(published = Some(true)), Pagination())) shouldBe Paged(Seq(att1.copy(published = true)))
-      await(repository.get(Search(published = Some(false)), Pagination())) shouldBe Paged(Seq(att2.copy(published = false)))
+      await(repository.get(Search(published = Some(true)), Pagination())) shouldBe Paged(
+        Seq(att1.copy(published             = true))
+      )
+      await(repository.get(Search(published = Some(false)), Pagination())) shouldBe Paged(
+        Seq(att2.copy(published             = false))
+      )
     }
 
     "retrieve all the files for empty Search" in {
@@ -224,15 +226,14 @@ class FileMetadataRepositorySpec extends BaseMongoIndexSpec
   }
 
   private def generateAttachment = FileMetadata(
-    id = generateString,
+    id       = generateString,
     fileName = Some(generateString),
     mimeType = Some(generateString)
   )
 
   private def generateString = UUID.randomUUID().toString
 
-  private def selectorById(att: FileMetadata) = {
+  private def selectorById(att: FileMetadata) =
     BSONDocument("id" -> att.id)
-  }
 
 }

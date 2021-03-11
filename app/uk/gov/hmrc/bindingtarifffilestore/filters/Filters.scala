@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 HM Revenue & Customs
+ * Copyright 2021 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,5 +21,5 @@ import play.api.http.DefaultHttpFilters
 import uk.gov.hmrc.play.bootstrap.filters._
 
 @Singleton
-class Filters @Inject()(defaultFilters: MicroserviceFilters, authFilter: AuthFilter)
-  extends DefaultHttpFilters(defaultFilters.filters :+ authFilter: _*)
+class Filters @Inject() (defaultFilters: MicroserviceFilters, authFilter: AuthFilter)
+    extends DefaultHttpFilters(defaultFilters.filters :+ authFilter: _*)

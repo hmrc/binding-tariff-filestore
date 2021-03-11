@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 HM Revenue & Customs
+ * Copyright 2021 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,7 +23,7 @@ object JsErrorResponse {
 
   def apply(errorCode: ErrorCode.Value, message: JsValueWrapper): JsObject =
     Json.obj(
-      "code" -> errorCode.toString,
+      "code"    -> errorCode.toString,
       "message" -> message
     )
 }
@@ -31,9 +31,9 @@ object JsErrorResponse {
 object ErrorCode extends Enumeration {
   type ErrorCode = Value
 
-  val FORBIDDEN = Value("FORBIDDEN")
-  val NOTFOUND = Value("NOT_FOUND")
-  val UNKNOWN_ERROR = Value("UNKNOWN_ERROR")
-  val CONFLICT = Value("CONFLICT")
+  val FORBIDDEN               = Value("FORBIDDEN")
+  val NOTFOUND                = Value("NOT_FOUND")
+  val UNKNOWN_ERROR           = Value("UNKNOWN_ERROR")
+  val CONFLICT                = Value("CONFLICT")
   val INVALID_REQUEST_PAYLOAD = Value("INVALID_REQUEST_PAYLOAD")
 }

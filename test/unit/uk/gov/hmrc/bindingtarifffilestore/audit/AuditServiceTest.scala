@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 HM Revenue & Customs
+ * Copyright 2021 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,7 +30,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 class AuditServiceTest extends UnitSpec with MockitoSugar with BeforeAndAfterEach {
 
   private implicit val hc: HeaderCarrier = HeaderCarrier()
-  private val connector = mock[DefaultAuditConnector]
+  private val connector                  = mock[DefaultAuditConnector]
 
   private val service = new AuditService(connector)
 
@@ -39,10 +39,10 @@ class AuditServiceTest extends UnitSpec with MockitoSugar with BeforeAndAfterEac
     reset(connector)
   }
 
-  private val fileId = "id"
-  private val fileName = "name"
+  private val fileId       = "id"
+  private val fileName     = "name"
   private val upScanStatus = "upscan-status"
-  private val upScanRef = "upscan-ref"
+  private val upScanRef    = "upscan-ref"
 
   "auditUpScanInitiated()" should {
 
@@ -77,11 +77,10 @@ class AuditServiceTest extends UnitSpec with MockitoSugar with BeforeAndAfterEac
     }
   }
 
-  private def auditPayload(fileId: String, fileName: String): Map[String, String] = {
+  private def auditPayload(fileId: String, fileName: String): Map[String, String] =
     Map(
-      "fileId" -> fileId,
+      "fileId"   -> fileId,
       "fileName" -> fileName
     )
-  }
 
 }

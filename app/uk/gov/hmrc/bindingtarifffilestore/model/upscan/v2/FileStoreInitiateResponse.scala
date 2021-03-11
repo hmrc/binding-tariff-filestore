@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 HM Revenue & Customs
+ * Copyright 2021 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.bindingtarifffilestore.model.upscan.v2
 
-import play.api.libs.json.{ OFormat, Json }
+import play.api.libs.json.{Json, OFormat}
 
 case class FileStoreInitiateResponse(id: String, upscanReference: String, uploadRequest: UpscanFormTemplate)
 
@@ -25,8 +25,8 @@ object FileStoreInitiateResponse {
 
   def fromUpscanResponse(id: String, response: UpscanInitiateResponse) =
     FileStoreInitiateResponse(
-      id = id,
+      id              = id,
       upscanReference = response.reference,
-      uploadRequest = response.uploadRequest
+      uploadRequest   = response.uploadRequest
     )
 }

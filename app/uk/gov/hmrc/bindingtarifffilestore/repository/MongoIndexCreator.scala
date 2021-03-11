@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 HM Revenue & Customs
+ * Copyright 2021 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,30 +22,30 @@ import reactivemongo.bson.BSONDocument
 
 object MongoIndexCreator {
 
-  def createSingleFieldAscendingIndex(indexFieldKey: String,
-                                      isUnique: Boolean = false,
-                                      options: BSONDocument = BSONDocument()): Index = {
-
+  def createSingleFieldAscendingIndex(
+    indexFieldKey: String,
+    isUnique: Boolean     = false,
+    options: BSONDocument = BSONDocument()
+  ): Index =
     createCompoundIndex(
       indexFieldMappings = Seq(indexFieldKey -> Ascending),
-      isUnique = isUnique,
-      options = options
+      isUnique           = isUnique,
+      options            = options
     )
-  }
 
-  def createCompoundIndex(indexFieldMappings: Seq[(String, IndexType)],
-                          isUnique: Boolean,
-                          name: Option[String] = None,
-                          isBackground: Boolean = false,
-                          options: BSONDocument): Index = {
-
+  def createCompoundIndex(
+    indexFieldMappings: Seq[(String, IndexType)],
+    isUnique: Boolean,
+    name: Option[String]  = None,
+    isBackground: Boolean = false,
+    options: BSONDocument
+  ): Index =
     Index(
-      key = indexFieldMappings,
-      name = Some(name.getOrElse(s"${indexFieldMappings.toMap.keys.mkString("-")}_Index")),
-      unique = isUnique,
+      key        = indexFieldMappings,
+      name       = Some(name.getOrElse(s"${indexFieldMappings.toMap.keys.mkString("-")}_Index")),
+      unique     = isUnique,
       background = isBackground,
-      options = options
+      options    = options
     )
-  }
 
 }

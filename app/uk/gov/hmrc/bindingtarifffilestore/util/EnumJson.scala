@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 HM Revenue & Customs
+ * Copyright 2021 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,8 +20,7 @@ import play.api.libs.json.{Format, Reads, Writes}
 
 object EnumJson {
 
-  def format[E <: Enumeration](enum: E): Format[E#Value] = {
+  def format[E <: Enumeration](enum: E): Format[E#Value] =
     Format(Reads.enumNameReads(enum), Writes.enumNameWrites)
-  }
 
 }

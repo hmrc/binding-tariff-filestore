@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 HM Revenue & Customs
+ * Copyright 2021 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,11 +28,15 @@ import scala.concurrent.Await.result
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 
-abstract class BaseFeatureSpec extends FeatureSpec with Matchers
-  with GivenWhenThen with GuiceOneServerPerSuite
-  with BeforeAndAfterEach with BeforeAndAfterAll {
+abstract class BaseFeatureSpec
+    extends FeatureSpec
+    with Matchers
+    with GivenWhenThen
+    with GuiceOneServerPerSuite
+    with BeforeAndAfterEach
+    with BeforeAndAfterAll {
 
-  protected lazy val apiTokenKey = "X-Api-Token"
+  protected lazy val apiTokenKey          = "X-Api-Token"
   protected lazy val appConfig: AppConfig = app.injector.instanceOf[AppConfig]
 
   protected def hash: String => String = { s: String =>
@@ -43,9 +47,8 @@ abstract class BaseFeatureSpec extends FeatureSpec with Matchers
 
   private lazy val store: FileMetadataMongoRepository = app.injector.instanceOf[FileMetadataMongoRepository]
 
-  private def ensureIndexes(): Unit = {
+  private def ensureIndexes(): Unit =
     result(store.ensureIndexes, timeout)
-  }
 
   override protected def beforeEach(): Unit = {
     super.beforeEach()
@@ -58,8 +61,7 @@ abstract class BaseFeatureSpec extends FeatureSpec with Matchers
     drop()
   }
 
-  private def drop(): Unit = {
+  private def drop(): Unit =
     result(store.drop, timeout)
-  }
 
 }

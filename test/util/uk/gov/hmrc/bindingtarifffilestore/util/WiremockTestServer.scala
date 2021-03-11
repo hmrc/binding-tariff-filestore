@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 HM Revenue & Customs
+ * Copyright 2021 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,15 +23,14 @@ import org.scalatest.BeforeAndAfterEach
 
 trait WiremockTestServer extends UnitSpec with BeforeAndAfterEach {
 
-  private val wireHost = "localhost"
-  protected val wirePort = 20001
+  private val wireHost       = "localhost"
+  protected val wirePort     = 20001
   private val wireMockServer = new WireMockServer(wirePort)
 
   lazy val wireMockUrl: String = s"http://$wireHost:$wirePort"
 
-  protected def stubFor(mappingBuilder: MappingBuilder): StubMapping = {
+  protected def stubFor(mappingBuilder: MappingBuilder): StubMapping =
     wireMockServer.stubFor(mappingBuilder)
-  }
 
   override protected def beforeEach(): Unit = {
     super.beforeEach()

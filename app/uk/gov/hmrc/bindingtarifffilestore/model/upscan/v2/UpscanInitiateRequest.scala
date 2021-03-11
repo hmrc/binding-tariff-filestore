@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 HM Revenue & Customs
+ * Copyright 2021 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.bindingtarifffilestore.model.upscan.v2
 
-import play.api.libs.json.{ OFormat, Json }
+import play.api.libs.json.{Json, OFormat}
 import uk.gov.hmrc.bindingtarifffilestore.config.AppConfig
 
 case class UpscanInitiateRequest(
@@ -33,11 +33,11 @@ object UpscanInitiateRequest {
 
   def fromFileStoreRequest(callbackUrl: String, appConfig: AppConfig, request: FileStoreInitiateRequest) =
     UpscanInitiateRequest(
-      callbackUrl = callbackUrl,
-      successRedirect = request.successRedirect,
-      errorRedirect = request.errorRedirect,
-      minimumFileSize = Some(request.minFileSize.getOrElse(appConfig.fileStoreSizeConfiguration.minFileSize).toLong),
-      maximumFileSize = Some(request.maxFileSize.getOrElse(appConfig.fileStoreSizeConfiguration.maxFileSize).toLong),
+      callbackUrl         = callbackUrl,
+      successRedirect     = request.successRedirect,
+      errorRedirect       = request.errorRedirect,
+      minimumFileSize     = Some(request.minFileSize.getOrElse(appConfig.fileStoreSizeConfiguration.minFileSize).toLong),
+      maximumFileSize     = Some(request.maxFileSize.getOrElse(appConfig.fileStoreSizeConfiguration.maxFileSize).toLong),
       expectedContentType = request.expectedContentType
     )
 }

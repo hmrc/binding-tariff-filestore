@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 HM Revenue & Customs
+ * Copyright 2021 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,12 +22,12 @@ import uk.gov.hmrc.bindingtarifffilestore.util.UnitSpec
 class SearchTest extends UnitSpec {
 
   private val search = Search(
-    ids = Some(Set("file-id1", "file-id2")),
+    ids       = Some(Set("file-id1", "file-id2")),
     published = Some(true)
   )
 
   private val params = Map[String, Seq[String]](
-    "id" -> Seq("file-id1", "file-id2"),
+    "id"        -> Seq("file-id1", "file-id2"),
     "published" -> Seq("true")
   )
 

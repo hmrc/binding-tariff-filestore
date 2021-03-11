@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 HM Revenue & Customs
+ * Copyright 2021 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -36,15 +36,15 @@ import scala.collection.{JavaConversions, JavaConverters}
 import scala.util.{Failure, Success, Try}
 
 @Singleton
-class AmazonS3Connector @Inject()(config: AppConfig) {
+class AmazonS3Connector @Inject() (config: AppConfig) {
 
   private lazy val s3Config = config.s3Configuration
 
   private lazy val credentials = new BasicAWSCredentials(s3Config.key, s3Config.secret)
-  private lazy val provider = new AWSStaticCredentialsProvider(credentials)
+  private lazy val provider    = new AWSStaticCredentialsProvider(credentials)
 
   private lazy val s3client: AmazonS3 = {
-    Logger.info(s"${s3Config.bucket}:${s3Config.region}:${s3Config.key}:${s3Config.secret.substring(0,3)}")
+    Logger.info(s"${s3Config.bucket}:${s3Config.region}:${s3Config.key}:${s3Config.secret.substring(0, 3)}")
     val builder = AmazonS3ClientBuilder
       .standard()
       .withCredentials(provider)
@@ -52,17 +52,16 @@ class AmazonS3Connector @Inject()(config: AppConfig) {
 
     s3Config.endpoint match {
       case Some(endpoint) => builder.withEndpointConfiguration(new EndpointConfiguration(endpoint, s3Config.region))
-      case _ => builder.withRegion(s3Config.region)
+      case _              => builder.withRegion(s3Config.region)
     }
 
     builder.build()
   }
 
-  def getAll: Seq[String] = {
+  def getAll: Seq[String] =
     sequenceOf(
       s3client.listObjects(s3Config.bucket).getObjectSummaries
     ).map(_.getKey)
-  }
 
   def upload(fileMetaData: FileMetadata): FileMetadata = {
     val url: URL = new URL(fileMetaData.url.getOrElse(throw new IllegalArgumentException("Missing URL")))
@@ -74,7 +73,10 @@ class AmazonS3Connector @Inject()(config: AppConfig) {
     metadata.setContentLength(contentLengthOf(url))
 
     val request = new PutObjectRequest(
-      s3Config.bucket, fileMetaData.id, new BufferedInputStream(url.openStream()), metadata
+      s3Config.bucket,
+      fileMetaData.id,
+      new BufferedInputStream(url.openStream()),
+      metadata
     ).withCannedAcl(CannedAccessControlList.Private)
 
     Try(s3client.putObject(request)) match {
@@ -86,13 +88,12 @@ class AmazonS3Connector @Inject()(config: AppConfig) {
     }
   }
 
-  def delete(id: String): Unit = {
+  def delete(id: String): Unit =
     s3client.deleteObject(s3Config.bucket, id)
-  }
 
   def deleteAll(): Unit = {
     val keys: Seq[KeyVersion] = getAll.map(new KeyVersion(_))
-    if(keys.nonEmpty) {
+    if (keys.nonEmpty) {
       Logger.info(s"Removing [${keys.length}] files from S3")
       val request = new DeleteObjectsRequest(s3Config.bucket)
         .withKeys(JavaConversions.seqAsJavaList(keys))
@@ -103,7 +104,7 @@ class AmazonS3Connector @Inject()(config: AppConfig) {
     }
   }
 
-  def sign(fileMetaData: FileMetadata): FileMetadata = {
+  def sign(fileMetaData: FileMetadata): FileMetadata =
     if (fileMetaData.url.isDefined) {
       val authenticatedURLRequest = new GeneratePresignedUrlRequest(config.s3Configuration.bucket, fileMetaData.id)
         .withMethod(HttpMethod.GET)
@@ -112,14 +113,11 @@ class AmazonS3Connector @Inject()(config: AppConfig) {
     } else {
       fileMetaData
     }
-  }
 
-  private def contentLengthOf(url: URL): Long = {
+  private def contentLengthOf(url: URL): Long =
     url.openConnection.getContentLengthLong
-  }
 
-  private def sequenceOf[T](list: util.List[T]): Seq[T] = {
+  private def sequenceOf[T](list: util.List[T]): Seq[T] =
     JavaConverters.asScalaIteratorConverter(list.iterator).asScala.toSeq
-  }
 
 }

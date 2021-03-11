@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 HM Revenue & Customs
+ * Copyright 2021 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,29 +25,28 @@ import uk.gov.hmrc.bindingtarifffilestore.util.HashUtil
 import scala.concurrent.Future
 
 @Singleton
-class AuthFilter @Inject()(appConfig: AppConfig)(implicit override val mat: Materializer) extends Filter {
+class AuthFilter @Inject() (appConfig: AppConfig)(implicit override val mat: Materializer) extends Filter {
 
-  private lazy val authTokenName = "X-Api-Token"
-  private lazy val healthEndpointUri = "/ping/ping"
+  private lazy val authTokenName            = "X-Api-Token"
+  private lazy val healthEndpointUri        = "/ping/ping"
   private lazy val hashedTokenValue: String = HashUtil.hash(appConfig.authorization)
 
-  override def apply(f: RequestHeader => Future[Result])(rh: RequestHeader): Future[Result] = {
+  override def apply(f: RequestHeader => Future[Result])(rh: RequestHeader): Future[Result] =
     rh.uri match {
       case uri if uri.endsWith(healthEndpointUri) => f(rh)
-      case _ => ensureAuthTokenIsPresent(f, rh)
+      case _                                      => ensureAuthTokenIsPresent(f, rh)
     }
-  }
 
   private def ensureAuthTokenIsPresent(f: RequestHeader => Future[Result], rh: RequestHeader) = {
 
-    val headerValue: Option[String] = rh.headers.get(authTokenName)
+    val headerValue: Option[String]            = rh.headers.get(authTokenName)
     val hashedQueryParamValues: Option[String] = rh.queryString.get(authTokenName).map(_.head)
 
     (headerValue, hashedQueryParamValues) match {
       case (Some(appConfig.authorization), Some(`hashedTokenValue`)) => f(rh)
-      case (Some(appConfig.authorization), None) => f(rh)
-      case (None, Some(`hashedTokenValue`)) => f(rh)
-      case _ => Future.successful(Results.Forbidden(s"Missing or invalid '$authTokenName'"))
+      case (Some(appConfig.authorization), None)                     => f(rh)
+      case (None, Some(`hashedTokenValue`))                          => f(rh)
+      case _                                                         => Future.successful(Results.Forbidden(s"Missing or invalid '$authTokenName'"))
     }
   }
 

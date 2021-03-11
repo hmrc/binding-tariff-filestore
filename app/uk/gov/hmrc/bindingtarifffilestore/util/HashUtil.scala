@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 HM Revenue & Customs
+ * Copyright 2021 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,7 +21,7 @@ import java.security.MessageDigest
 import com.google.common.io.BaseEncoding
 
 object HashUtil {
-  private val sha256 = MessageDigest.getInstance("SHA-256")
+  private val sha256        = MessageDigest.getInstance("SHA-256")
   private val base64Encoder = BaseEncoding.base64Url()
 
   def hash(value: String): String = base64Encoder.encode(sha256.digest(value.getBytes("UTF-8")))

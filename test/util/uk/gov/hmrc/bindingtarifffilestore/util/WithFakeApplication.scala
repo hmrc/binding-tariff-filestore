@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 HM Revenue & Customs
+ * Copyright 2021 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,14 +22,14 @@ import play.api.test.Helpers._
 import play.api.inject.guice.{GuiceApplicationBuilder, GuiceableModule}
 
 /**
- * Use this instead of play.test.WithApplication
- *
- * WithApplication will bring in specs2 lifecyles and changes the test run behaviour
- */
+  * Use this instead of play.test.WithApplication
+  *
+  * WithApplication will bring in specs2 lifecyles and changes the test run behaviour
+  */
 trait WithFakeApplication extends BeforeAndAfterAll {
   this: Suite =>
 
-  lazy val fakeApplication: Application = new GuiceApplicationBuilder().bindings(bindModules:_*).build()
+  lazy val fakeApplication: Application = new GuiceApplicationBuilder().bindings(bindModules: _*).build()
 
   def bindModules: Seq[GuiceableModule] = Seq()
 
@@ -43,10 +43,9 @@ trait WithFakeApplication extends BeforeAndAfterAll {
     Play.stop(fakeApplication)
   }
 
-  def evaluateUsingPlay[T](block: => T): T = {
+  def evaluateUsingPlay[T](block: => T): T =
     running(fakeApplication) {
       block
     }
-  }
 
 }

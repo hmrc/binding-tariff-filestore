@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 HM Revenue & Customs
+ * Copyright 2021 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,7 +22,8 @@ import uk.gov.hmrc.bindingtarifffilestore.util.UnitSpec
 class UploadRequestSpec extends UnitSpec {
 
   val jsonWithoutPublishable = """{"fileName":"demopage.pdf","mimeType":"application/pdf"}"""
-  val jsonWithoutPublishableExpected = """{"fileName":"demopage.pdf","mimeType":"application/pdf","publishable":false}"""
+  val jsonWithoutPublishableExpected =
+    """{"fileName":"demopage.pdf","mimeType":"application/pdf","publishable":false}"""
   val fullJSON = """{"fileName":"demopage.pdf","mimeType":"application/pdf","publishable":true}"""
 
   ".format" when {

@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 HM Revenue & Customs
+ * Copyright 2021 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,54 +23,53 @@ import uk.gov.hmrc.bindingtarifffilestore.model.ScanStatus._
 import uk.gov.hmrc.bindingtarifffilestore.model.upscan._
 import uk.gov.hmrc.bindingtarifffilestore.model.upscan.v2
 
-case class FileMetadata
-(
+case class FileMetadata(
   id: String,
   fileName: Option[String],
   mimeType: Option[String],
-  url: Option[String] = None,
+  url: Option[String]            = None,
   scanStatus: Option[ScanStatus] = None,
-  publishable: Boolean = false,
-  published: Boolean = false,
-  lastUpdated: Instant = Instant.now()
+  publishable: Boolean           = false,
+  published: Boolean             = false,
+  lastUpdated: Instant           = Instant.now()
 ) {
-  private lazy val date = "X-Amz-Date=(\\d{4})(\\d{2})(\\d{2})T(\\d{2})(\\d{2})(\\d{2})".r.unanchored
+  private lazy val date    = "X-Amz-Date=(\\d{4})(\\d{2})(\\d{2})T(\\d{2})(\\d{2})(\\d{2})".r.unanchored
   private lazy val expires = "X-Amz-Expires=(\\d+)".r.unanchored
 
   //date time groups -> based on date regex above
-  private val yearGroup = 1
-  private val monthGroup = 2
-  private val dayGroup = 3
-  private val hourGroup = 4
+  private val yearGroup   = 1
+  private val monthGroup  = 2
+  private val dayGroup    = 3
+  private val hourGroup   = 4
   private val minuteGroup = 5
   private val secondGroup = 6
 
-  def isLive: Boolean = {
+  def isLive: Boolean =
     this.url.forall { url =>
       (date.findFirstMatchIn(url), expires.findFirstMatchIn(url)) match {
         case (Some(dateMatch), Some(expiresMatch)) =>
-          LocalDateTime.of(
-            dateMatch.group(yearGroup).toInt,
-            dateMatch.group(monthGroup).toInt,
-            dateMatch.group(dayGroup).toInt,
-            dateMatch.group(hourGroup).toInt,
-            dateMatch.group(minuteGroup).toInt,
-            dateMatch.group(secondGroup).toInt
-          )
+          LocalDateTime
+            .of(
+              dateMatch.group(yearGroup).toInt,
+              dateMatch.group(monthGroup).toInt,
+              dateMatch.group(dayGroup).toInt,
+              dateMatch.group(hourGroup).toInt,
+              dateMatch.group(minuteGroup).toInt,
+              dateMatch.group(secondGroup).toInt
+            )
             .plusSeconds(expiresMatch.group(1).toLong)
             .toInstant(ZoneOffset.UTC)
             .isAfter(Instant.now())
         case _ => true
       }
     }
-  }
 
   def withScanResult(scanResult: ScanResult) = scanResult match {
     case SuccessfulScanResult(reference, downloadUrl, uploadDetails) =>
       copy(
-        fileName = Some(uploadDetails.fileName),
-        mimeType = Some(uploadDetails.fileMimeType),
-        url = Some(downloadUrl),
+        fileName   = Some(uploadDetails.fileName),
+        mimeType   = Some(uploadDetails.fileMimeType),
+        url        = Some(downloadUrl),
         scanStatus = Some(ScanStatus.READY)
       )
     case FailedScanResult(reference, failureDetails) =>
@@ -81,57 +80,54 @@ case class FileMetadata
 object FileMetadata {
   def fromUploadRequest(uploadRequest: UploadRequest) =
     FileMetadata(
-      id = uploadRequest.id.getOrElse(ju.UUID.randomUUID().toString),
-      fileName = Some(uploadRequest.fileName),
-      mimeType = Some(uploadRequest.mimeType),
+      id          = uploadRequest.id.getOrElse(ju.UUID.randomUUID().toString),
+      fileName    = Some(uploadRequest.fileName),
+      mimeType    = Some(uploadRequest.mimeType),
       publishable = uploadRequest.publishable
     )
 
   def fromInitiateRequestV2(id: String, request: v2.FileStoreInitiateRequest) =
     FileMetadata(
-      id = id,
-      fileName = None,
-      mimeType = None,
+      id          = id,
+      fileName    = None,
+      mimeType    = None,
       publishable = request.publishable
     )
 }
 
 object FileMetadataREST {
   val writes: OWrites[FileMetadata] = new OWrites[FileMetadata] {
-    override def writes(o: FileMetadata): JsObject = {
+    override def writes(o: FileMetadata): JsObject =
       JsObject(
         Map[String, JsValue](
-          "id" -> JsString(o.id),
+          "id"          -> JsString(o.id),
           "publishable" -> JsBoolean(o.publishable),
-          "published" -> JsBoolean(o.published),
+          "published"   -> JsBoolean(o.published),
           "lastUpdated" -> JsString(o.lastUpdated.toString)
         )
-          ++ o.fileName.map("fileName" -> Json.toJson(_))
-          ++ o.mimeType.map("mimeType" -> Json.toJson(_))
-          ++ o.scanStatus.map("scanStatus" -> Json.toJson(_))
+          ++ o.fileName.map("fileName"                                 -> Json.toJson(_))
+          ++ o.mimeType.map("mimeType"                                 -> Json.toJson(_))
+          ++ o.scanStatus.map("scanStatus"                             -> Json.toJson(_))
           ++ o.url.filter(_ => o.scanStatus.contains(READY)).map("url" -> JsString(_))
       )
-    }
   }
   implicit val format: OFormat[FileMetadata] = OFormat(Json.reads[FileMetadata], writes)
 }
 
 object FileMetadataMongo {
   implicit val instantFormat: OFormat[Instant] = new OFormat[Instant] {
-    override def writes(instant: Instant): JsObject = {
+    override def writes(instant: Instant): JsObject =
       Json.obj("$date" -> instant.toEpochMilli)
-    }
 
-    override def reads(json: JsValue): JsResult[Instant] = {
+    override def reads(json: JsValue): JsResult[Instant] =
       json match {
         case JsObject(map) if map.contains("$date") =>
           map("$date") match {
             case JsNumber(v) => JsSuccess(Instant.ofEpochMilli(v.toLong))
-            case _ => JsError("Unexpected Instant Format")
+            case _           => JsError("Unexpected Instant Format")
           }
         case _ => JsError("Unexpected Instant Format")
       }
-    }
   }
 
   private val underlying = Json.using[Json.WithDefaultValues].format[FileMetadata]

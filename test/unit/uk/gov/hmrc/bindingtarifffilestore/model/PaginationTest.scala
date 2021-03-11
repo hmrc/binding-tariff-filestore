@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 HM Revenue & Customs
+ * Copyright 2021 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,12 +21,12 @@ import uk.gov.hmrc.bindingtarifffilestore.util.UnitSpec
 class PaginationTest extends UnitSpec {
 
   private val pagination = Pagination(
-    page = 2,
+    page     = 2,
     pageSize = 11
   )
 
   private val params: Map[String, Seq[String]] = Map(
-    "page" -> Seq("2"),
+    "page"      -> Seq("2"),
     "page_size" -> Seq("11")
   )
 

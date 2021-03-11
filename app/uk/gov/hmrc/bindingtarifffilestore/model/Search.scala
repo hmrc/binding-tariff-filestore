@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 HM Revenue & Customs
+ * Copyright 2021 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,49 +20,52 @@ import play.api.mvc.QueryStringBindable
 
 import scala.util.Try
 
-case class Search
-(
-  ids: Option[Set[String]] = None,
+case class Search(
+  ids: Option[Set[String]]   = None,
   published: Option[Boolean] = None
 )
 
 object Search {
-  private val idKey = "id"
+  private val idKey        = "id"
   private val publishedKey = "published"
 
-  implicit def bindable(implicit
-                        stringBinder: QueryStringBindable[String],
-                        booleanBinder: QueryStringBindable[Boolean]
-                       ): QueryStringBindable[Search] = new QueryStringBindable[Search] {
+  implicit def bindable(
+    implicit
+    stringBinder: QueryStringBindable[String],
+    booleanBinder: QueryStringBindable[Boolean]
+  ): QueryStringBindable[Search] = new QueryStringBindable[Search] {
 
     override def bind(key: String, requestParams: Map[String, Seq[String]]): Option[Either[String, Search]] = {
-      def params[T](name: String, map: String => T): Option[Set[T]] = {
-        requestParams.get(name)
+      def params[T](name: String, map: String => T): Option[Set[T]] =
+        requestParams
+          .get(name)
           .map {
             _.flatMap(_.split(",").filter(_.nonEmpty))
               .map(v => Try(map(v)))
               .filter(_.isSuccess)
               .map(_.get)
               .toSet
-          }.filter(_.nonEmpty)
-      }
+          }
+          .filter(_.nonEmpty)
 
-      def param[T](name: String, map: String => T): Option[T] = {
+      def param[T](name: String, map: String => T): Option[T] =
         params(name, map).map(_.head)
-      }
 
-      Some(Right(Search(
-        ids = params(idKey, s => s),
-        published = param(publishedKey, _.toBoolean)
-      )))
+      Some(
+        Right(
+          Search(
+            ids       = params(idKey, s => s),
+            published = param(publishedKey, _.toBoolean)
+          )
+        )
+      )
     }
 
-    override def unbind(key: String, search: Search): String = {
+    override def unbind(key: String, search: Search): String =
       Seq(
         search.ids.map(_.map(stringBinder.unbind(idKey, _)).mkString("&")),
         search.published.map(booleanBinder.unbind(publishedKey, _))
       ).filter(_.isDefined).map(_.get).mkString("&")
-    }
   }
 
 }
