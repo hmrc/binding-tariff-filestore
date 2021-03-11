@@ -33,71 +33,74 @@ import uk.gov.hmrc.mongo.ReactiveRepository
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class FileMetadataMongoRepository @Inject()(mongoDbProvider: MongoDbProvider)
-  extends ReactiveRepository[FileMetadata, BSONObjectID](
-    collectionName = "fileMetadata",
-    mongo = mongoDbProvider.mongo,
-    domainFormat = FileMetadataMongo.format) {
+class FileMetadataMongoRepository @Inject() (mongoDbProvider: MongoDbProvider)
+    extends ReactiveRepository[FileMetadata, BSONObjectID](
+      collectionName = "fileMetadata",
+      mongo          = mongoDbProvider.mongo,
+      domainFormat   = FileMetadataMongo.format
+    ) {
 
   override lazy val indexes: Seq[Index] = Seq(
     createSingleFieldAscendingIndex("id", isUnique = true)
   )
 
-  override def ensureIndexes(implicit ec: ExecutionContext): Future[Seq[Boolean]] = for {
-    status <- Future.sequence(indexes.map(collection.indexesManager.ensure(_)))
-    _ = collection.indexesManager.list().foreach { _.foreach { index =>
-      Logger.info(s"Running with Index: [$index] with options [${Json.toJson(index.options)}]")
-    }}
-  } yield status
+  override def ensureIndexes(implicit ec: ExecutionContext): Future[Seq[Boolean]] =
+    for {
+      status <- Future.sequence(indexes.map(collection.indexesManager.ensure(_)))
+      _ = collection.indexesManager.list().foreach {
+        _.foreach(index => Logger.info(s"Running with Index: [$index] with options [${Json.toJson(index.options)}]"))
+      }
+    } yield status
 
-  def get(id: String)(implicit ec: ExecutionContext): Future[Option[FileMetadata]] = {
+  def get(id: String)(implicit ec: ExecutionContext): Future[Option[FileMetadata]] =
     collection.find(byId(id)).one[FileMetadata]
-  }
 
   def get(search: Search, pagination: Pagination)(implicit ec: ExecutionContext): Future[Paged[FileMetadata]] = {
     val query = JsObject(
       Map[String, JsValue]()
-        ++ search.ids.map(ids => "id" -> Json.obj("$in" -> ids))
+        ++ search.ids.map(ids => "id"              -> Json.obj("$in" -> ids))
         ++ search.published.map(pub => "published" -> JsBoolean(pub))
     )
 
     for {
-      results <- collection.find(query)
-        .options(QueryOpts(skipN = (pagination.page - 1) * pagination.pageSize, batchSizeN = pagination.pageSize))
-        .cursor[FileMetadata]()
-        .collect[Seq](pagination.pageSize, Cursor.FailOnError[Seq[FileMetadata]]())
+      results <- collection
+                  .find(query)
+                  .options(
+                    QueryOpts(skipN = (pagination.page - 1) * pagination.pageSize, batchSizeN = pagination.pageSize)
+                  )
+                  .cursor[FileMetadata]()
+                  .collect[Seq](pagination.pageSize, Cursor.FailOnError[Seq[FileMetadata]]())
       count <- collection.count(Some(query))
     } yield Paged(results, pagination, count)
   }
 
-  def insertFile(att: FileMetadata)(implicit ec: ExecutionContext): Future[FileMetadata] = {
-    collection.findAndUpdate(
-      selector = byId(att.id),
-      update = att,
-      fetchNewObject = true,
-      upsert = true
-    ).map(_.value.map(_.as[FileMetadata](FileMetadataMongo.format)).get)
-  }
+  def insertFile(att: FileMetadata)(implicit ec: ExecutionContext): Future[FileMetadata] =
+    collection
+      .findAndUpdate(
+        selector       = byId(att.id),
+        update         = att,
+        fetchNewObject = true,
+        upsert         = true
+      )
+      .map(_.value.map(_.as[FileMetadata](FileMetadataMongo.format)).get)
 
-  def update(att: FileMetadata)(implicit ec: ExecutionContext): Future[Option[FileMetadata]] = {
-    collection.findAndUpdate(
-      selector = byId(att.id),
-      update = att.copy(lastUpdated = Instant.now()),
-      fetchNewObject = true,
-      upsert = false
-    ).map(_.value.map(_.as[FileMetadata](FileMetadataMongo.format)))
-  }
+  def update(att: FileMetadata)(implicit ec: ExecutionContext): Future[Option[FileMetadata]] =
+    collection
+      .findAndUpdate(
+        selector       = byId(att.id),
+        update         = att.copy(lastUpdated = Instant.now()),
+        fetchNewObject = true,
+        upsert         = false
+      )
+      .map(_.value.map(_.as[FileMetadata](FileMetadataMongo.format)))
 
-  def delete(id: String)(implicit ec: ExecutionContext): Future[Unit] = {
+  def delete(id: String)(implicit ec: ExecutionContext): Future[Unit] =
     collection.findAndRemove(byId(id)).map(_ => ())
-  }
 
-  def deleteAll()(implicit ec: ExecutionContext): Future[Unit] = {
+  def deleteAll()(implicit ec: ExecutionContext): Future[Unit] =
     removeAll().map(_ => ())
-  }
 
-  private def byId(id: String): JsObject = {
+  private def byId(id: String): JsObject =
     Json.obj("id" -> id)
-  }
 
 }

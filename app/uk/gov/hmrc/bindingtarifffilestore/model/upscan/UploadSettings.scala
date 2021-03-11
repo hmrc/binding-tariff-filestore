@@ -18,8 +18,7 @@ package uk.gov.hmrc.bindingtarifffilestore.model.upscan
 
 import play.api.libs.json.{Format, Json}
 
-case class UploadSettings
-(
+case class UploadSettings(
   callbackUrl: String,
   minimumFileSize: Int,
   maximumFileSize: Int

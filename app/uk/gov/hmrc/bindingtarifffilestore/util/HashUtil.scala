@@ -21,7 +21,7 @@ import java.security.MessageDigest
 import com.google.common.io.BaseEncoding
 
 object HashUtil {
-  private val sha256 = MessageDigest.getInstance("SHA-256")
+  private val sha256        = MessageDigest.getInstance("SHA-256")
   private val base64Encoder = BaseEncoding.base64Url()
 
   def hash(value: String): String = base64Encoder.encode(sha256.digest(value.getBytes("UTF-8")))

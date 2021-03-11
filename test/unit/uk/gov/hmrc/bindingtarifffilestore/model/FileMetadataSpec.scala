@@ -25,44 +25,44 @@ class FileMetadataSpec extends UnitSpec {
   "File Meta Data" should {
 
     val model = FileMetadata(
-      id = "id",
-      fileName = Some("fileName"),
-      mimeType = Some("type"),
-      url = Some("url"),
+      id          = "id",
+      fileName    = Some("fileName"),
+      mimeType    = Some("type"),
+      url         = Some("url"),
       publishable = true,
-      published = true,
-      scanStatus = Some(ScanStatus.READY),
+      published   = true,
+      scanStatus  = Some(ScanStatus.READY),
       lastUpdated = Instant.EPOCH
     )
 
     val jsonMongo: JsObject = Json.obj(
-      "id" -> JsString("id"),
-      "fileName" -> JsString("fileName"),
-      "mimeType" -> JsString("type"),
-      "url" -> JsString("url"),
-      "scanStatus" -> JsString("READY"),
+      "id"          -> JsString("id"),
+      "fileName"    -> JsString("fileName"),
+      "mimeType"    -> JsString("type"),
+      "url"         -> JsString("url"),
+      "scanStatus"  -> JsString("READY"),
       "publishable" -> JsBoolean(true),
-      "published" -> JsBoolean(true),
+      "published"   -> JsBoolean(true),
       "lastUpdated" -> Json.obj("$date" -> JsNumber(0))
     )
 
     val jsonMongoWithoutDefaults: JsObject = Json.obj(
-      "id" -> JsString("id"),
-      "fileName" -> JsString("fileName"),
-      "mimeType" -> JsString("type"),
-      "url" -> JsString("url"),
-      "scanStatus" -> JsString("READY"),
+      "id"          -> JsString("id"),
+      "fileName"    -> JsString("fileName"),
+      "mimeType"    -> JsString("type"),
+      "url"         -> JsString("url"),
+      "scanStatus"  -> JsString("READY"),
       "lastUpdated" -> Json.obj("$date" -> JsNumber(0))
     )
 
     val jsonREST: JsObject = Json.obj(
-      "url" -> JsString("url"),
+      "url"         -> JsString("url"),
       "lastUpdated" -> JsString("1970-01-01T00:00:00Z"),
-      "published" -> JsBoolean(true),
-      "scanStatus" -> JsString("READY"),
-      "fileName" -> JsString("fileName"),
-      "mimeType" -> JsString("type"),
-      "id" -> JsString("id"),
+      "published"   -> JsBoolean(true),
+      "scanStatus"  -> JsString("READY"),
+      "fileName"    -> JsString("fileName"),
+      "mimeType"    -> JsString("type"),
+      "id"          -> JsString("id"),
       "publishable" -> JsBoolean(true)
     )
 
@@ -88,27 +88,31 @@ class FileMetadataSpec extends UnitSpec {
 
     "Convert to REST JSON ignoring URL if Un-scanned" in {
       val value = Json.toJson(model.copy(scanStatus = None))(FileMetadataREST.format)
-      value.toString() shouldBe Json.obj(
-        "lastUpdated" -> JsString("1970-01-01T00:00:00Z"),
-        "published" -> JsBoolean(true),
-        "fileName" -> JsString("fileName"),
-        "mimeType" -> JsString("type"),
-        "id" -> JsString("id"),
-        "publishable" -> JsBoolean(true)
-      ).toString()
+      value.toString() shouldBe Json
+        .obj(
+          "lastUpdated" -> JsString("1970-01-01T00:00:00Z"),
+          "published"   -> JsBoolean(true),
+          "fileName"    -> JsString("fileName"),
+          "mimeType"    -> JsString("type"),
+          "id"          -> JsString("id"),
+          "publishable" -> JsBoolean(true)
+        )
+        .toString()
     }
 
     "Convert to REST JSON ignoring URL if Failed" in {
       val value = Json.toJson(model.copy(scanStatus = Some(ScanStatus.FAILED)))(FileMetadataREST.format)
-      value.toString() shouldBe Json.obj(
-        "lastUpdated" -> JsString("1970-01-01T00:00:00Z"),
-        "published" -> JsBoolean(true),
-        "scanStatus" -> JsString("FAILED"),
-        "fileName" -> JsString("fileName"),
-        "mimeType" -> JsString("type"),
-        "id" -> JsString("id"),
-        "publishable" -> JsBoolean(true)
-      ).toString()
+      value.toString() shouldBe Json
+        .obj(
+          "lastUpdated" -> JsString("1970-01-01T00:00:00Z"),
+          "published"   -> JsBoolean(true),
+          "scanStatus"  -> JsString("FAILED"),
+          "fileName"    -> JsString("fileName"),
+          "mimeType"    -> JsString("type"),
+          "id"          -> JsString("id"),
+          "publishable" -> JsBoolean(true)
+        )
+        .toString()
     }
 
     "Convert from REST JSON" in {
@@ -121,9 +125,9 @@ class FileMetadataSpec extends UnitSpec {
 
       metadata("https://s3.amazonaws.com/bucket/abc?X-Amz-Date=30000101T000000Zkey=value&X-Amz-Expires=86400").isLive shouldBe true
       metadata("https://s3.amazonaws.com/bucket/abc?X-Amz-Expires=86400&X-Amz-Date=30000101T000000Zkey=value").isLive shouldBe true
-      metadata("https://s3.amazonaws.com/bucket/file?X-Amz-Date=20190101T000000Z&X-Amz-Expires=0").isLive shouldBe false
-      metadata("url").isLive shouldBe true
-      FileMetadata("id", Some("file"), Some("type")).isLive shouldBe true
+      metadata("https://s3.amazonaws.com/bucket/file?X-Amz-Date=20190101T000000Z&X-Amz-Expires=0").isLive             shouldBe false
+      metadata("url").isLive                                                                                          shouldBe true
+      FileMetadata("id", Some("file"), Some("type")).isLive                                                           shouldBe true
     }
 
   }

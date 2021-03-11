@@ -18,8 +18,7 @@ package uk.gov.hmrc.bindingtarifffilestore.model
 
 import play.api.libs.json._
 
-case class UploadRequest
-(
+case class UploadRequest(
   id: Option[String] = None,
   fileName: String,
   mimeType: String,

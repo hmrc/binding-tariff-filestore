@@ -22,7 +22,8 @@ import uk.gov.hmrc.bindingtarifffilestore.util.UnitSpec
 class UploadRequestSpec extends UnitSpec {
 
   val jsonWithoutPublishable = """{"fileName":"demopage.pdf","mimeType":"application/pdf"}"""
-  val jsonWithoutPublishableExpected = """{"fileName":"demopage.pdf","mimeType":"application/pdf","publishable":false}"""
+  val jsonWithoutPublishableExpected =
+    """{"fileName":"demopage.pdf","mimeType":"application/pdf","publishable":false}"""
   val fullJSON = """{"fileName":"demopage.pdf","mimeType":"application/pdf","publishable":true}"""
 
   ".format" when {

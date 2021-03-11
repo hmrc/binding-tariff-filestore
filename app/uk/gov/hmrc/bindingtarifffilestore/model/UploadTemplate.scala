@@ -23,5 +23,3 @@ case class UploadTemplate(id: String, href: String, fields: Map[String, String])
 object UploadTemplate {
   implicit val format: OFormat[UploadTemplate] = Json.format[UploadTemplate]
 }
-
-

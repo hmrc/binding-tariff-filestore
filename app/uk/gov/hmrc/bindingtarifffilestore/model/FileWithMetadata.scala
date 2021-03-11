@@ -18,8 +18,7 @@ package uk.gov.hmrc.bindingtarifffilestore.model
 
 import play.api.libs.Files.TemporaryFile
 
-case class FileWithMetadata
-(
+case class FileWithMetadata(
   file: TemporaryFile,
   metadata: FileMetadata
 )

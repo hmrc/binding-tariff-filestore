@@ -27,26 +27,28 @@ class PagedTest extends UnitSpec {
     }
 
     "calculate size" in {
-      Paged.empty.size shouldBe 0
+      Paged.empty.size    shouldBe 0
       Paged(Seq("")).size shouldBe 1
     }
 
     "serialize to JSON" in {
       Json.toJson(Paged(Seq("Hello"), 1, 2, 3)).as[JsObject] shouldBe Json.obj(
-        "results" -> Json.arr("Hello"),
-        "pageIndex" -> 1,
-        "pageSize" -> 2,
+        "results"     -> Json.arr("Hello"),
+        "pageIndex"   -> 1,
+        "pageSize"    -> 2,
         "resultCount" -> 3
       )
     }
 
     "serialize from JSON" in {
-      Json.obj(
-        "results" -> Json.arr("Hello"),
-        "pageIndex" -> 1,
-        "pageSize" -> 2,
-        "resultCount" -> 3
-      ).as[Paged[String]] shouldBe Paged(Seq("Hello"), 1, 2, 3)
+      Json
+        .obj(
+          "results"     -> Json.arr("Hello"),
+          "pageIndex"   -> 1,
+          "pageSize"    -> 2,
+          "resultCount" -> 3
+        )
+        .as[Paged[String]] shouldBe Paged(Seq("Hello"), 1, 2, 3)
     }
   }
 

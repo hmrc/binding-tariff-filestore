@@ -28,7 +28,12 @@ object TestMode {
 
       override protected def filter[A](request: Request[A]): Future[Option[Result]] = Future.successful {
         if (appConfig.isTestMode) None
-        else Some(Results.Forbidden(JsErrorResponse(ErrorCode.FORBIDDEN, s"You are not allowed to call ${request.method} ${request.uri}")))
+        else
+          Some(
+            Results.Forbidden(
+              JsErrorResponse(ErrorCode.FORBIDDEN, s"You are not allowed to call ${request.method} ${request.uri}")
+            )
+          )
       }
 
       override def parser: BodyParser[AnyContent] = bodyParser

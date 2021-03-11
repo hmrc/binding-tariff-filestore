@@ -34,15 +34,20 @@ import uk.gov.hmrc.play.bootstrap.http.DefaultHttpClient
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class UpscanConnectorSpec extends UnitSpec with WithFakeApplication with WiremockTestServer
-  with MockitoSugar with BeforeAndAfterEach with ResourceFiles {
+class UpscanConnectorSpec
+    extends UnitSpec
+    with WithFakeApplication
+    with WiremockTestServer
+    with MockitoSugar
+    with BeforeAndAfterEach
+    with ResourceFiles {
 
   private val config = mock[AppConfig]
 
-  private val actorSystem = ActorSystem.create("test")
+  private val actorSystem        = ActorSystem.create("test")
   private val wsClient: WSClient = fakeApplication.injector.instanceOf[WSClient]
-  private val httpAuditing = fakeApplication.injector.instanceOf[HttpAuditing]
-  private val hmrcWsClient = new DefaultHttpClient(fakeApplication.configuration, httpAuditing, wsClient, actorSystem)
+  private val httpAuditing       = fakeApplication.injector.instanceOf[HttpAuditing]
+  private val hmrcWsClient       = new DefaultHttpClient(fakeApplication.configuration, httpAuditing, wsClient, actorSystem)
 
   private implicit val headers: HeaderCarrier = HeaderCarrier()
 

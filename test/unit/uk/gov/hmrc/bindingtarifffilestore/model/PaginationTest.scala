@@ -21,12 +21,12 @@ import uk.gov.hmrc.bindingtarifffilestore.util.UnitSpec
 class PaginationTest extends UnitSpec {
 
   private val pagination = Pagination(
-    page = 2,
+    page     = 2,
     pageSize = 11
   )
 
   private val params: Map[String, Seq[String]] = Map(
-    "page" -> Seq("2"),
+    "page"      -> Seq("2"),
     "page_size" -> Seq("11")
   )
 

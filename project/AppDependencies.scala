@@ -11,12 +11,7 @@ object AppDependencies {
     "uk.gov.hmrc"               %% "simple-reactivemongo"      % "7.30.0-play-27",
     "uk.gov.hmrc"               %% "play-json-union-formatter" % "1.12.0-play-27",
     "org.apache.httpcomponents" % "httpclient"                 % apacheHttpVersion,
-    "org.apache.httpcomponents" % "httpmime"                   % apacheHttpVersion,
-    "com.github.pathikrit"      %% "better-files"              % "3.9.1",
-    "org.apache.pdfbox"         % "pdfbox"                     % "2.0.22",
-    "org.apache.poi"            % "poi"                        % "5.0.0",
-    "org.apache.poi"            % "poi-ooxml"                  % "5.0.0",
-    "org.apache.poi"            % "poi-ooxml-lite"             % "5.0.0"
+    "org.apache.httpcomponents" % "httpmime"                   % apacheHttpVersion
   )
 
   val scope = "test, it"
@@ -36,7 +31,6 @@ object AppDependencies {
     "uk.gov.hmrc"            %% "service-integration-test" % "0.12.0-play-27" % scope,
     "uk.gov.hmrc"            %% "reactivemongo-test"       % "4.21.0-play-27" % scope,
     "org.scalaj"             %% "scalaj-http"              % "2.4.2"          % scope,
-    "com.drewnoakes"         %  "metadata-extractor"       % "2.15.0"         % scope,
     //Need to peg this version for wiremock - try removing this on next lib upgrade
     "org.eclipse.jetty" % "jetty-server"  % jettyVersion % scope,
     "org.eclipse.jetty" % "jetty-servlet" % jettyVersion % scope

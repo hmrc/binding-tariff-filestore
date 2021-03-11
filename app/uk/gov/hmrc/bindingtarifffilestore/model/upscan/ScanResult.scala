@@ -24,8 +24,7 @@ import uk.gov.hmrc.bindingtarifffilestore.model.ScanStatus.{FAILED, READY, ScanS
 import uk.gov.hmrc.bindingtarifffilestore.model.upscan.FailureReason.FailureReason
 import uk.gov.hmrc.play.json.Union
 
-case class SuccessfulScanResult
-(
+case class SuccessfulScanResult(
   override val reference: String,
   downloadUrl: String,
   uploadDetails: UploadDetails
@@ -33,15 +32,12 @@ case class SuccessfulScanResult
   override val fileStatus: model.ScanStatus.Value = READY
 }
 
-
-case class FailedScanResult
-(
+case class FailedScanResult(
   override val reference: String,
   failureDetails: FailureDetails
 ) extends ScanResult {
   override val fileStatus: model.ScanStatus.Value = FAILED
 }
-
 
 sealed trait ScanResult {
   val reference: String
@@ -50,7 +46,7 @@ sealed trait ScanResult {
 
 object ScanResult {
   implicit val formatSuccess: OFormat[SuccessfulScanResult] = Json.format[SuccessfulScanResult]
-  implicit val formatFailed: OFormat[FailedScanResult] = Json.format[FailedScanResult]
+  implicit val formatFailed: OFormat[FailedScanResult]      = Json.format[FailedScanResult]
   implicit val format: Format[ScanResult] = Union
     .from[ScanResult]("fileStatus")
     .and[SuccessfulScanResult](READY.toString)
@@ -58,11 +54,9 @@ object ScanResult {
     .format
 }
 
-
-case class UploadDetails
-(
+case class UploadDetails(
   fileName: String,
-  fileMimeType: String, 
+  fileMimeType: String,
   uploadTimestamp: Instant,
   checksum: String
 )
@@ -71,9 +65,7 @@ object UploadDetails {
   implicit val format: OFormat[UploadDetails] = Json.format
 }
 
-
-case class FailureDetails
-(
+case class FailureDetails(
   failureReason: FailureReason,
   message: String
 )

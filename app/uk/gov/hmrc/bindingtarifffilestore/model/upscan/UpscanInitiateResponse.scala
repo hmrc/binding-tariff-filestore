@@ -18,8 +18,7 @@ package uk.gov.hmrc.bindingtarifffilestore.model.upscan
 
 import play.api.libs.json.{Json, OFormat}
 
-case class UpscanInitiateResponse
-(
+case class UpscanInitiateResponse(
   reference: String,
   uploadRequest: UpscanTemplate
 )

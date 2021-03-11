@@ -17,11 +17,11 @@
 package uk.gov.hmrc.bindingtarifffilestore.controllers
 
 import play.api.Logging
-import play.api.mvc.{ Action, AnyContent, BaseController, Request, Result }
+import play.api.mvc.{Action, AnyContent, BaseController, Request, Result}
 import reactivemongo.core.errors.DatabaseException
-import uk.gov.hmrc.bindingtarifffilestore.model.{ ErrorCode, JsErrorResponse }
+import uk.gov.hmrc.bindingtarifffilestore.model.{ErrorCode, JsErrorResponse}
 
-import scala.concurrent.{ ExecutionContext, Future }
+import scala.concurrent.{ExecutionContext, Future}
 
 trait ErrorHandling { self: BaseController with Logging =>
   private val DuplicateKeyError = 11000
@@ -35,12 +35,8 @@ trait ErrorHandling { self: BaseController with Logging =>
   }
 
   def withErrorHandling(f: Request[AnyContent] => Future[Result])(implicit ec: ExecutionContext): Action[AnyContent] =
-    Action.async { request: Request[AnyContent] =>
-      f(request).recover(mongoErrorHandler)
-    }
+    Action.async { request: Request[AnyContent] => f(request).recover(mongoErrorHandler) }
 
   def withErrorHandling[A](action: Action[A])(implicit ec: ExecutionContext): Action[A] =
-    Action(action.parser).async { request =>
-      action(request).recover(mongoErrorHandler)
-    }
+    Action(action.parser).async(request => action(request).recover(mongoErrorHandler))
 }

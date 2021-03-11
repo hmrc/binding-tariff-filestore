@@ -23,15 +23,14 @@ import org.scalatest.BeforeAndAfterEach
 
 trait WiremockTestServer extends UnitSpec with BeforeAndAfterEach {
 
-  private val wireHost = "localhost"
-  protected val wirePort = 20001
+  private val wireHost       = "localhost"
+  protected val wirePort     = 20001
   private val wireMockServer = new WireMockServer(wirePort)
 
   lazy val wireMockUrl: String = s"http://$wireHost:$wirePort"
 
-  protected def stubFor(mappingBuilder: MappingBuilder): StubMapping = {
+  protected def stubFor(mappingBuilder: MappingBuilder): StubMapping =
     wireMockServer.stubFor(mappingBuilder)
-  }
 
   override protected def beforeEach(): Unit = {
     super.beforeEach()

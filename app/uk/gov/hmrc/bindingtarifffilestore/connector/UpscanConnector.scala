@@ -27,7 +27,7 @@ import org.apache.http.util.EntityUtils
 import play.api.Logger
 import uk.gov.hmrc.bindingtarifffilestore.config.AppConfig
 import uk.gov.hmrc.bindingtarifffilestore.model.FileWithMetadata
-import uk.gov.hmrc.bindingtarifffilestore.model.upscan.{UpscanTemplate, UploadSettings, UpscanInitiateResponse}
+import uk.gov.hmrc.bindingtarifffilestore.model.upscan.{UploadSettings, UpscanInitiateResponse, UpscanTemplate}
 import uk.gov.hmrc.bindingtarifffilestore.model.upscan.v2
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.bootstrap.http.HttpClient
@@ -37,17 +37,18 @@ import scala.concurrent.Future.{failed, successful}
 import scala.util.Try
 
 @Singleton
-class UpscanConnector @Inject()(appConfig: AppConfig, http: HttpClient)(
-  implicit executionContext: ExecutionContext) {
+class UpscanConnector @Inject() (appConfig: AppConfig, http: HttpClient)(implicit executionContext: ExecutionContext) {
 
-  def initiate(uploadSettings: UploadSettings)
-              (implicit headerCarrier: HeaderCarrier): Future[UpscanInitiateResponse] = {
+  def initiate(uploadSettings: UploadSettings)(implicit headerCarrier: HeaderCarrier): Future[UpscanInitiateResponse] =
     http.POST[UploadSettings, UpscanInitiateResponse](s"${appConfig.upscanInitiateUrl}/upscan/initiate", uploadSettings)
-  }
 
-  def initiateV2(uploadRequest: v2.UpscanInitiateRequest)(implicit hc: HeaderCarrier): Future[v2.UpscanInitiateResponse] = {
-    http.POST[v2.UpscanInitiateRequest, v2.UpscanInitiateResponse](s"${appConfig.upscanInitiateUrl}/upscan/v2/initiate", uploadRequest)
-  }
+  def initiateV2(
+    uploadRequest: v2.UpscanInitiateRequest
+  )(implicit hc: HeaderCarrier): Future[v2.UpscanInitiateResponse] =
+    http.POST[v2.UpscanInitiateRequest, v2.UpscanInitiateResponse](
+      s"${appConfig.upscanInitiateUrl}/upscan/v2/initiate",
+      uploadRequest
+    )
 
   def upload(template: UpscanTemplate, fileWithMetaData: FileWithMetadata): Future[Unit] = {
     Logger.info(s"Uploading file [${fileWithMetaData.metadata.id}] with template [$template]")
@@ -76,11 +77,12 @@ class UpscanConnector @Inject()(appConfig: AppConfig, http: HttpClient)(
       val code = response.getStatusLine.getStatusCode
       if (code >= 200 && code < 300) {
         Logger.info(s"Uploaded file [${fileWithMetaData.metadata.id}] successfully to Upscan Bucket [${template.href}]")
-        successful(() : Unit)
+        successful((): Unit)
       } else {
         failed(
           new RuntimeException(
-            s"Bad AWS response for file [${fileWithMetaData.metadata.id}] with status [$code] body [${EntityUtils.toString(response.getEntity)}]"
+            s"Bad AWS response for file [${fileWithMetaData.metadata.id}] with status [$code] body [${EntityUtils
+              .toString(response.getEntity)}]"
           )
         )
       }

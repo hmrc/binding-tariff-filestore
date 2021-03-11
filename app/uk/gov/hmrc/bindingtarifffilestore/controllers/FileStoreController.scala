@@ -32,16 +32,20 @@ import uk.gov.hmrc.bindingtarifffilestore.service.FileStoreService
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
-import scala.concurrent.{ ExecutionContext, Future }
+import scala.concurrent.{ExecutionContext, Future}
 import play.api.libs.json.JsValue
 
 @Singleton
-class FileStoreController @Inject()(
+class FileStoreController @Inject() (
   appConfig: AppConfig,
   service: FileStoreService,
   parse: PlayBodyParsers,
   mcc: MessagesControllerComponents
-)(implicit ec: ExecutionContext) extends BackendController(mcc) with ErrorHandling with JsonParsing with Logging {
+)(implicit ec: ExecutionContext)
+    extends BackendController(mcc)
+    with ErrorHandling
+    with JsonParsing
+    with Logging {
 
   private lazy val FileNotFound =
     NotFound(JsErrorResponse(ErrorCode.NOTFOUND, "File Not Found"))
@@ -75,9 +79,7 @@ class FileStoreController @Inject()(
       asJson[FileStoreInitiateRequest] { fileStoreRequest =>
         service
           .initiateV2(fileStoreRequest)
-          .map { response =>
-            Accepted(Json.toJson(response))
-          }
+          .map(response => Accepted(Json.toJson(response)))
       }
     }
   }
@@ -90,8 +92,8 @@ class FileStoreController @Inject()(
           .map(template => Accepted(Json.toJson(template)))
       }
     } else if (request.contentType.contains("multipart/form-data")) {
-      request.body
-        .asMultipartFormData.map(upload)
+      request.body.asMultipartFormData
+        .map(upload)
         .getOrElse(Future.successful(BadRequest))
     } else {
       Future.successful(BadRequest("Content-Type must be one of [application/json, multipart/form-data]"))
@@ -99,9 +101,7 @@ class FileStoreController @Inject()(
   }
 
   def get(id: String): Action[AnyContent] = Action.async {
-    withFileMetadata(id) { meta =>
-      Future.successful(Ok(Json.toJson(meta)))
-    }
+    withFileMetadata(id)(meta => Future.successful(Ok(Json.toJson(meta))))
   }
 
   def notification(id: String): Action[JsValue] = withErrorHandling {
@@ -110,9 +110,7 @@ class FileStoreController @Inject()(
         withFileMetadata(id) { meta =>
           service
             .notify(meta, scanResult)
-            .map { updatedMeta =>
-              Created(Json.toJson(updatedMeta))
-            }
+            .map(updatedMeta => Created(Json.toJson(updatedMeta)))
         }
       }
     }
@@ -140,17 +138,17 @@ class FileStoreController @Inject()(
   }
 
   private def upload(body: MultipartFormData[TemporaryFile])(implicit hc: HeaderCarrier): Future[Result] = {
-    val formFile = body.file("file").filter(_.filename.nonEmpty)
+    val formFile             = body.file("file").filter(_.filename.nonEmpty)
     val publishable: Boolean = body.dataParts.getOrElse("publish", Seq.empty).contains("true")
-    val id: String = body.dataParts.getOrElse("id", Seq.empty).headOption.getOrElse(UUID.randomUUID().toString)
+    val id: String           = body.dataParts.getOrElse("id", Seq.empty).headOption.getOrElse(UUID.randomUUID().toString)
 
     val attachment: Option[FileWithMetadata] = formFile map { file =>
       FileWithMetadata(
         file.ref,
         FileMetadata(
-          id = id,
-          fileName = Some(file.filename),
-          mimeType = Some(file.contentType.getOrElse(throw new RuntimeException("Missing file type"))),
+          id          = id,
+          fileName    = Some(file.filename),
+          mimeType    = Some(file.contentType.getOrElse(throw new RuntimeException("Missing file type"))),
           publishable = publishable
         )
       )

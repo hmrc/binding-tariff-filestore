@@ -22,30 +22,30 @@ import reactivemongo.bson.BSONDocument
 
 object MongoIndexCreator {
 
-  def createSingleFieldAscendingIndex(indexFieldKey: String,
-                                      isUnique: Boolean = false,
-                                      options: BSONDocument = BSONDocument()): Index = {
-
+  def createSingleFieldAscendingIndex(
+    indexFieldKey: String,
+    isUnique: Boolean     = false,
+    options: BSONDocument = BSONDocument()
+  ): Index =
     createCompoundIndex(
       indexFieldMappings = Seq(indexFieldKey -> Ascending),
-      isUnique = isUnique,
-      options = options
+      isUnique           = isUnique,
+      options            = options
     )
-  }
 
-  def createCompoundIndex(indexFieldMappings: Seq[(String, IndexType)],
-                          isUnique: Boolean,
-                          name: Option[String] = None,
-                          isBackground: Boolean = false,
-                          options: BSONDocument): Index = {
-
+  def createCompoundIndex(
+    indexFieldMappings: Seq[(String, IndexType)],
+    isUnique: Boolean,
+    name: Option[String]  = None,
+    isBackground: Boolean = false,
+    options: BSONDocument
+  ): Index =
     Index(
-      key = indexFieldMappings,
-      name = Some(name.getOrElse(s"${indexFieldMappings.toMap.keys.mkString("-")}_Index")),
-      unique = isUnique,
+      key        = indexFieldMappings,
+      name       = Some(name.getOrElse(s"${indexFieldMappings.toMap.keys.mkString("-")}_Index")),
+      unique     = isUnique,
       background = isBackground,
-      options = options
+      options    = options
     )
-  }
 
 }
