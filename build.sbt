@@ -23,7 +23,7 @@ lazy val microservice = (project in file("."))
     targetJvm := "jvm-1.8",
     playDefaultPort := 9583,
     scalacOptions ++= Seq("-Ywarn-unused-import", "-deprecation", "-feature"),
-    libraryDependencies ++= (AppDependencies.compile ++ AppDependencies.test),
+    libraryDependencies ++= (AppDependencies.compile ++ AppDependencies.test).map(_ withSources()),
     evictionWarningOptions in update := EvictionWarningOptions.default.withWarnScalaVersionEviction(false),
     parallelExecution in Test := false,
     fork in Test := true,
@@ -57,7 +57,6 @@ lazy val microservice = (project in file("."))
     parallelExecution in IntegrationTest := false)
   .settings(
     resolvers += Resolver.bintrayRepo("hmrc", "releases"),
-    resolvers += Resolver.mavenCentral,
     resolvers += Resolver.jcenterRepo
   )
 
