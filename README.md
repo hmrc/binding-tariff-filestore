@@ -1,62 +1,50 @@
 
-# Binding Tariff Filestore
+# binding-tariff-filestore
 
-A microservice providing read, write and delete access to Amazon S3.
+The backend filestore service which manages attachment metadata and S3 bucket access for the Advance Tariff Rulings services.
 
 ### Running
 
 ##### To run this Service you will need:
 
-1) [Service Manager](https://github.com/hmrc/service-manager) Installed
-2) [SBT](https://www.scala-sbt.org) Version `>0.13.13` Installed
-3) [LocalStack](https://github.com/localstack/localstack) Installed
-4) [AWS CLI](https://aws.amazon.com/cli/) Installed
+1) [Service Manager](https://github.com/hmrc/service-manager) installed
+2) [SBT](https://www.scala-sbt.org) Version `>=1.x` installed
+3) [MongoDB](https://www.mongodb.com/) version `>=3.6` installed and running on port 27017
+4) [Localstack](https://github.com/localstack/localstack) installed and running on port 4572
+5) Create an S3 bucket in localstack by using `awslocal s3 mb s3://digital-tariffs-local` within the localstack container
 
-###### Installing localstack:
+The easiest way to run MongoDB and Localstack for local development is to use [Docker](https://docs.docker.com/get-docker/).
 
-`pip install localstack --user --upgrade --ignore-installed six`
-
-`pip install amazon_kclpy`
-
-`localstack start`
-
-Set up aws cli credentials (one time only):
+##### To run MongoDB
 
 ```
-aws configure
-AWS Access Key ID [None]: test
-AWS Secret Access Key [None]: <password here>
-Default region name [None]: eu-west-2
-Default output format [None]:
+> docker run --restart unless-stopped -d -p 27017-27019:27017-27019 --name mongodb mongo:3.6.13
 ```
 
-##### Starting the microservice:
+##### To run Localstack and create the S3 bucket
 
-###### The first time you run the app (or if you restart your machine)
+```
+> docker run -d --restart unless-stopped --name localstack -e SERVICES=s3 -p4572:4566 -p8080:8080 localstack/localstack
+> docker exec -it localstack bash
+> awslocal s3 mb s3://digital-tariffs-local
+> exit
+```
 
-Start LocalStack `SERVICES=s3 localstack start`
+#### Starting the application:
+ 
+Launch dependencies using `sm --start DIGITAL_TARIFF_DEPS -r`.
 
-Run the LocalStack AWS Set Up Script `./initialize-localstack.sh`
+Use `sbt run` to boot the app or run it with Service Manager using `sm --start BINDING_TARIFF_FILESTORE -r`.
 
-###### From then on
+This application runs on port 9583.
 
-1) Start Mongo `sm --start MONGO -r`
-2) Start Upscan `sm --start UPSCAN_STUB -r`
-
-Run `sbt "run 9583"`
-
-##### Starting With Service Manager
-
-This application runs on port 9583
-
-Run `sm --start BINDING_TARIFF_FILESTORE -r`
+You can also run the `DIGITAL_TARIFFS` profile using `sm --start DIGITAL_TARIFFS -r` and then stop the Service Manager instance of this service using `sm --stop BINDING_TARIFF_FILESTORE` before running with sbt.
 
 ### Testing
 
-Run `./run_all_tests.sh`
+Run `./run_all_tests.sh`. This also runs Scalastyle and does coverage testing.
 
-or `sbt test it:test`
-
+or `sbt test it:test` to run the tests only.
 
 ### License
 
