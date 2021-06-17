@@ -7,7 +7,7 @@ object AppDependencies {
 
   val compile = Seq(
     "com.amazonaws"             % "aws-java-sdk-s3"            % "1.11.882",
-    "uk.gov.hmrc"               %% "bootstrap-backend-play-27" % "2.25.0",
+    "uk.gov.hmrc"               %% "bootstrap-backend-play-27" % "5.3.0",
     "uk.gov.hmrc"               %% "simple-reactivemongo"      % "7.30.0-play-27",
     "uk.gov.hmrc"               %% "play-json-union-formatter" % "1.12.0-play-27",
     "org.apache.httpcomponents" % "httpclient"                 % apacheHttpVersion,
@@ -27,7 +27,6 @@ object AppDependencies {
     "org.scalatest"          %% "scalatest"                % "3.0.9"          % scope,
     "org.scalatestplus.play" %% "scalatestplus-play"       % "4.0.3"          % scope,
     "org.scalacheck"         %% "scalacheck"               % "1.14.3"         % scope,
-    "uk.gov.hmrc"            %% "http-verbs-test"          % "1.8.0-play-27"  % scope,
     "uk.gov.hmrc"            %% "service-integration-test" % "0.12.0-play-27" % scope,
     "uk.gov.hmrc"            %% "reactivemongo-test"       % "4.21.0-play-27" % scope,
     "org.scalaj"             %% "scalaj-http"              % "2.4.2"          % scope,

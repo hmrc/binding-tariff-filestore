@@ -16,7 +16,6 @@
 
 package uk.gov.hmrc.bindingtarifffilestore.connector
 
-import javax.inject.{Inject, Singleton}
 import org.apache.http.HttpResponse
 import org.apache.http.client.methods.HttpPost
 import org.apache.http.entity.ContentType
@@ -24,34 +23,33 @@ import org.apache.http.entity.mime.MultipartEntityBuilder
 import org.apache.http.entity.mime.content.{FileBody, StringBody}
 import org.apache.http.impl.client.HttpClientBuilder
 import org.apache.http.util.EntityUtils
-import play.api.Logger
 import uk.gov.hmrc.bindingtarifffilestore.config.AppConfig
 import uk.gov.hmrc.bindingtarifffilestore.model.FileWithMetadata
-import uk.gov.hmrc.bindingtarifffilestore.model.upscan.{UploadSettings, UpscanInitiateResponse, UpscanTemplate}
-import uk.gov.hmrc.bindingtarifffilestore.model.upscan.v2
-import uk.gov.hmrc.http.HeaderCarrier
-import uk.gov.hmrc.play.bootstrap.http.HttpClient
+import uk.gov.hmrc.bindingtarifffilestore.model.upscan.{UploadSettings, UpscanInitiateResponse, UpscanTemplate, v2}
+import uk.gov.hmrc.bindingtarifffilestore.util.Logging
+import uk.gov.hmrc.http.{HeaderCarrier, HttpClient}
 
-import scala.concurrent.{ExecutionContext, Future}
+import javax.inject.{Inject, Singleton}
 import scala.concurrent.Future.{failed, successful}
+import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
 
 @Singleton
-class UpscanConnector @Inject() (appConfig: AppConfig, http: HttpClient)(implicit executionContext: ExecutionContext) {
+class UpscanConnector @Inject() (appConfig: AppConfig, http: HttpClient)(implicit executionContext: ExecutionContext) extends Logging {
 
   def initiate(uploadSettings: UploadSettings)(implicit headerCarrier: HeaderCarrier): Future[UpscanInitiateResponse] =
-    http.POST[UploadSettings, UpscanInitiateResponse](s"${appConfig.upscanInitiateUrl}/upscan/initiate", uploadSettings)
+    http.POST[UploadSettings, UpscanInitiateResponse](
+      s"${appConfig.upscanInitiateUrl}/upscan/initiate", uploadSettings
+    )
 
-  def initiateV2(
-    uploadRequest: v2.UpscanInitiateRequest
-  )(implicit hc: HeaderCarrier): Future[v2.UpscanInitiateResponse] =
+  def initiateV2(uploadRequest: v2.UpscanInitiateRequest)(implicit hc: HeaderCarrier): Future[v2.UpscanInitiateResponse] =
     http.POST[v2.UpscanInitiateRequest, v2.UpscanInitiateResponse](
       s"${appConfig.upscanInitiateUrl}/upscan/v2/initiate",
       uploadRequest
     )
 
   def upload(template: UpscanTemplate, fileWithMetaData: FileWithMetadata): Future[Unit] = {
-    Logger.info(s"Uploading file [${fileWithMetaData.metadata.id}] with template [$template]")
+    log.info(s"Uploading file [${fileWithMetaData.metadata.id}] with template [$template]")
 
     val builder: MultipartEntityBuilder = MultipartEntityBuilder.create
 
@@ -76,7 +74,7 @@ class UpscanConnector @Inject() (appConfig: AppConfig, http: HttpClient)(implici
     val attempt = Try(client.execute(request)).map { response: HttpResponse =>
       val code = response.getStatusLine.getStatusCode
       if (code >= 200 && code < 300) {
-        Logger.info(s"Uploaded file [${fileWithMetaData.metadata.id}] successfully to Upscan Bucket [${template.href}]")
+        log.info(s"Uploaded file [${fileWithMetaData.metadata.id}] successfully to Upscan Bucket [${template.href}]")
         successful((): Unit)
       } else {
         failed(
