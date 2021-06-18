@@ -27,16 +27,17 @@ import com.amazonaws.services.s3.model.DeleteObjectsRequest.KeyVersion
 import com.amazonaws.services.s3.model._
 import com.amazonaws.services.s3.{AmazonS3, AmazonS3ClientBuilder}
 import com.google.inject.Inject
+
 import javax.inject.Singleton
-import play.api.Logger
 import uk.gov.hmrc.bindingtarifffilestore.config.AppConfig
 import uk.gov.hmrc.bindingtarifffilestore.model.FileMetadata
+import uk.gov.hmrc.bindingtarifffilestore.util.Logging
 
-import scala.collection.{JavaConversions, JavaConverters}
+import scala.collection.JavaConverters
 import scala.util.{Failure, Success, Try}
 
 @Singleton
-class AmazonS3Connector @Inject() (config: AppConfig) {
+class AmazonS3Connector @Inject() (config: AppConfig) extends Logging {
 
   private lazy val s3Config = config.s3Configuration
 
@@ -44,7 +45,7 @@ class AmazonS3Connector @Inject() (config: AppConfig) {
   private lazy val provider    = new AWSStaticCredentialsProvider(credentials)
 
   private lazy val s3client: AmazonS3 = {
-    Logger.info(s"${s3Config.bucket}:${s3Config.region}:${s3Config.key}:${s3Config.secret.substring(0, 3)}")
+    log.info(s"${s3Config.bucket}:${s3Config.region}:${s3Config.key}:${s3Config.secret.substring(0, 3)}")
     val builder = AmazonS3ClientBuilder
       .standard()
       .withCredentials(provider)
@@ -83,7 +84,7 @@ class AmazonS3Connector @Inject() (config: AppConfig) {
       case Success(_) =>
         fileMetaData.copy(url = Some(s"${s3Config.baseUrl}/${s3Config.bucket}/${fileMetaData.id}"))
       case Failure(e: Throwable) =>
-        Logger.error("Failed to upload to the S3 bucket.", e)
+        log.error("Failed to upload to the S3 bucket.", e)
         throw e
     }
   }
@@ -94,13 +95,13 @@ class AmazonS3Connector @Inject() (config: AppConfig) {
   def deleteAll(): Unit = {
     val keys: Seq[KeyVersion] = getAll.map(new KeyVersion(_))
     if (keys.nonEmpty) {
-      Logger.info(s"Removing [${keys.length}] files from S3")
+      log.info(s"Removing [${keys.length}] files from S3")
       val request = new DeleteObjectsRequest(s3Config.bucket)
-        .withKeys(JavaConversions.seqAsJavaList(keys))
+        .withKeys(JavaConverters.seqAsJavaList(keys))
         .withQuiet(false)
       s3client.deleteObjects(request)
     } else {
-      Logger.info(s"No files to remove from S3")
+      log.info(s"No files to remove from S3")
     }
   }
 

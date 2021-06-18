@@ -14,12 +14,10 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.bindingtarifffilestore.filters
+package uk.gov.hmrc.bindingtarifffilestore.util
 
-import javax.inject._
-import play.api.http.DefaultHttpFilters
-import uk.gov.hmrc.play.bootstrap.filters._
+import play.api.Logger
 
-@Singleton
-class Filters @Inject() (defaultFilters: MicroserviceFilters, authFilter: AuthFilter)
-    extends DefaultHttpFilters(defaultFilters.filters :+ authFilter: _*)
+trait Logging {
+  val log: Logger = Logger(this.getClass)
+}

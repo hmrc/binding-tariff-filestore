@@ -19,7 +19,6 @@ package uk.gov.hmrc.bindingtarifffilestore.repository
 import java.time.Instant
 
 import javax.inject.{Inject, Singleton}
-import play.api.Logger
 import play.api.libs.json.{JsBoolean, JsObject, JsValue, Json}
 import reactivemongo.api.indexes.Index
 import reactivemongo.api.{Cursor, QueryOpts}
@@ -28,6 +27,7 @@ import reactivemongo.play.json.ImplicitBSONHandlers._
 import uk.gov.hmrc.bindingtarifffilestore.model.FileMetadataMongo.format
 import uk.gov.hmrc.bindingtarifffilestore.model._
 import uk.gov.hmrc.bindingtarifffilestore.repository.MongoIndexCreator.createSingleFieldAscendingIndex
+import uk.gov.hmrc.bindingtarifffilestore.util.Logging
 import uk.gov.hmrc.mongo.ReactiveRepository
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -38,7 +38,7 @@ class FileMetadataMongoRepository @Inject() (mongoDbProvider: MongoDbProvider)
       collectionName = "fileMetadata",
       mongo          = mongoDbProvider.mongo,
       domainFormat   = FileMetadataMongo.format
-    ) {
+    ) with Logging {
 
   override lazy val indexes: Seq[Index] = Seq(
     createSingleFieldAscendingIndex("id", isUnique = true)
@@ -48,7 +48,7 @@ class FileMetadataMongoRepository @Inject() (mongoDbProvider: MongoDbProvider)
     for {
       status <- Future.sequence(indexes.map(collection.indexesManager.ensure(_)))
       _ = collection.indexesManager.list().foreach {
-        _.foreach(index => Logger.info(s"Running with Index: [$index] with options [${Json.toJson(index.options)}]"))
+        _.foreach(index => log.info(s"Running with Index: [$index] with options [${Json.toJson(index.options)}]"))
       }
     } yield status
 
