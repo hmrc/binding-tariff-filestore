@@ -16,10 +16,7 @@
 
 package uk.gov.hmrc.bindingtarifffilestore.connector
 
-import java.io.BufferedInputStream
-import java.net.URL
-import java.util
-
+import better.files._
 import com.amazonaws.HttpMethod
 import com.amazonaws.auth.{AWSStaticCredentialsProvider, BasicAWSCredentials}
 import com.amazonaws.client.builder.AwsClientBuilder.EndpointConfiguration
@@ -27,17 +24,24 @@ import com.amazonaws.services.s3.model.DeleteObjectsRequest.KeyVersion
 import com.amazonaws.services.s3.model._
 import com.amazonaws.services.s3.{AmazonS3, AmazonS3ClientBuilder}
 import com.google.inject.Inject
-
-import javax.inject.Singleton
+import play.api.Logger.logger
+import play.api.libs.Files.{TemporaryFile, TemporaryFileCreator}
 import uk.gov.hmrc.bindingtarifffilestore.config.AppConfig
 import uk.gov.hmrc.bindingtarifffilestore.model.FileMetadata
 import uk.gov.hmrc.bindingtarifffilestore.util.Logging
 
+import java.io.{InputStream, OutputStream}
+import java.net.URL
+import java.nio.file.Files
+import java.util
+import javax.imageio.ImageIO
+import javax.inject.Singleton
 import scala.collection.JavaConverters
 import scala.util.{Failure, Success, Try}
 
 @Singleton
-class AmazonS3Connector @Inject() (config: AppConfig) extends Logging {
+class AmazonS3Connector @Inject() (config: AppConfig,
+                                   tempFileCreator: TemporaryFileCreator) extends Logging {
 
   private lazy val s3Config = config.s3Configuration
 
@@ -59,66 +63,105 @@ class AmazonS3Connector @Inject() (config: AppConfig) extends Logging {
     builder.build()
   }
 
+  def downloadFile(fileMetaData: FileMetadata): TemporaryFile = {
+    val url: URL = new URL(fileMetaData.url.getOrElse(throw new IllegalArgumentException("Missing URL")))
+    val tempFile = tempFileCreator.create(fileMetaData.id)
+
+    for {
+      in <- url.openStream().autoClosed
+      out <- Files.newOutputStream(tempFile.path).autoClosed
+    } in.pipeTo(out)
+
+    tempFile
+  }
+
+  def withFiles[A](origFile: TemporaryFile, newFile: TemporaryFile)(f: (InputStream, OutputStream) => A): A = {
+    val result = for {
+      in <- Files.newInputStream(origFile.path).autoClosed
+      out <- Files.newOutputStream(newFile.path).autoClosed
+    } yield f(in, out)
+
+    result.get()
+  }
+
   def getAll: Seq[String] =
     sequenceOf(
       s3client.listObjects(s3Config.bucket).getObjectSummaries
     ).map(_.getKey)
 
+  def stripMetadata(fileMetaData: FileMetadata, origFile: TemporaryFile): TemporaryFile = {
+    val strippedFile = tempFileCreator.create(fileMetaData.id, "_stripped")
+
+    withFiles(origFile, strippedFile) { (inputStream, outputStream) =>
+      fileMetaData.mimeType match {
+        case Some("image/jpeg") =>
+          ImageIO.write(ImageIO.read(inputStream), "jpg", outputStream)
+          strippedFile
+        case Some("image/png") =>
+          ImageIO.write(ImageIO.read(inputStream), "png", outputStream)
+          strippedFile
+        case _ =>
+          logger.warn(s"Unable to strip file metadata for unknown content type")
+          origFile
+      }
+    }
+  }
+
   def upload(fileMetaData: FileMetadata): FileMetadata = {
-    val url: URL = new URL(fileMetaData.url.getOrElse(throw new IllegalArgumentException("Missing URL")))
+    //val url: URL = new URL(fileMetaData.url.getOrElse(throw new IllegalArgumentException("Missing URL")))
+    val strippedFile = stripMetadata(fileMetaData, downloadFile(fileMetaData))
 
     val metadata = new ObjectMetadata
     // This .get is scary but our file must have received a positive scan
     // result and received metadata from Upscan if it is being published
     metadata.setContentType(fileMetaData.mimeType.get)
-    metadata.setContentLength(contentLengthOf(url))
+    metadata.setContentLength(Files.size(strippedFile.path))
 
-    val request = new PutObjectRequest(
-      s3Config.bucket,
-      fileMetaData.id,
-      new BufferedInputStream(url.openStream()),
-      metadata
-    ).withCannedAcl(CannedAccessControlList.Private)
+    using(Files.newInputStream(strippedFile.path)) { inputStream =>
+      val request = new PutObjectRequest(
+        s3Config.bucket, fileMetaData.id, inputStream, metadata
+      ).withCannedAcl(CannedAccessControlList.Private)
 
-    Try(s3client.putObject(request)) match {
-      case Success(_) =>
-        fileMetaData.copy(url = Some(s"${s3Config.baseUrl}/${s3Config.bucket}/${fileMetaData.id}"))
-      case Failure(e: Throwable) =>
-        log.error("Failed to upload to the S3 bucket.", e)
-        throw e
+      Try(s3client.putObject(request)) match {
+        case Success(_) =>
+          fileMetaData.copy(url = Some(s"${s3Config.baseUrl}/${s3Config.bucket}/${fileMetaData.id}"))
+        case Failure(e: Throwable) =>
+          log.error("Failed to upload to the S3 bucket.", e)
+          throw e
+      }
     }
   }
 
-  def delete(id: String): Unit =
-    s3client.deleteObject(s3Config.bucket, id)
+    def delete(id: String): Unit =
+      s3client.deleteObject(s3Config.bucket, id)
 
-  def deleteAll(): Unit = {
-    val keys: Seq[KeyVersion] = getAll.map(new KeyVersion(_))
-    if (keys.nonEmpty) {
-      log.info(s"Removing [${keys.length}] files from S3")
-      val request = new DeleteObjectsRequest(s3Config.bucket)
-        .withKeys(JavaConverters.seqAsJavaList(keys))
-        .withQuiet(false)
-      s3client.deleteObjects(request)
-    } else {
-      log.info(s"No files to remove from S3")
-    }
-  }
-
-  def sign(fileMetaData: FileMetadata): FileMetadata =
-    if (fileMetaData.url.isDefined) {
-      val authenticatedURLRequest = new GeneratePresignedUrlRequest(config.s3Configuration.bucket, fileMetaData.id)
-        .withMethod(HttpMethod.GET)
-      val authenticatedURL: URL = s3client.generatePresignedUrl(authenticatedURLRequest)
-      fileMetaData.copy(url = Some(authenticatedURL.toString))
-    } else {
-      fileMetaData
+    def deleteAll(): Unit = {
+      val keys: Seq[KeyVersion] = getAll.map(new KeyVersion(_))
+      if (keys.nonEmpty) {
+        log.info(s"Removing [${keys.length}] files from S3")
+        val request = new DeleteObjectsRequest(s3Config.bucket)
+          .withKeys(JavaConverters.seqAsJavaList(keys))
+          .withQuiet(false)
+        s3client.deleteObjects(request)
+      } else {
+        log.info(s"No files to remove from S3")
+      }
     }
 
-  private def contentLengthOf(url: URL): Long =
-    url.openConnection.getContentLengthLong
+    def sign(fileMetaData: FileMetadata): FileMetadata =
+      if (fileMetaData.url.isDefined) {
+        val authenticatedURLRequest = new GeneratePresignedUrlRequest(config.s3Configuration.bucket, fileMetaData.id)
+          .withMethod(HttpMethod.GET)
+        val authenticatedURL: URL = s3client.generatePresignedUrl(authenticatedURLRequest)
+        fileMetaData.copy(url = Some(authenticatedURL.toString))
+      } else {
+        fileMetaData
+      }
 
-  private def sequenceOf[T](list: util.List[T]): Seq[T] =
-    JavaConverters.asScalaIteratorConverter(list.iterator).asScala.toSeq
+    private def contentLengthOf(url: URL): Long =
+      url.openConnection.getContentLengthLong
+
+    private def sequenceOf[T](list: util.List[T]): Seq[T] =
+      JavaConverters.asScalaIteratorConverter(list.iterator).asScala.toSeq
 
 }

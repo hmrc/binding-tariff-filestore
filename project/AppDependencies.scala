@@ -11,7 +11,8 @@ object AppDependencies {
     "uk.gov.hmrc"               %% "simple-reactivemongo"      % "7.30.0-play-27",
     "uk.gov.hmrc"               %% "play-json-union-formatter" % "1.12.0-play-27",
     "org.apache.httpcomponents" % "httpclient"                 % apacheHttpVersion,
-    "org.apache.httpcomponents" % "httpmime"                   % apacheHttpVersion
+    "org.apache.httpcomponents" % "httpmime"                   % apacheHttpVersion,
+    "com.github.pathikrit"      %% "better-files"              % "3.9.1"
   )
 
   val scope = "test, it"
