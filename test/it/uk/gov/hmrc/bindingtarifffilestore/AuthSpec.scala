@@ -33,9 +33,9 @@ class AuthSpec extends BaseFeatureSpec with ResourceFiles {
       .digest(appConfig.authorization.getBytes("UTF-8"))
   )
 
-  feature("Authentication to incoming requests") {
+  Feature("Authentication to incoming requests") {
 
-    scenario("Allowing requests with expected auth header") {
+    Scenario("Allowing requests with expected auth header") {
 
       When("I call an endpoint")
       val result = Http(s"$serviceUrl/file")
@@ -47,7 +47,7 @@ class AuthSpec extends BaseFeatureSpec with ResourceFiles {
       result.code should not be FORBIDDEN
     }
 
-    scenario("Forbidding requests with incorrect value for the auth header") {
+    Scenario("Forbidding requests with incorrect value for the auth header") {
 
       When("I call an endpoint")
       val result = Http(s"$serviceUrl/file")
@@ -60,7 +60,7 @@ class AuthSpec extends BaseFeatureSpec with ResourceFiles {
       result.body shouldBe "Missing or invalid 'X-Api-Token'"
     }
 
-    scenario("Forbidding requests with incorrect value for the auth header and expected auth token query param") {
+    Scenario("Forbidding requests with incorrect value for the auth header and expected auth token query param") {
 
       When("I call an endpoint")
       val result = Http(s"$serviceUrl/file?X-Api-Token=$hashedTokenValue")
@@ -73,7 +73,7 @@ class AuthSpec extends BaseFeatureSpec with ResourceFiles {
       result.body shouldBe "Missing or invalid 'X-Api-Token'"
     }
 
-    scenario("Forbidding requests with expected value for the auth header and incorrect auth token query param") {
+    Scenario("Forbidding requests with expected value for the auth header and incorrect auth token query param") {
 
       When("I call an endpoint")
       val result = Http(s"$serviceUrl/file?X-Api-Token=WRONG_TOKEN")
@@ -86,7 +86,7 @@ class AuthSpec extends BaseFeatureSpec with ResourceFiles {
       result.body shouldBe "Missing or invalid 'X-Api-Token'"
     }
 
-    scenario("Allowing requests with both expected auth header and expected auth query param") {
+    Scenario("Allowing requests with both expected auth header and expected auth query param") {
 
       When("I call an endpoint")
       val result = Http(s"$serviceUrl/file?X-Api-Token=$hashedTokenValue")
@@ -98,7 +98,7 @@ class AuthSpec extends BaseFeatureSpec with ResourceFiles {
       result.code shouldBe OK
     }
 
-    scenario("Forbidding requests with no auth header and no auth query param") {
+    Scenario("Forbidding requests with no auth header and no auth query param") {
 
       When("I call an endpoint")
       val result = Http(s"$serviceUrl/file")
@@ -110,7 +110,7 @@ class AuthSpec extends BaseFeatureSpec with ResourceFiles {
       result.body shouldBe "Missing or invalid 'X-Api-Token'"
     }
 
-    scenario("Allowing requests with no auth header and with expected auth query param") {
+    Scenario("Allowing requests with no auth header and with expected auth query param") {
 
       When("I call an endpoint")
       val result = Http(s"$serviceUrl/file?X-Api-Token=$hashedTokenValue")
@@ -121,7 +121,7 @@ class AuthSpec extends BaseFeatureSpec with ResourceFiles {
       result.code should not be FORBIDDEN
     }
 
-    scenario("Forbidding requests with incorrect value for the auth token query param") {
+    Scenario("Forbidding requests with incorrect value for the auth token query param") {
 
       When("I call an endpoint")
       val result = Http(s"$serviceUrl/file?X-Api-Token=WRONG_VALUE")
@@ -133,7 +133,7 @@ class AuthSpec extends BaseFeatureSpec with ResourceFiles {
       result.body shouldBe "Missing or invalid 'X-Api-Token'"
     }
 
-    scenario("Calls to the health endpoint do not require auth token") {
+    Scenario("Calls to the health endpoint do not require auth token") {
       val result = Http(s"$serviceUrl/ping/ping")
         .method(HttpVerbs.GET)
         .asString

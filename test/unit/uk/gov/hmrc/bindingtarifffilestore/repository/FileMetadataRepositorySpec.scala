@@ -16,27 +16,24 @@
 
 package uk.gov.hmrc.bindingtarifffilestore.repository
 
-import java.util.UUID
-
-import org.mockito.BDDMockito.given
 import org.scalatest.concurrent.Eventually
-import org.scalatestplus.mockito.MockitoSugar
 import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
-import reactivemongo.api.DB
+import org.scalatestplus.mockito.MockitoSugar
+import reactivemongo.api.indexes.Index
 import reactivemongo.api.indexes.IndexType.Ascending
-import reactivemongo.api.indexes.{Index, IndexType}
+import reactivemongo.api.{DB, ReadConcern}
 import reactivemongo.bson._
 import reactivemongo.core.errors.DatabaseException
 import reactivemongo.play.json.ImplicitBSONHandlers._
-import uk.gov.hmrc.bindingtarifffilestore.config.AppConfig
-import uk.gov.hmrc.bindingtarifffilestore.model.{FileMetadata, Paged, Pagination, Search}
 import uk.gov.hmrc.bindingtarifffilestore.model.FileMetadataMongo.format
+import uk.gov.hmrc.bindingtarifffilestore.model.{FileMetadata, Paged, Pagination, Search}
 import uk.gov.hmrc.mongo.MongoSpecSupport
 
+import java.util.UUID
 import scala.concurrent.ExecutionContext.Implicits.global
 
 class FileMetadataRepositorySpec
-    extends BaseMongoIndexSpec
+  extends BaseMongoIndexSpec
     with BeforeAndAfterAll
     with BeforeAndAfterEach
     with MongoSpecSupport
@@ -44,12 +41,14 @@ class FileMetadataRepositorySpec
     with MockitoSugar {
   self =>
 
+  val readConcern: ReadConcern = ReadConcern.Local
+
   private val mongoDbProvider: MongoDbProvider = new MongoDbProvider {
     override val mongo: () => DB = self.mongo
   }
 
-  private val att1       = generateAttachment
-  private val att2       = generateAttachment
+  private val att1 = generateAttachment
+  private val att2 = generateAttachment
   private val repository = createMongoRepo
 
   private def createMongoRepo =
@@ -67,7 +66,7 @@ class FileMetadataRepositorySpec
   }
 
   private def collectionSize: Int =
-    await(repository.collection.count())
+    await(repository.collection.count(None, Some(0), 0, None, readConcern = readConcern)).toInt
 
   "deleteAll()" should {
 
@@ -79,7 +78,7 @@ class FileMetadataRepositorySpec
       collectionSize shouldBe 2 + size
 
       await(repository.deleteAll) shouldBe ((): Unit)
-      collectionSize              shouldBe 0
+      collectionSize shouldBe 0
     }
 
   }
@@ -89,8 +88,8 @@ class FileMetadataRepositorySpec
     "insert a new document in the collection" in {
       val size = collectionSize
 
-      await(repository.insertFile(att1))                                      shouldBe att1
-      collectionSize                                                          shouldBe 1 + size
+      await(repository.insertFile(att1)) shouldBe att1
+      collectionSize shouldBe 1 + size
       await(repository.collection.find(selectorById(att1)).one[FileMetadata]) shouldBe Some(att1)
     }
 
@@ -107,9 +106,9 @@ class FileMetadataRepositorySpec
       collectionSize shouldBe size
 
       val metadata = await(repository.collection.find(selectorById(updated)).one[FileMetadata])
-      metadata.map(_.id)                                           shouldBe Some(att1.id)
-      metadata.map(_.mimeType)                                     shouldBe Some(updated.mimeType)
-      metadata.map(_.fileName)                                     shouldBe Some(updated.fileName)
+      metadata.map(_.id) shouldBe Some(att1.id)
+      metadata.map(_.mimeType) shouldBe Some(updated.mimeType)
+      metadata.map(_.fileName) shouldBe Some(updated.fileName)
       metadata.map(_.lastUpdated).get.isAfter(updated.lastUpdated) shouldBe true
     }
 
@@ -117,7 +116,7 @@ class FileMetadataRepositorySpec
       val size = collectionSize
 
       await(repository.update(att1)) shouldBe None
-      collectionSize                 shouldBe size
+      collectionSize shouldBe size
     }
   }
 
@@ -146,7 +145,7 @@ class FileMetadataRepositorySpec
       collectionSize shouldBe 2
 
       await(repository.delete(att1.id))
-      collectionSize                 shouldBe 1
+      collectionSize shouldBe 1
       await(repository.get(att1.id)) shouldBe None
     }
 
@@ -172,7 +171,7 @@ class FileMetadataRepositorySpec
       import scala.concurrent.duration._
 
       val expectedIndexes = List(
-        Index(key = Seq("id"  -> Ascending), name = Some("id_Index"), unique = true),
+        Index(key = Seq("id" -> Ascending), name = Some("id_Index"), unique = true),
         Index(key = Seq("_id" -> Ascending), name = Some("_id_"))
       )
 
@@ -204,10 +203,10 @@ class FileMetadataRepositorySpec
       collectionSize shouldBe 2
 
       await(repository.get(Search(published = Some(true)), Pagination())) shouldBe Paged(
-        Seq(att1.copy(published             = true))
+        Seq(att1.copy(published = true))
       )
       await(repository.get(Search(published = Some(false)), Pagination())) shouldBe Paged(
-        Seq(att2.copy(published             = false))
+        Seq(att2.copy(published = false))
       )
     }
 
@@ -226,7 +225,7 @@ class FileMetadataRepositorySpec
   }
 
   private def generateAttachment = FileMetadata(
-    id       = generateString,
+    id = generateString,
     fileName = Some(generateString),
     mimeType = Some(generateString)
   )

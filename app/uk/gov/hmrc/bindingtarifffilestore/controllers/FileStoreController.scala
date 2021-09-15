@@ -74,7 +74,7 @@ class FileStoreController @Inject() (
       .map(_ => NoContent)
   }
 
-  def initiate = withErrorHandling {
+  def initiate: Action[AnyContent] = withErrorHandling {
     Action.async { implicit request =>
       asJson[FileStoreInitiateRequest] { fileStoreRequest =>
         service

@@ -16,32 +16,31 @@
 
 package uk.gov.hmrc.bindingtarifffilestore.service
 
-import java.{util => ju}
-import javax.inject.{Inject, Singleton}
 import play.api.Logging
 import uk.gov.hmrc.bindingtarifffilestore.audit.AuditService
 import uk.gov.hmrc.bindingtarifffilestore.config.AppConfig
 import uk.gov.hmrc.bindingtarifffilestore.connector.{AmazonS3Connector, UpscanConnector}
 import uk.gov.hmrc.bindingtarifffilestore.controllers.routes
-import uk.gov.hmrc.bindingtarifffilestore.model.ScanStatus.{FAILED, READY}
+import uk.gov.hmrc.bindingtarifffilestore.model.ScanStatus.READY
 import uk.gov.hmrc.bindingtarifffilestore.model._
 import uk.gov.hmrc.bindingtarifffilestore.model.upscan._
-import uk.gov.hmrc.bindingtarifffilestore.model.upscan.v2
 import uk.gov.hmrc.bindingtarifffilestore.repository.FileMetadataMongoRepository
 import uk.gov.hmrc.bindingtarifffilestore.util.HashUtil
 import uk.gov.hmrc.http.HeaderCarrier
 
+import java.{util => ju}
+import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton()
-class FileStoreService @Inject() (
-  appConfig: AppConfig,
-  fileStoreConnector: AmazonS3Connector,
-  repository: FileMetadataMongoRepository,
-  upscanConnector: UpscanConnector,
-  auditService: AuditService
-)(implicit ec: ExecutionContext)
-    extends Logging {
+class FileStoreService @Inject()(
+                                  appConfig: AppConfig,
+                                  fileStoreConnector: AmazonS3Connector,
+                                  repository: FileMetadataMongoRepository,
+                                  upscanConnector: UpscanConnector,
+                                  auditService: AuditService
+                                )(implicit ec: ExecutionContext)
+  extends Logging {
 
   private lazy val authToken = HashUtil.hash(appConfig.authorization)
 
@@ -51,15 +50,15 @@ class FileStoreService @Inject() (
     log(fileId, "Initiating")
 
     for {
-      _                <- repository.insertFile(metadata)
+      _ <- repository.insertFile(metadata)
       initiateResponse <- upscanInitiate(metadata)
       template = initiateResponse.uploadRequest
     } yield UploadTemplate(fileId, template.href, template.fields)
   }
 
   def initiateV2(
-    request: v2.FileStoreInitiateRequest
-  )(implicit hc: HeaderCarrier): Future[v2.FileStoreInitiateResponse] = {
+                  request: v2.FileStoreInitiateRequest
+                )(implicit hc: HeaderCarrier): Future[v2.FileStoreInitiateResponse] = {
     val fileId = request.id.getOrElse(ju.UUID.randomUUID().toString())
 
     log(fileId, "Initiating")
@@ -68,11 +67,11 @@ class FileStoreService @Inject() (
       .notification(fileId)
       .absoluteURL(appConfig.filestoreSSL, appConfig.filestoreUrl) + s"?X-Api-Token=$authToken"
 
-    val fileMetadata  = FileMetadata.fromInitiateRequestV2(fileId, request)
+    val fileMetadata = FileMetadata.fromInitiateRequestV2(fileId, request)
     val upscanRequest = v2.UpscanInitiateRequest.fromFileStoreRequest(callbackUrl, appConfig, request)
 
     for {
-      update           <- repository.insertFile(fileMetadata)
+      update <- repository.insertFile(fileMetadata)
       initiateResponse <- upscanConnector.initiateV2(upscanRequest)
       _ = log(
         fileId,
@@ -88,7 +87,7 @@ class FileStoreService @Inject() (
     log(fileId, "Uploading")
 
     for {
-      update           <- repository.insertFile(fileWithMetadata.metadata)
+      update <- repository.insertFile(fileWithMetadata.metadata)
       initiateResponse <- upscanInitiate(fileWithMetadata.metadata)
       // This future (Upload) executes asynchronously intentionally
       _ = log(
@@ -146,15 +145,15 @@ class FileStoreService @Inject() (
           for {
             updated: Option[FileMetadata] <- repository.update(updatedAttachment)
             published: Option[FileMetadata] <- updated match {
-                                                case Some(metadata) =>
-                                                  publish(metadata)
-                                                case _ =>
-                                                  log(
-                                                    attachment.id,
-                                                    s"Scan completed as READY but it couldn't be published as it no longer exists"
-                                                  )
-                                                  Future.successful(None)
-                                              }
+              case Some(metadata) =>
+                publish(metadata)
+              case _ =>
+                log(
+                  attachment.id,
+                  s"Scan completed as READY but it couldn't be published as it no longer exists"
+                )
+                Future.successful(None)
+            }
           } yield published
         } else {
           repository.update(updatedAttachment)
@@ -226,7 +225,7 @@ class FileStoreService @Inject() (
 
   private def signingIfPublished: FileMetadata => FileMetadata = {
     case file if file.published => fileStoreConnector.sign(file)
-    case other                  => other
+    case other => other
   }
 
   private def error(id: String, message: String, error: Throwable): Unit =

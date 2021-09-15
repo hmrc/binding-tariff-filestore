@@ -16,13 +16,12 @@
 
 package uk.gov.hmrc.bindingtarifffilestore.controllers
 
-import java.time.Instant
-
 import akka.stream.Materializer
 import org.mockito.ArgumentCaptor
 import org.mockito.ArgumentMatchers.{any, refEq}
 import org.mockito.Mockito.{reset, verify, when}
-import org.scalatest.{BeforeAndAfterEach, Matchers}
+import org.scalatest.BeforeAndAfterEach
+import org.scalatest.matchers.should.Matchers
 import org.scalatestplus.mockito.MockitoSugar
 import play.api.http.Status._
 import play.api.libs.Files.{SingletonTemporaryFileCreator, TemporaryFile}
@@ -33,19 +32,18 @@ import play.api.test.FakeRequest
 import uk.gov.hmrc.bindingtarifffilestore.config.AppConfig
 import uk.gov.hmrc.bindingtarifffilestore.model.FileMetadataREST.format
 import uk.gov.hmrc.bindingtarifffilestore.model._
+import uk.gov.hmrc.bindingtarifffilestore.model.upscan.v2.{FileStoreInitiateRequest, FileStoreInitiateResponse, UpscanFormTemplate}
 import uk.gov.hmrc.bindingtarifffilestore.model.upscan.{ScanResult, SuccessfulScanResult, UploadDetails}
 import uk.gov.hmrc.bindingtarifffilestore.service.FileStoreService
 import uk.gov.hmrc.bindingtarifffilestore.util.{UnitSpec, WithFakeApplication}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpVerbs}
 
-import scala.concurrent.Future.{failed, successful}
+import java.time.Instant
 import scala.concurrent.ExecutionContext.Implicits.global
-import uk.gov.hmrc.bindingtarifffilestore.model.upscan.v2.FileStoreInitiateRequest
-import uk.gov.hmrc.bindingtarifffilestore.model.upscan.v2.FileStoreInitiateResponse
-import uk.gov.hmrc.bindingtarifffilestore.model.upscan.v2.UpscanFormTemplate
+import scala.concurrent.Future.{failed, successful}
 
 class FileStoreControllerSpec
-    extends UnitSpec
+  extends UnitSpec
     with Matchers
     with WithFakeApplication
     with MockitoSugar
@@ -53,11 +51,11 @@ class FileStoreControllerSpec
 
   private implicit val mat: Materializer = fakeApplication.materializer
 
-  private val appConfig                     = mock[AppConfig]
-  private val service                       = mock[FileStoreService]
+  private val appConfig = mock[AppConfig]
+  private val service = mock[FileStoreService]
   lazy val playBodyParsers: PlayBodyParsers = fakeApplication.injector.instanceOf[PlayBodyParsers]
   lazy val cc: MessagesControllerComponents = fakeApplication.injector.instanceOf[MessagesControllerComponents]
-  private val controller                    = new FileStoreController(appConfig, service, playBodyParsers, cc)
+  private val controller = new FileStoreController(appConfig, service, playBodyParsers, cc)
 
   private val fakeRequest = FakeRequest()
 
@@ -110,7 +108,7 @@ class FileStoreControllerSpec
 
   "Delete By ID" should {
 
-    val id  = "ABC-123_000"
+    val id = "ABC-123_000"
     val req = FakeRequest(method = HttpVerbs.DELETE, path = s"/file/$id")
 
     "return 204" in {
@@ -205,9 +203,9 @@ class FileStoreControllerSpec
         .thenReturn(successful(Some(attachmentUpdated)))
 
       val request: FakeRequest[JsValue] = fakeRequest.withBody(Json.toJson[ScanResult](scanResult))
-      val result: Result                = await(controller.notification(id = "id")(request))
+      val result: Result = await(controller.notification(id = "id")(request))
 
-      status(result)     shouldBe CREATED
+      status(result) shouldBe CREATED
       jsonBodyOf(result) shouldBe Json.toJson(attachmentUpdated)
     }
 
@@ -216,7 +214,7 @@ class FileStoreControllerSpec
       when(service.find("id")).thenReturn(successful(None))
 
       val request: FakeRequest[JsValue] = fakeRequest.withBody(Json.toJson[ScanResult](scanResult))
-      val result: Result                = await(controller.notification(id = "id")(request))
+      val result: Result = await(controller.notification(id = "id")(request))
 
       status(result) shouldBe NOT_FOUND
     }
@@ -227,11 +225,11 @@ class FileStoreControllerSpec
       val attachmentExisting =
         FileMetadata(id = "id", fileName = Some("file"), mimeType = Some("type"), scanStatus = Some(ScanStatus.READY))
       val attachmentUpdated = FileMetadata(
-        id         = "id",
-        fileName   = Some("file"),
-        mimeType   = Some("type"),
+        id = "id",
+        fileName = Some("file"),
+        mimeType = Some("type"),
         scanStatus = Some(ScanStatus.READY),
-        url        = Some("url")
+        url = Some("url")
       )
       when(service.find(id = "id")).thenReturn(successful(Some(attachmentExisting)))
       when(service.publish(refEq(attachmentExisting))(any[HeaderCarrier]))
@@ -239,7 +237,7 @@ class FileStoreControllerSpec
 
       val result: Result = await(controller.publish(id = "id")(fakeRequest))
 
-      status(result)     shouldBe ACCEPTED
+      status(result) shouldBe ACCEPTED
       jsonBodyOf(result) shouldBe Json.toJson(attachmentUpdated)
     }
 
@@ -270,7 +268,7 @@ class FileStoreControllerSpec
       when(service.initiateV2(any[FileStoreInitiateRequest])(any[HeaderCarrier])).thenReturn(successful(response))
 
       // When
-      val request        = FileStoreInitiateRequest(publishable = true)
+      val request = FileStoreInitiateRequest(publishable = true)
       val result: Result = await(controller.initiate(jsonRequest(request)))
 
       // Then
@@ -283,7 +281,7 @@ class FileStoreControllerSpec
       when(service.initiateV2(any[FileStoreInitiateRequest])(any[HeaderCarrier])).thenReturn(successful(response))
 
       // When
-      val request        = FileStoreInitiateRequest(id = Some("id"), publishable = true)
+      val request = FileStoreInitiateRequest(id = Some("id"), publishable = true)
       val result: Result = await(controller.initiate(jsonRequest(request)))
 
       // Then
@@ -303,7 +301,7 @@ class FileStoreControllerSpec
 
     val fileName = "file.txt"
     val mimeType = "text/plain"
-    val tmpFile  = SingletonTemporaryFileCreator.create("example-file.txt")
+    val tmpFile = SingletonTemporaryFileCreator.create("example-file.txt")
 
     def multipartRequest(body: MultipartFormData[TemporaryFile]): Request[AnyContent] =
       fakeRequest
@@ -316,7 +314,7 @@ class FileStoreControllerSpec
       when(service.initiate(any[FileMetadata])(any[HeaderCarrier])).thenReturn(successful(response))
 
       // When
-      val request        = UploadRequest(fileName = "file.txt", mimeType = "text/plain", publishable = true)
+      val request = UploadRequest(fileName = "file.txt", mimeType = "text/plain", publishable = true)
       val result: Result = await(controller.upload(jsonRequest(request)))
 
       // Then
@@ -324,8 +322,8 @@ class FileStoreControllerSpec
 
       val metadata = theFileInitiated
       metadata.publishable shouldBe true
-      metadata.fileName    shouldBe Some("file.txt")
-      metadata.mimeType    shouldBe Some("text/plain")
+      metadata.fileName shouldBe Some("file.txt")
+      metadata.mimeType shouldBe Some("text/plain")
     }
 
     "return 202 on valid json with ID" in {
@@ -334,17 +332,17 @@ class FileStoreControllerSpec
       when(service.initiate(any[FileMetadata])(any[HeaderCarrier])).thenReturn(successful(response))
 
       // When
-      val request        = UploadRequest(id = Some("id"), fileName = "file.txt", mimeType = "text/plain", publishable = true)
+      val request = UploadRequest(id = Some("id"), fileName = "file.txt", mimeType = "text/plain", publishable = true)
       val result: Result = await(controller.upload(jsonRequest(request)))
 
       // Then
       status(result) shouldBe ACCEPTED
 
       val metadata = theFileInitiated
-      metadata.id          shouldBe "id"
+      metadata.id shouldBe "id"
       metadata.publishable shouldBe true
-      metadata.fileName    shouldBe Some("file.txt")
-      metadata.mimeType    shouldBe Some("text/plain")
+      metadata.fileName shouldBe Some("file.txt")
+      metadata.mimeType shouldBe Some("text/plain")
     }
 
     "return 202 on valid file" in {
@@ -353,8 +351,8 @@ class FileStoreControllerSpec
       when(service.upload(any[FileWithMetadata])(any[HeaderCarrier])).thenReturn(successful(metadataUploaded))
 
       // When
-      val filePart = FilePart[TemporaryFile](key                = "file", fileName, contentType = Some(mimeType), ref     = tmpFile)
-      val form     = MultipartFormData[TemporaryFile](dataParts = Map(), files                  = Seq(filePart), badParts = Seq.empty)
+      val filePart = FilePart[TemporaryFile](key = "file", fileName, contentType = Some(mimeType), ref = tmpFile)
+      val form = MultipartFormData[TemporaryFile](dataParts = Map(), files = Seq(filePart), badParts = Seq.empty)
 
       val result: Result = await(controller.upload(multipartRequest(form)))
 
@@ -363,8 +361,8 @@ class FileStoreControllerSpec
 
       val metadata = theFileUploaded.metadata
       metadata.published shouldBe false
-      metadata.fileName  shouldBe Some("file.txt")
-      metadata.mimeType  shouldBe Some("text/plain")
+      metadata.fileName shouldBe Some("file.txt")
+      metadata.mimeType shouldBe Some("text/plain")
     }
 
     "return 202 on valid file with id" in {
@@ -376,8 +374,8 @@ class FileStoreControllerSpec
       val filePart = FilePart[TemporaryFile](key = "file", fileName, contentType = Some(mimeType), ref = tmpFile)
       val form = MultipartFormData[TemporaryFile](
         dataParts = Map("id" -> Seq("id")),
-        files     = Seq(filePart),
-        badParts  = Seq.empty
+        files = Seq(filePart),
+        badParts = Seq.empty
       )
 
       val result: Result = await(controller.upload(multipartRequest(form)))
@@ -386,10 +384,10 @@ class FileStoreControllerSpec
       status(result) shouldBe ACCEPTED
 
       val metadata = theFileUploaded.metadata
-      metadata.id        shouldBe "id"
+      metadata.id shouldBe "id"
       metadata.published shouldBe false
-      metadata.fileName  shouldBe Some("file.txt")
-      metadata.mimeType  shouldBe Some("text/plain")
+      metadata.fileName shouldBe Some("file.txt")
+      metadata.mimeType shouldBe Some("text/plain")
     }
 
     "return 202 on valid file with publish=true" in {
@@ -402,8 +400,8 @@ class FileStoreControllerSpec
       val filePart = FilePart[TemporaryFile](key = "file", fileName, contentType = Some(mimeType), ref = tmpFile)
       val form = MultipartFormData[TemporaryFile](
         dataParts = Map("publish" -> Seq("true")),
-        files     = Seq(filePart),
-        badParts  = Seq.empty
+        files = Seq(filePart),
+        badParts = Seq.empty
       )
 
       val result: Result = await(controller.upload(multipartRequest(form)))
@@ -413,8 +411,8 @@ class FileStoreControllerSpec
 
       val metadata = theFileUploaded.metadata
       metadata.publishable shouldBe true
-      metadata.fileName    shouldBe Some("file.txt")
-      metadata.mimeType    shouldBe Some("text/plain")
+      metadata.fileName shouldBe Some("file.txt")
+      metadata.mimeType shouldBe Some("text/plain")
     }
 
     "return 202 on valid file with publish=false" in {
@@ -427,8 +425,8 @@ class FileStoreControllerSpec
       val filePart = FilePart[TemporaryFile](key = "file", fileName, contentType = Some(mimeType), ref = tmpFile)
       val form = MultipartFormData[TemporaryFile](
         dataParts = Map("publish" -> Seq("false")),
-        files     = Seq(filePart),
-        badParts  = Seq.empty
+        files = Seq(filePart),
+        badParts = Seq.empty
       )
 
       val result: Result = await(controller.upload(multipartRequest(form)))
@@ -438,13 +436,13 @@ class FileStoreControllerSpec
 
       val metadata = theFileUploaded.metadata
       metadata.published shouldBe false
-      metadata.fileName  shouldBe Some("file.txt")
-      metadata.mimeType  shouldBe Some("text/plain")
+      metadata.fileName shouldBe Some("file.txt")
+      metadata.mimeType shouldBe Some("text/plain")
     }
 
     "Throw exception on missing mime type" in {
-      val filePart = FilePart[TemporaryFile](key                = "file", fileName, contentType = None, ref               = tmpFile)
-      val form     = MultipartFormData[TemporaryFile](dataParts = Map(), files                  = Seq(filePart), badParts = Seq.empty)
+      val filePart = FilePart[TemporaryFile](key = "file", fileName, contentType = None, ref = tmpFile)
+      val form = MultipartFormData[TemporaryFile](dataParts = Map(), files = Seq(filePart), badParts = Seq.empty)
 
       val exception = intercept[RuntimeException] {
         controller.upload(multipartRequest(form))

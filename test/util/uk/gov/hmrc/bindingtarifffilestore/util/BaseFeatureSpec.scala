@@ -16,27 +16,28 @@
 
 package uk.gov.hmrc.bindingtarifffilestore.util
 
-import java.security.MessageDigest
-
 import com.google.common.io.BaseEncoding
 import org.scalatest._
+import org.scalatest.featurespec.AnyFeatureSpec
+import org.scalatest.matchers.should.Matchers
 import org.scalatestplus.play.guice.GuiceOneServerPerSuite
 import uk.gov.hmrc.bindingtarifffilestore.config.AppConfig
 import uk.gov.hmrc.bindingtarifffilestore.repository.FileMetadataMongoRepository
 
+import java.security.MessageDigest
 import scala.concurrent.Await.result
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 
 abstract class BaseFeatureSpec
-    extends FeatureSpec
+  extends AnyFeatureSpec
     with Matchers
     with GivenWhenThen
     with GuiceOneServerPerSuite
     with BeforeAndAfterEach
     with BeforeAndAfterAll {
 
-  protected lazy val apiTokenKey          = "X-Api-Token"
+  protected lazy val apiTokenKey = "X-Api-Token"
   protected lazy val appConfig: AppConfig = app.injector.instanceOf[AppConfig]
 
   protected def hash: String => String = { s: String =>
