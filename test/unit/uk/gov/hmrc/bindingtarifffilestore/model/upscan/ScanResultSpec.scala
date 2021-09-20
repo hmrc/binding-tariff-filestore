@@ -42,7 +42,7 @@ class ScanResultSpec extends UnitSpec {
     )
 
     "Convert Result to JSON" in {
-      Json.toJson(model)(ScanResult.format) shouldBe json
+      Json.toJson[ScanResult](model)(ScanResult.format) shouldBe json
     }
 
     "Convert JSON to Result" in {
@@ -66,7 +66,7 @@ class ScanResultSpec extends UnitSpec {
     )
 
     "Convert Result to JSON" in {
-      Json.toJson(model)(ScanResult.format) shouldBe json
+      Json.toJson[ScanResult](model)(ScanResult.format) shouldBe json
     }
 
     "Convert JSON to Result" in {

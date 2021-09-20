@@ -16,12 +16,6 @@
 
 package uk.gov.hmrc.bindingtarifffilestore
 
-import java.io.{File, InputStream}
-import java.net.URI
-import java.nio.charset.Charset
-import java.nio.file.Files
-import java.time.Instant
-
 import com.github.tomakehurst.wiremock.client.WireMock._
 import org.apache.commons.io.IOUtils
 import play.api.Application
@@ -29,15 +23,20 @@ import play.api.http.{ContentTypes, HeaderNames, HttpVerbs, Status}
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.Files.SingletonTemporaryFileCreator
 import play.api.libs.json._
+import reactivemongo.api.ReadConcern
 import scalaj.http.{Http, HttpResponse, MultiPart}
-import uk.gov.hmrc.bindingtarifffilestore.model.upscan.ScanResult.format
 import uk.gov.hmrc.bindingtarifffilestore.model.upscan._
 import uk.gov.hmrc.bindingtarifffilestore.model.{Pagination, Search, UploadRequest}
 import uk.gov.hmrc.bindingtarifffilestore.repository.FileMetadataMongoRepository
 import uk.gov.hmrc.bindingtarifffilestore.util.{ResourceFiles, WiremockFeatureTestServer}
 
-import scala.collection.Map
+import java.io.{File, InputStream}
+import java.net.URI
+import java.nio.charset.Charset
+import java.nio.file.Files
+import java.time.Instant
 import scala.collection.JavaConverters._
+import scala.collection.Map
 import scala.concurrent.Await.result
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
@@ -52,6 +51,8 @@ class FileStoreSpec extends WiremockFeatureTestServer with ResourceFiles {
 
   private lazy val dbFileStore: FileMetadataMongoRepository = app.injector.instanceOf[FileMetadataMongoRepository]
 
+  val readConcern: ReadConcern = ReadConcern.Local
+
   override protected def beforeEach(): Unit = {
     super.beforeEach()
     dropDbFileStore()
@@ -65,8 +66,8 @@ class FileStoreSpec extends WiremockFeatureTestServer with ResourceFiles {
     )
     .build()
 
-  feature("Delete All") {
-    scenario("Clear collections & files") {
+  Feature("Delete All") {
+    Scenario("Clear collections & files") {
       Given("There are some documents in the collection")
       upload("some-file1.txt", "text/plain")
       upload("some-file2.txt", "text/plain")
@@ -100,8 +101,8 @@ class FileStoreSpec extends WiremockFeatureTestServer with ResourceFiles {
 
   }
 
-  feature("Delete") {
-    scenario("Delete the file") {
+  Feature("Delete") {
+    Scenario("Delete the file") {
       Given("A file has been uploaded")
       val id = upload("some-file.txt", "text/plain")
         .body("id").as[JsString].value
@@ -121,8 +122,8 @@ class FileStoreSpec extends WiremockFeatureTestServer with ResourceFiles {
     }
   }
 
-  feature("Upload") {
-    scenario("Should persist") {
+  Feature("Upload") {
+    Scenario("Should persist") {
       Given("A Client of the FileStore has a file")
       val filename = "some-file.txt"
       val contentType = "text/plain"
@@ -141,8 +142,8 @@ class FileStoreSpec extends WiremockFeatureTestServer with ResourceFiles {
     }
   }
 
-  feature("Initiate") {
-    scenario("Should persist") {
+  Feature("Initiate") {
+    Scenario("Should persist") {
       Given("A Client of the FileStore has a file")
       val filename = "some-file.txt"
       val contentType = "text/plain"
@@ -159,8 +160,8 @@ class FileStoreSpec extends WiremockFeatureTestServer with ResourceFiles {
     }
   }
 
-  feature("Initiate V2") {
-    scenario("Should accept initiate requests without ID") {
+  Feature("Initiate V2") {
+    Scenario("Should accept initiate requests without ID") {
       Given("A Client of the FileStore needs an upload form")
       When("It is requested")
       val response: HttpResponse[Map[String, JsValue]] = initiateV2()
@@ -178,7 +179,7 @@ class FileStoreSpec extends WiremockFeatureTestServer with ResourceFiles {
       )
     }
 
-    scenario("Should accept initiate requests with client generated ID") {
+    Scenario("Should accept initiate requests with client generated ID") {
       Given("A Client of the FileStore needs an upload form")
       When("It is requested")
       val response: HttpResponse[Map[String, JsValue]] = initiateV2(Some("slurm"))
@@ -197,8 +198,8 @@ class FileStoreSpec extends WiremockFeatureTestServer with ResourceFiles {
     }
   }
 
-  feature("Get") {
-    scenario("Should show the file is persisted") {
+  Feature("Get") {
+    Scenario("Should show the file is persisted") {
       Given("A file has been uploaded")
       val id = upload("some-file.txt", "text/plain")
         .body("id").as[JsString].value
@@ -217,8 +218,8 @@ class FileStoreSpec extends WiremockFeatureTestServer with ResourceFiles {
     }
   }
 
-  feature("Get files") {
-    scenario("Should return all files matching search") {
+  Feature("Get files") {
+    Scenario("Should return all files matching search") {
       Given("Files have been uploaded")
       val id1 = upload("some-file1.txt", "text/plain").body("id").as[JsString].value
       val id2 = upload("some-file2.txt", "text/plain").body("id").as[JsString].value
@@ -232,30 +233,30 @@ class FileStoreSpec extends WiremockFeatureTestServer with ResourceFiles {
       And("The response body contains the file details")
 
       response.body.asInstanceOf[JsArray].value.size shouldBe 2
-      (response.body \\ "fileName").map(_.as[String])  should contain only ("some-file1.txt", "some-file2.txt")
+      (response.body \\ "fileName").map(_.as[String]) should contain only("some-file1.txt", "some-file2.txt")
     }
 
-    scenario("Should return all files for empty search") {
+    Scenario("Should return all files for empty search") {
       Given("Files have been uploaded")
 
       upload("some-file1.txt", "text/plain").body("id").as[JsString].value
       upload("some-file2.txt", "text/plain").body("id").as[JsString].value
 
       When("I request the file details")
-      val response =  getFiles(Search())
+      val response = getFiles(Search())
 
       Then("The response code should be Ok")
       response.code shouldBe Status.OK
 
       And("The response body contains the file details")
 
-      (response.body \\ "fileName").map(_.as[String]) should contain allOf ("some-file1.txt", "some-file2.txt")
+      (response.body \\ "fileName").map(_.as[String]) should contain allOf("some-file1.txt", "some-file2.txt")
     }
 
   }
 
-  feature("Get files with pagination") {
-    scenario("Should return all files matching search") {
+  Feature("Get files with pagination") {
+    Scenario("Should return all files matching search") {
       Given("Files have been uploaded")
       val id1 = upload("some-file1.txt", "text/plain").body("id").as[JsString].value
       val id2 = upload("some-file2.txt", "text/plain").body("id").as[JsString].value
@@ -269,30 +270,30 @@ class FileStoreSpec extends WiremockFeatureTestServer with ResourceFiles {
       And("The response body contains the file details")
 
       response.body.asInstanceOf[JsObject].value("resultCount").toString().toInt shouldBe 2
-      (response.body \\ "fileName").map(_.as[String])  should contain only ("some-file1.txt", "some-file2.txt")
+      (response.body \\ "fileName").map(_.as[String]) should contain only("some-file1.txt", "some-file2.txt")
     }
 
-    scenario("Should return all files for empty search") {
+    Scenario("Should return all files for empty search") {
       Given("Files have been uploaded")
 
       upload("some-file1.txt", "text/plain").body("id").as[JsString].value
       upload("some-file2.txt", "text/plain").body("id").as[JsString].value
 
       When("I request the file details")
-      val response =  getFiles(Search(), Some(Pagination()))
+      val response = getFiles(Search(), Some(Pagination()))
 
       Then("The response code should be Ok")
       response.code shouldBe Status.OK
 
       And("The response body contains the file details")
       response.body.asInstanceOf[JsObject].value("resultCount").toString().toInt shouldBe 2
-      (response.body \\ "fileName").map(_.as[String]) should contain allOf ("some-file1.txt", "some-file2.txt")
+      (response.body \\ "fileName").map(_.as[String]) should contain allOf("some-file1.txt", "some-file2.txt")
     }
 
   }
 
-  feature("Notify") {
-    scenario("Successful scan should update the status") {
+  Feature("Notify") {
+    Scenario("Successful scan should update the status") {
       Given("A File has been uploaded")
       val id = upload("some-file.txt", "text/plain")
         .body("id").as[JsString].value
@@ -313,7 +314,7 @@ class FileStoreSpec extends WiremockFeatureTestServer with ResourceFiles {
       response.body("scanStatus") shouldBe JsString("READY")
     }
 
-    scenario("Quarantined scan should update the status") {
+    Scenario("Quarantined scan should update the status") {
       Given("A File has been uploaded")
       val id = upload("some-file.txt", "text/plain")
         .body("id").as[JsString].value
@@ -334,8 +335,8 @@ class FileStoreSpec extends WiremockFeatureTestServer with ResourceFiles {
     }
   }
 
-  feature("Publish") {
-    scenario("Should persist the file to permanent storage") {
+  Feature("Publish") {
+    Scenario("Should persist the file to permanent storage") {
       Given("A File has been uploaded and marked as safe")
       val id = upload("some-file.txt", "text/plain")
         .body("id").as[JsString].value
@@ -358,7 +359,7 @@ class FileStoreSpec extends WiremockFeatureTestServer with ResourceFiles {
       response.body("url").as[JsString].value should include(s"$id?X-Amz-Algorithm=AWS4-HMAC-SHA256")
     }
 
-    scenario("Should mark an un-safe file as publishable, but not persist") {
+    Scenario("Should mark an un-safe file as publishable, but not persist") {
       Given("A File has been uploaded and marked as quarantined")
       val id = upload("some-file.txt", "text/plain")
         .body("id").as[JsString].value
@@ -388,7 +389,7 @@ class FileStoreSpec extends WiremockFeatureTestServer with ResourceFiles {
       getResponse.body.contains("url") shouldBe false
     }
 
-    scenario("Should remove publishable file which has expired") {
+    Scenario("Should remove publishable file which has expired") {
       Given("A File has been uploaded and marked as safe")
       val id = upload("some-file.txt", "text/plain")
         .body("id").as[JsString].value
@@ -452,7 +453,7 @@ class FileStoreSpec extends WiremockFeatureTestServer with ResourceFiles {
     val model = SuccessfulScanResult("reference", url, UploadDetails(fileName, "text/plain", Instant.now(), "checksum"))
 
     Http(s"$serviceUrl/file/$id/notify")
-      .postData(Json.toJson(model).toString())
+      .postData(Json.toJson[ScanResult](model).toString())
       .header(HeaderNames.CONTENT_TYPE, ContentTypes.JSON)
       .param(apiTokenKey, hash(appConfig.authorization))
       .execute(convertingResponseToJS)
@@ -462,7 +463,7 @@ class FileStoreSpec extends WiremockFeatureTestServer with ResourceFiles {
     val model = FailedScanResult("reference", FailureDetails(FailureReason.QUARANTINE, "message"))
 
     Http(s"$serviceUrl/file/$id/notify")
-      .postData(Json.toJson(model).toString())
+      .postData(Json.toJson[ScanResult](model).toString())
       .header(HeaderNames.CONTENT_TYPE, ContentTypes.JSON)
       .param(apiTokenKey, hash(appConfig.authorization))
       .execute(convertingResponseToJS)
@@ -594,7 +595,7 @@ class FileStoreSpec extends WiremockFeatureTestServer with ResourceFiles {
   }
 
   private def dbFileStoreSize: Int = {
-    result(dbFileStore.collection.count(), timeout)
+    result(dbFileStore.collection.count(None, Some(0), 0, None, readConcern = readConcern), timeout).toInt
   }
 
   private def dropDbFileStore(): Unit = {

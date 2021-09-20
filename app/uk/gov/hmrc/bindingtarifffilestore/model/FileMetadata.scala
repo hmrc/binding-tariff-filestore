@@ -64,7 +64,7 @@ case class FileMetadata(
       }
     }
 
-  def withScanResult(scanResult: ScanResult) = scanResult match {
+  def withScanResult(scanResult: ScanResult): FileMetadata = scanResult match {
     case SuccessfulScanResult(reference, downloadUrl, uploadDetails) =>
       copy(
         fileName   = Some(uploadDetails.fileName),
