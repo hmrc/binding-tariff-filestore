@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 HM Revenue & Customs
+ * Copyright 2022 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -34,6 +34,8 @@ import scala.concurrent.Future.{failed, successful}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
 
+import uk.gov.hmrc.http.HttpReads.Implicits._
+
 @Singleton
 class UpscanConnector @Inject() (appConfig: AppConfig, http: HttpClient)(implicit executionContext: ExecutionContext) extends Logging {
 
@@ -58,11 +60,12 @@ class UpscanConnector @Inject() (appConfig: AppConfig, http: HttpClient)(implici
     builder.addPart(
       "file",
       new FileBody(
-        fileWithMetaData.file.file,
+        fileWithMetaData.file.path.toFile,
         fileWithMetaData.metadata.mimeType
           .flatMap(typ => Option(ContentType.getByMimeType(typ)))
           .getOrElse(ContentType.DEFAULT_BINARY),
-        fileWithMetaData.metadata.fileName.getOrElse(fileWithMetaData.file.file.getName())
+        fileWithMetaData.metadata.fileName.getOrElse(fileWithMetaData.file.path.getFileName)
+          .asInstanceOf[java.lang.String] //There is a compatibility glitch in Scala version, it can't match Scala string with Java string for this library code
       )
     )
 

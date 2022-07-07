@@ -18,7 +18,7 @@ lazy val microservice = (project in file("."))
   .settings(majorVersion := 0)
   .settings(
     name := appName,
-    scalaVersion := "2.12.12",
+    scalaVersion := "2.12.16",
     targetJvm := "jvm-1.8",
     playDefaultPort := 9583,
     scalacOptions ++= Seq("-Ywarn-unused-import", "-deprecation", "-feature"),
@@ -30,8 +30,8 @@ lazy val microservice = (project in file("."))
     // Use the silencer plugin to suppress warnings from unused imports in compiled twirl templates
     scalacOptions += "-P:silencer:pathFilters=views;routes",
     libraryDependencies ++= Seq(
-      compilerPlugin("com.github.ghik" % "silencer-plugin" % "1.7.1" cross CrossVersion.full),
-      "com.github.ghik" % "silencer-lib" % "1.7.1" % Provided cross CrossVersion.full
+      compilerPlugin("com.github.ghik" % "silencer-plugin" % "1.7.9" cross CrossVersion.full),
+      "com.github.ghik" % "silencer-lib" % "1.7.9" % Provided cross CrossVersion.full
     )
   )
   .settings(inConfig(TemplateTest)(Defaults.testSettings): _*)
@@ -66,6 +66,6 @@ lazy val TemplateTest   = config("tt") extend Test
 lazy val TemplateItTest = config("tit") extend IntegrationTest
 
 // Coverage configuration
-coverageMinimum := 93
+coverageMinimumStmtTotal := 93
 coverageFailOnMinimum := true
 coverageExcludedPackages := "<empty>;com.kenshoo.play.metrics.*;prod.*;testOnlyDoNotUseInAppConf.*;app.*;uk.gov.hmrc.BuildInfo"

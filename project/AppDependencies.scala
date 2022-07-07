@@ -7,8 +7,8 @@ object AppDependencies {
 
   val compile = Seq(
     "com.amazonaws"             % "aws-java-sdk-s3"            % "1.11.882",
-    "uk.gov.hmrc"               %% "bootstrap-backend-play-28" % "5.13.0",
-    "uk.gov.hmrc"               %% "simple-reactivemongo"      % "8.0.0-play-28",
+    "uk.gov.hmrc"               %% "bootstrap-backend-play-28" % "6.2.0",
+    "uk.gov.hmrc"               %% "simple-reactivemongo"      % "8.1.0-play-28",
     "uk.gov.hmrc"               %% "play-json-union-formatter" % "1.15.0-play-28",
     "org.apache.httpcomponents" % "httpclient"                 % apacheHttpVersion,
     "org.apache.httpcomponents" % "httpmime"                   % apacheHttpVersion
@@ -19,15 +19,15 @@ object AppDependencies {
   val test: Seq[ModuleID] = Seq(
     "com.github.tomakehurst" % "wiremock"                  % "2.27.2",
     "com.typesafe.play"      %% "play-test"                % current ,
-    "org.mockito"            % "mockito-core"              % "3.11.2",
-    "org.jsoup"              % "jsoup"                     % "1.14.1",
+    "org.mockito"            % "mockito-core"              % "4.6.1",
+    "org.jsoup"              % "jsoup"                     % "1.15.1",
     "org.pegdown"            % "pegdown"                   % "1.6.0" ,
     "org.scalatest"          %% "scalatest"                % "3.2.9" ,
     "org.scalatestplus.play" %% "scalatestplus-play"       % "5.1.0" ,
     "org.scalatestplus"      %% "mockito-3-4"              % "3.2.9.0",
     "com.vladsch.flexmark"   % "flexmark-all"              % "0.35.10",
-    "org.scalacheck"         %% "scalacheck"               % "1.15.4",
-    "uk.gov.hmrc"            %% "service-integration-test" % "1.1.0-play-28",
+    "org.scalacheck"         %% "scalacheck"               % "1.16.0",
+    "uk.gov.hmrc"            %% "service-integration-test" % "1.3.0-play-28",
     "uk.gov.hmrc"            %% "reactivemongo-test"       % "5.0.0-play-28",
     "org.scalaj"             %% "scalaj-http"              % "2.4.2",
     //Need to peg this version for wiremock - try removing this on next lib upgrade
