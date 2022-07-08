@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 HM Revenue & Customs
+ * Copyright 2022 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -410,7 +410,7 @@ class FileStoreServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfte
       await(service.publish(fileUploading)) shouldBe None
 
       verify(repository).delete("id")
-      verifyZeroInteractions(auditService, s3Connector)
+      verifyNoInteractions(auditService, s3Connector)
     }
 
     "Not delegate to the File Store if pre published" in {
@@ -421,7 +421,7 @@ class FileStoreServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfte
 
       await(service.publish(fileUploading)) shouldBe Some(fileUploading)
 
-      verifyZeroInteractions(auditService, s3Connector, repository)
+      verifyNoInteractions(auditService, s3Connector, repository)
     }
 
     "Not delegate to the File Store if Scanned UnSafe" in {
@@ -436,7 +436,7 @@ class FileStoreServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfte
 
       await(service.publish(fileUploading)) shouldBe Some(fileUpdated)
 
-      verifyZeroInteractions(auditService, s3Connector)
+      verifyNoInteractions(auditService, s3Connector)
     }
 
     "Not delegate to the File Store if Unscanned" in {
@@ -451,7 +451,7 @@ class FileStoreServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfte
 
       await(service.publish(fileUploading)) shouldBe Some(fileUpdated)
 
-      verifyZeroInteractions(auditService, s3Connector)
+      verifyNoInteractions(auditService, s3Connector)
     }
   }
 
