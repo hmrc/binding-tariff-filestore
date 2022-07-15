@@ -16,91 +16,86 @@
 
 package uk.gov.hmrc.bindingtarifffilestore.repository
 
-import java.time.Instant
-
-import javax.inject.{Inject, Singleton}
-import play.api.libs.json.{JsBoolean, JsObject, JsValue, Json}
-import reactivemongo.api.indexes.Index
-import reactivemongo.api.{Cursor, QueryOpts}
-import reactivemongo.bson.BSONObjectID
-import reactivemongo.play.json.ImplicitBSONHandlers._
-import uk.gov.hmrc.bindingtarifffilestore.model.FileMetadataMongo.format
+import org.mongodb.scala.bson.conversions.Bson
+import org.mongodb.scala.model.Filters._
+import org.mongodb.scala.model._
 import uk.gov.hmrc.bindingtarifffilestore.model._
-import uk.gov.hmrc.bindingtarifffilestore.repository.MongoIndexCreator.createSingleFieldAscendingIndex
 import uk.gov.hmrc.bindingtarifffilestore.util.Logging
-import uk.gov.hmrc.mongo.ReactiveRepository
+import uk.gov.hmrc.mongo.MongoComponent
+import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
 
+import java.time.Instant
+import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class FileMetadataMongoRepository @Inject() (mongoDbProvider: MongoDbProvider)
-    extends ReactiveRepository[FileMetadata, BSONObjectID](
-      collectionName = "fileMetadata",
-      mongo          = mongoDbProvider.mongo,
-      domainFormat   = FileMetadataMongo.format
-    ) with Logging {
-
-  override lazy val indexes: Seq[Index] = Seq(
-    createSingleFieldAscendingIndex("id", isUnique = true)
-  )
-
-  override def ensureIndexes(implicit ec: ExecutionContext): Future[Seq[Boolean]] =
-    for {
-      status <- Future.sequence(indexes.map(collection.indexesManager.ensure(_)))
-      _ = collection.indexesManager.list().foreach {
-        _.foreach(index => log.info(s"Running with Index: [$index] with options [${Json.toJson(index.options)}]"))
-      }
-    } yield status
-
-  def get(id: String)(implicit ec: ExecutionContext): Future[Option[FileMetadata]] =
-    collection.find(byId(id)).one[FileMetadata]
-
-  def get(search: Search, pagination: Pagination)(implicit ec: ExecutionContext): Future[Paged[FileMetadata]] = {
-    val query = JsObject(
-      Map[String, JsValue]()
-        ++ search.ids.map(ids => "id"              -> Json.obj("$in" -> ids))
-        ++ search.published.map(pub => "published" -> JsBoolean(pub))
+class FileMetadataMongoRepository @Inject()(mongoComponent: MongoComponent)
+                                           (implicit ec: ExecutionContext)
+  extends PlayMongoRepository[FileMetadata](
+    collectionName = "fileMetadata",
+    mongoComponent = mongoComponent,
+    domainFormat = FileMetadataMongo.format,
+    indexes = Seq(
+      IndexModel(Indexes.ascending("id"), IndexOptions().name("id_Index").unique(true))
     )
+  ) with Logging {
 
-    for {
-      results <- collection
-                  .find(query)
-                  .options(
-                    QueryOpts(skipN = (pagination.page - 1) * pagination.pageSize, batchSizeN = pagination.pageSize)
-                  )
-                  .cursor[FileMetadata]()
-                  .collect[Seq](pagination.pageSize, Cursor.FailOnError[Seq[FileMetadata]]())
-      count <- collection.count(Some(query))
-    } yield Paged(results, pagination, count)
+  def get(id: String): Future[Option[FileMetadata]] = {
+    collection.find[FileMetadata](byId(id)).first().toFutureOption()
   }
 
-  def insertFile(att: FileMetadata)(implicit ec: ExecutionContext): Future[FileMetadata] =
-    collection
-      .findAndUpdate(
-        selector       = byId(att.id),
-        update         = att,
-        fetchNewObject = true,
-        upsert         = true
-      )
-      .map(_.value.map(_.as[FileMetadata](FileMetadataMongo.format)).get)
+  def get(search: Search, pagination: Pagination): Future[Paged[FileMetadata]] = {
+    val optionalIdsFilter = search.ids.map(p => in("id", p.toSeq: _*))
+    val optionalPublishedFilter = search.published.map(p => equal("published", p))
 
-  def update(att: FileMetadata)(implicit ec: ExecutionContext): Future[Option[FileMetadata]] =
-    collection
-      .findAndUpdate(
-        selector       = byId(att.id),
-        update         = att.copy(lastUpdated = Instant.now()),
-        fetchNewObject = true,
-        upsert         = false
-      )
-      .map(_.value.map(_.as[FileMetadata](FileMetadataMongo.format)))
+    val filters = Seq(optionalIdsFilter, optionalPublishedFilter).flatten
+
+    if (filters.isEmpty) {
+      collection
+        .find()
+        .skip((pagination.page - 1) * pagination.pageSize)
+        .limit(pagination.pageSize)
+        .toFuture()
+        .map(results => Paged(results, pagination, results.size))
+    } else {
+      val query = and(filters: _*)
+
+      collection
+        .find(query)
+        .skip((pagination.page - 1) * pagination.pageSize)
+        .limit(pagination.pageSize)
+        .toFuture()
+        .map(results => Paged(results, pagination, results.size))
+    }
+  }
+
+  def insertFile(att: FileMetadata): Future[Option[FileMetadata]] = {
+    val insertedMetadata = collection
+      .replaceOne(byId(att.id),
+        att,
+        ReplaceOptions().upsert(true))
+      .toFuture()
+
+    insertedMetadata.flatMap(_ => collection.find[FileMetadata](byId(att.id)).first().toFutureOption())
+  }
+
+  def update(att: FileMetadata): Future[Option[FileMetadata]] = {
+    val updatedMetadata = collection
+      .replaceOne(byId(att.id),
+        att.copy(lastUpdated = Instant.now()),
+        ReplaceOptions().upsert(false))
+      .toFutureOption()
+
+    updatedMetadata.flatMap(_ => collection.find[FileMetadata](byId(att.id)).first().toFutureOption())
+  }
 
   def delete(id: String)(implicit ec: ExecutionContext): Future[Unit] =
-    collection.findAndRemove(byId(id)).map(_ => ())
+    collection.deleteOne(byId(id)).toFuture().map(_ => ())
 
   def deleteAll()(implicit ec: ExecutionContext): Future[Unit] =
-    removeAll().map(_ => ())
+    collection.deleteMany( notEqual("id", "")).toFuture().map(_ -> Future.unit)
 
-  private def byId(id: String): JsObject =
-    Json.obj("id" -> id)
+  private def byId(id: String): Bson =
+    equal("id", id)
 
 }

@@ -20,10 +20,10 @@ import com.github.tomakehurst.wiremock.client.WireMock._
 import org.apache.commons.io.IOUtils
 import play.api.Application
 import play.api.http.{ContentTypes, HeaderNames, HttpVerbs, Status}
+import play.api.inject.bind
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.Files.SingletonTemporaryFileCreator
 import play.api.libs.json._
-import reactivemongo.api.ReadConcern
 import scalaj.http.{Http, HttpResponse, MultiPart}
 import uk.gov.hmrc.bindingtarifffilestore.model.upscan._
 import uk.gov.hmrc.bindingtarifffilestore.model.{Pagination, Search, UploadRequest}
@@ -49,14 +49,9 @@ class FileStoreSpec extends WiremockFeatureTestServer with ResourceFiles {
 
   private val filePath = "test/resources/file.txt"
 
-  private lazy val dbFileStore: FileMetadataMongoRepository = app.injector.instanceOf[FileMetadataMongoRepository]
-
-  val readConcern: ReadConcern = ReadConcern.Local
-
   override protected def beforeEach(): Unit = {
     super.beforeEach()
-    dropDbFileStore()
-    ensureDbFileStoreIndexes()
+    repository.deleteAll()
   }
 
   override def fakeApplication(): Application = new GuiceApplicationBuilder()
@@ -64,6 +59,7 @@ class FileStoreSpec extends WiremockFeatureTestServer with ResourceFiles {
       "s3.endpoint" -> s"http://localhost:$wirePort",
       "microservice.services.upscan-initiate.port" -> s"$wirePort"
     )
+    .overrides(bind[FileMetadataMongoRepository].to(repository))
     .build()
 
   Feature("Delete All") {
@@ -595,15 +591,7 @@ class FileStoreSpec extends WiremockFeatureTestServer with ResourceFiles {
   }
 
   private def dbFileStoreSize: Int = {
-    result(dbFileStore.collection.count(None, Some(0), 0, None, readConcern = readConcern), timeout).toInt
-  }
-
-  private def dropDbFileStore(): Unit = {
-    result(dbFileStore.drop, timeout)
-  }
-
-  private def ensureDbFileStoreIndexes(): Unit = {
-    result(dbFileStore.ensureIndexes, timeout)
+    result(repository.collection.countDocuments().toFuture(), timeout).toInt
   }
 
 }

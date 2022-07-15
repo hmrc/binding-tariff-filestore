@@ -16,13 +16,13 @@
 
 package uk.gov.hmrc.bindingtarifffilestore
 
-import java.security.MessageDigest
-
 import com.google.common.io.BaseEncoding
 import play.api.http.HttpVerbs
 import play.api.http.Status._
 import scalaj.http.Http
 import uk.gov.hmrc.bindingtarifffilestore.util.{BaseFeatureSpec, ResourceFiles}
+
+import java.security.MessageDigest
 
 class AuthSpec extends BaseFeatureSpec with ResourceFiles {
 

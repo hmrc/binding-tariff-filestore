@@ -17,9 +17,9 @@
 package uk.gov.hmrc.bindingtarifffilestore.util
 
 import org.scalatest.{BeforeAndAfterAll, Suite}
-import play.api.{Application, Play}
-import play.api.test.Helpers._
 import play.api.inject.guice.{GuiceApplicationBuilder, GuiceableModule}
+import play.api.test.Helpers._
+import play.api.{Application, Play}
 
 /**
   * Use this instead of play.test.WithApplication
@@ -33,12 +33,12 @@ trait WithFakeApplication extends BeforeAndAfterAll {
 
   def bindModules: Seq[GuiceableModule] = Seq()
 
-  override def beforeAll() {
+  override def beforeAll(): Unit = {
     super.beforeAll()
     Play.start(fakeApplication)
   }
 
-  override def afterAll() {
+  override def afterAll(): Unit = {
     super.afterAll()
     Play.stop(fakeApplication)
   }

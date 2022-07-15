@@ -16,9 +16,10 @@
 
 package uk.gov.hmrc.bindingtarifffilestore.model
 
-import java.time.Instant
 import play.api.libs.json._
 import uk.gov.hmrc.bindingtarifffilestore.util.UnitSpec
+
+import java.time.Instant
 
 class FileMetadataSpec extends UnitSpec {
 

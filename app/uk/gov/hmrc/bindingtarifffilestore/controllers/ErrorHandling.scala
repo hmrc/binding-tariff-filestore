@@ -16,18 +16,19 @@
 
 package uk.gov.hmrc.bindingtarifffilestore.controllers
 
+import org.mongodb.scala.MongoWriteException
 import play.api.Logging
-import play.api.mvc.{Action, AnyContent, BaseController, Request, Result}
-import reactivemongo.core.errors.DatabaseException
+import play.api.mvc._
 import uk.gov.hmrc.bindingtarifffilestore.model.{ErrorCode, JsErrorResponse}
 
 import scala.concurrent.{ExecutionContext, Future}
 
-trait ErrorHandling { self: BaseController with Logging =>
-  private val DuplicateKeyError = 11000
+trait ErrorHandling {
+  self: BaseController with Logging =>
+  val duplicateErrorCode = 11000
 
   private[controllers] def mongoErrorHandler: PartialFunction[Throwable, Result] = {
-    case e: DatabaseException if e.code.contains(DuplicateKeyError) =>
+    case e: MongoWriteException if e.getCode == duplicateErrorCode =>
       Conflict(JsErrorResponse(ErrorCode.CONFLICT, "Entity already exists"))
     case e: Throwable =>
       logger.error(s"An unexpected error occurred: ${e.getMessage}", e)
