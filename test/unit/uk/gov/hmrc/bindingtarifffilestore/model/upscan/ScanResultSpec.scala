@@ -16,10 +16,10 @@
 
 package uk.gov.hmrc.bindingtarifffilestore.model.upscan
 
-import java.time.Instant
-
 import play.api.libs.json.{JsObject, JsString, Json}
 import uk.gov.hmrc.bindingtarifffilestore.util.UnitSpec
+
+import java.time.Instant
 
 class ScanResultSpec extends UnitSpec {
 

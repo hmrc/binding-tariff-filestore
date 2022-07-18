@@ -20,7 +20,7 @@ import play.api.libs.json._
 
 import scala.util.Try
 
-case class Paged[T](results: Seq[T], pageIndex: Int, pageSize: Int, resultCount: Int) {
+case class Paged[T](results: Seq[T], pageIndex: Int, pageSize: Int, resultCount: Long) {
   def map[X](f: T => X): Paged[X] = this.copy(results = results.map(f))
   def size: Int                   = results.size
   def pageCount: Int              = Math.ceil(resultCount.toDouble / pageSize).toInt
@@ -30,7 +30,7 @@ case class Paged[T](results: Seq[T], pageIndex: Int, pageSize: Int, resultCount:
 
 object Paged {
 
-  def apply[T](results: Seq[T], pagination: Pagination, resultCount: Int): Paged[T] =
+  def apply[T](results: Seq[T], pagination: Pagination, resultCount: Long): Paged[T] =
     Paged(results, pagination.page, pagination.pageSize, resultCount)
 
   def apply[T](results: Seq[T]): Paged[T] = Paged(results, Pagination(), results.size)

@@ -16,40 +16,45 @@
 
 package uk.gov.hmrc.bindingtarifffilestore.repository
 
-import reactivemongo.api.indexes.Index
-import reactivemongo.play.json.collection.JSONCollection
+import org.mongodb.scala.MongoCollection
+import org.mongodb.scala.model.{IndexModel, IndexOptions, Indexes}
+import uk.gov.hmrc.bindingtarifffilestore.model.FileMetadata
 import uk.gov.hmrc.bindingtarifffilestore.util.UnitSpec
 
+import scala.collection.JavaConverters.asScalaSetConverter
 import scala.concurrent.ExecutionContext.Implicits.global
 
 trait BaseMongoIndexSpec extends UnitSpec {
 
-  protected implicit val ordering: Ordering[Index] = Ordering.by { i: Index => i.name }
+  protected implicit val ordering: Ordering[IndexModel] = Ordering.by { i: IndexModel => i.toString }
 
-  protected def getIndexes(collection: JSONCollection): List[Index] =
-    await(collection.indexesManager.list())
+  protected def getIndexes(collection: MongoCollection[FileMetadata]): Seq[IndexModel] =
+    await(
+      collection.listIndexes().toFuture().map(_.map(document => {
+        val indexFields = document.get("key").map(_.asDocument().keySet().asScala).getOrElse(Set.empty[String]).toSeq
+        val name = document.getString("name")
+        val isUnique = document.getBoolean("unique", false)
+        IndexModel(Indexes.ascending(indexFields:_*), IndexOptions().name(name).unique(isUnique))
+      }))
+    )
 
-  protected def assertIndexes(expectedIndexes: List[Index], actualIndexes: List[Index]): Unit = {
+  protected def assertIndexes(expectedIndexes: Iterable[IndexModel], actualIndexes: Iterable[IndexModel]): Unit = {
     actualIndexes.size shouldBe expectedIndexes.size
 
-    for (i <- actualIndexes.size) {
-      val expectedIndex = expectedIndexes(i)
-      val actualIndex   = actualIndexes(i)
+    expectedIndexes.zip(actualIndexes)
+      .foreach(indexTuple => {
+        val expectedIndex = indexTuple._1
+        val actualIndex = indexTuple._2
 
-      assertIndex(expectedIndex, actualIndex)
-    }
+        assertIndex(expectedIndex, actualIndex)
+      })
   }
 
-  private def assertIndex(expectedIndex: Index, actualIndex: Index): Unit = {
-    actualIndex.key           shouldBe expectedIndex.key
-    actualIndex.name          shouldBe expectedIndex.name
-    actualIndex.unique        shouldBe expectedIndex.unique
-    actualIndex.background    shouldBe expectedIndex.background
-    actualIndex.dropDups      shouldBe expectedIndex.dropDups
-    actualIndex.sparse        shouldBe expectedIndex.sparse
-    actualIndex.partialFilter shouldBe expectedIndex.partialFilter
-    actualIndex.options       shouldBe expectedIndex.options
-    actualIndex.eventualName  shouldBe expectedIndex.eventualName
+  private def assertIndex(expectedIndex: IndexModel, actualIndex: IndexModel): Unit = {
+    actualIndex.getKeys.toBsonDocument.keySet().asScala shouldBe expectedIndex.getKeys.toBsonDocument.keySet().asScala
+    actualIndex.getKeys.toBsonDocument.toString shouldBe expectedIndex.getKeys.toBsonDocument.toString
+
+    actualIndex.getOptions.toString shouldBe expectedIndex.getOptions.toString
   }
 
 }

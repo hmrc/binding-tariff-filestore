@@ -4,11 +4,12 @@ import play.core.PlayVersion.current
 object AppDependencies {
 
   private lazy val apacheHttpVersion = "4.5.13"
+  private lazy val mongoHmrcVersion = "0.67.0"
 
-  val compile = Seq(
+  val compile: Seq[ModuleID] = Seq(
     "com.amazonaws"             % "aws-java-sdk-s3"            % "1.11.882",
-    "uk.gov.hmrc"               %% "bootstrap-backend-play-28" % "6.2.0",
-    "uk.gov.hmrc"               %% "simple-reactivemongo"      % "8.1.0-play-28",
+    "uk.gov.hmrc"               %% "bootstrap-backend-play-28" % "6.3.0",
+    "uk.gov.hmrc.mongo"         %% "hmrc-mongo-play-28"        % mongoHmrcVersion,
     "uk.gov.hmrc"               %% "play-json-union-formatter" % "1.15.0-play-28",
     "org.apache.httpcomponents" % "httpclient"                 % apacheHttpVersion,
     "org.apache.httpcomponents" % "httpmime"                   % apacheHttpVersion
@@ -28,7 +29,7 @@ object AppDependencies {
     "com.vladsch.flexmark"   % "flexmark-all"              % "0.35.10",
     "org.scalacheck"         %% "scalacheck"               % "1.16.0",
     "uk.gov.hmrc"            %% "service-integration-test" % "1.3.0-play-28",
-    "uk.gov.hmrc"            %% "reactivemongo-test"       % "5.0.0-play-28",
+    "uk.gov.hmrc.mongo"      %% "hmrc-mongo-test-play-28"  % mongoHmrcVersion,
     "org.scalaj"             %% "scalaj-http"              % "2.4.2",
     //Need to peg this version for wiremock - try removing this on next lib upgrade
     "org.eclipse.jetty" % "jetty-server"  % jettyVersion,

@@ -22,7 +22,10 @@ trait ResourceFiles {
 
   protected def fromFile(path: String): String = {
     val url = getClass.getClassLoader.getResource(path)
-    Source.fromURL(url, "UTF-8").getLines().mkString
+    val source = Source.fromURL(url, "UTF-8")
+    val content = source.getLines().mkString
+    source.close()
+    content
   }
 
 }

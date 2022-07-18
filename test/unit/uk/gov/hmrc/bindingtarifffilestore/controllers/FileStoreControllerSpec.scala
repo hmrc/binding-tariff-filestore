@@ -348,7 +348,7 @@ class FileStoreControllerSpec
     "return 202 on valid file" in {
       // Given
       val metadataUploaded = FileMetadata(id = "id", fileName = Some(fileName), mimeType = Some(mimeType))
-      when(service.upload(any[FileWithMetadata])(any[HeaderCarrier])).thenReturn(successful(metadataUploaded))
+      when(service.upload(any[FileWithMetadata])(any[HeaderCarrier])).thenReturn(successful(Some(metadataUploaded)))
 
       // When
       val filePart = FilePart[TemporaryFile](key = "file", fileName, contentType = Some(mimeType), ref = tmpFile)
@@ -368,7 +368,7 @@ class FileStoreControllerSpec
     "return 202 on valid file with id" in {
       // Given
       val metadataUploaded = FileMetadata(id = "id", fileName = Some(fileName), mimeType = Some(mimeType))
-      when(service.upload(any[FileWithMetadata])(any[HeaderCarrier])).thenReturn(successful(metadataUploaded))
+      when(service.upload(any[FileWithMetadata])(any[HeaderCarrier])).thenReturn(successful(Some(metadataUploaded)))
 
       // When
       val filePart = FilePart[TemporaryFile](key = "file", fileName, contentType = Some(mimeType), ref = tmpFile)
@@ -394,7 +394,7 @@ class FileStoreControllerSpec
       // Given
       val metadataUploaded =
         FileMetadata(id = "id", fileName = Some("name"), mimeType = Some(mimeType), published = true)
-      when(service.upload(any[FileWithMetadata])(any[HeaderCarrier])).thenReturn(successful(metadataUploaded))
+      when(service.upload(any[FileWithMetadata])(any[HeaderCarrier])).thenReturn(successful(Some(metadataUploaded)))
 
       // When=
       val filePart = FilePart[TemporaryFile](key = "file", fileName, contentType = Some(mimeType), ref = tmpFile)
@@ -419,7 +419,7 @@ class FileStoreControllerSpec
       // Given
       val metadataUploaded =
         FileMetadata(id = "id", fileName = Some("name"), mimeType = Some(mimeType), published = true)
-      when(service.upload(any[FileWithMetadata])(any[HeaderCarrier])).thenReturn(successful(metadataUploaded))
+      when(service.upload(any[FileWithMetadata])(any[HeaderCarrier])).thenReturn(successful(Some(metadataUploaded)))
 
       // When=
       val filePart = FilePart[TemporaryFile](key = "file", fileName, contentType = Some(mimeType), ref = tmpFile)

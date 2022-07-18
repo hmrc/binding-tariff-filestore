@@ -16,12 +16,12 @@
 
 package uk.gov.hmrc.bindingtarifffilestore.model
 
-import java.time.{Instant, LocalDateTime, ZoneOffset}
-import java.{util => ju}
 import play.api.libs.json._
 import uk.gov.hmrc.bindingtarifffilestore.model.ScanStatus._
 import uk.gov.hmrc.bindingtarifffilestore.model.upscan._
-import uk.gov.hmrc.bindingtarifffilestore.model.upscan.v2
+
+import java.time.{Instant, LocalDateTime, ZoneOffset}
+import java.{util => ju}
 
 case class FileMetadata(
   id: String,
@@ -65,20 +65,21 @@ case class FileMetadata(
     }
 
   def withScanResult(scanResult: ScanResult): FileMetadata = scanResult match {
-    case SuccessfulScanResult(reference, downloadUrl, uploadDetails) =>
+    case SuccessfulScanResult(_, downloadUrl, uploadDetails) =>
       copy(
         fileName   = Some(uploadDetails.fileName),
         mimeType   = Some(uploadDetails.fileMimeType),
         url        = Some(downloadUrl),
         scanStatus = Some(ScanStatus.READY)
       )
-    case FailedScanResult(reference, failureDetails) =>
+    case FailedScanResult(_, _) =>
       copy(scanStatus = Some(ScanStatus.FAILED))
   }
+
 }
 
 object FileMetadata {
-  def fromUploadRequest(uploadRequest: UploadRequest) =
+  def fromUploadRequest(uploadRequest: UploadRequest): FileMetadata =
     FileMetadata(
       id          = uploadRequest.id.getOrElse(ju.UUID.randomUUID().toString),
       fileName    = Some(uploadRequest.fileName),
@@ -86,7 +87,7 @@ object FileMetadata {
       publishable = uploadRequest.publishable
     )
 
-  def fromInitiateRequestV2(id: String, request: v2.FileStoreInitiateRequest) =
+  def fromInitiateRequestV2(id: String, request: v2.FileStoreInitiateRequest): FileMetadata =
     FileMetadata(
       id          = id,
       fileName    = None,
@@ -96,21 +97,18 @@ object FileMetadata {
 }
 
 object FileMetadataREST {
-  val writes: OWrites[FileMetadata] = new OWrites[FileMetadata] {
-    override def writes(o: FileMetadata): JsObject =
-      JsObject(
-        Map[String, JsValue](
-          "id"          -> JsString(o.id),
-          "publishable" -> JsBoolean(o.publishable),
-          "published"   -> JsBoolean(o.published),
-          "lastUpdated" -> JsString(o.lastUpdated.toString)
-        )
-          ++ o.fileName.map("fileName"                                 -> Json.toJson(_))
-          ++ o.mimeType.map("mimeType"                                 -> Json.toJson(_))
-          ++ o.scanStatus.map("scanStatus"                             -> Json.toJson(_))
-          ++ o.url.filter(_ => o.scanStatus.contains(READY)).map("url" -> JsString(_))
-      )
-  }
+  val writes: OWrites[FileMetadata] = (o: FileMetadata) => JsObject(
+    Map[String, JsValue](
+      "id" -> JsString(o.id),
+      "publishable" -> JsBoolean(o.publishable),
+      "published" -> JsBoolean(o.published),
+      "lastUpdated" -> JsString(o.lastUpdated.toString)
+    )
+      ++ o.fileName.map("fileName" -> Json.toJson(_))
+      ++ o.mimeType.map("mimeType" -> Json.toJson(_))
+      ++ o.scanStatus.map("scanStatus" -> Json.toJson(_))
+      ++ o.url.filter(_ => o.scanStatus.contains(READY)).map("url" -> JsString(_))
+  )
   implicit val format: OFormat[FileMetadata] = OFormat(Json.reads[FileMetadata], writes)
 }
 
@@ -124,6 +122,12 @@ object FileMetadataMongo {
         case JsObject(map) if map.contains("$date") =>
           map("$date") match {
             case JsNumber(v) => JsSuccess(Instant.ofEpochMilli(v.toLong))
+            case JsObject(stringObject) =>
+              if (stringObject.contains("$numberLong")) {
+                JsSuccess(Instant.ofEpochMilli(BigDecimal(stringObject("$numberLong").as[JsString].value).toLong))
+              } else {
+                JsError("Unexpected Instant Format")
+              }
             case _           => JsError("Unexpected Instant Format")
           }
         case _ => JsError("Unexpected Instant Format")

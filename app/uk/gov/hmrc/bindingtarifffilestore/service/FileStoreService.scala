@@ -59,7 +59,7 @@ class FileStoreService @Inject()(
   def initiateV2(
                   request: v2.FileStoreInitiateRequest
                 )(implicit hc: HeaderCarrier): Future[v2.FileStoreInitiateResponse] = {
-    val fileId = request.id.getOrElse(ju.UUID.randomUUID().toString())
+    val fileId = request.id.getOrElse(ju.UUID.randomUUID().toString)
 
     log(fileId, "Initiating")
 
@@ -77,12 +77,12 @@ class FileStoreService @Inject()(
         fileId,
         s"Upscan Initiated with url [${initiateResponse.uploadRequest.href}] and Upscan reference [${initiateResponse.reference}]"
       )
-      _ = auditService.auditUpScanInitiated(update.id, update.fileName, initiateResponse.reference)
+      _ = auditService.auditUpScanInitiated(update.map(_.id).getOrElse(""), update.map(_.fileName).getOrElse(Option.empty), initiateResponse.reference)
     } yield v2.FileStoreInitiateResponse.fromUpscanResponse(fileId, initiateResponse)
   }
 
   // Initiates an upload and Uploads the file direct
-  def upload(fileWithMetadata: FileWithMetadata)(implicit hc: HeaderCarrier): Future[FileMetadata] = {
+  def upload(fileWithMetadata: FileWithMetadata)(implicit hc: HeaderCarrier): Future[Option[FileMetadata]] = {
     val fileId = fileWithMetadata.metadata.id
     log(fileId, "Uploading")
 

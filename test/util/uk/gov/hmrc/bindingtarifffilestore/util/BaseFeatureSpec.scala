@@ -22,7 +22,9 @@ import org.scalatest.featurespec.AnyFeatureSpec
 import org.scalatest.matchers.should.Matchers
 import org.scalatestplus.play.guice.GuiceOneServerPerSuite
 import uk.gov.hmrc.bindingtarifffilestore.config.AppConfig
+import uk.gov.hmrc.bindingtarifffilestore.model.FileMetadata
 import uk.gov.hmrc.bindingtarifffilestore.repository.FileMetadataMongoRepository
+import uk.gov.hmrc.mongo.test.DefaultPlayMongoRepositorySupport
 
 import java.security.MessageDigest
 import scala.concurrent.Await.result
@@ -35,10 +37,13 @@ abstract class BaseFeatureSpec
     with GivenWhenThen
     with GuiceOneServerPerSuite
     with BeforeAndAfterEach
-    with BeforeAndAfterAll {
+    with BeforeAndAfterAll
+    with DefaultPlayMongoRepositorySupport[FileMetadata] {
 
   protected lazy val apiTokenKey = "X-Api-Token"
   protected lazy val appConfig: AppConfig = app.injector.instanceOf[AppConfig]
+
+  override lazy val repository = new FileMetadataMongoRepository(mongoComponent)
 
   protected def hash: String => String = { s: String =>
     BaseEncoding.base64Url().encode(MessageDigest.getInstance("SHA-256").digest(s.getBytes("UTF-8")))
@@ -46,10 +51,11 @@ abstract class BaseFeatureSpec
 
   private val timeout = 2.seconds
 
-  private lazy val store: FileMetadataMongoRepository = app.injector.instanceOf[FileMetadataMongoRepository]
-
-  private def ensureIndexes(): Unit =
-    result(store.ensureIndexes, timeout)
+  override protected def beforeAll(): Unit = {
+    super.beforeAll()
+    drop()
+    ensureIndexes()
+  }
 
   override protected def beforeEach(): Unit = {
     super.beforeEach()
@@ -63,6 +69,6 @@ abstract class BaseFeatureSpec
   }
 
   private def drop(): Unit =
-    result(store.drop, timeout)
+    result(repository.collection.drop.toFuture(), timeout)
 
 }
