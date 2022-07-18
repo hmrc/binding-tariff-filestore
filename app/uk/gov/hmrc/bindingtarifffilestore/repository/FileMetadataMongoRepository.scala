@@ -50,23 +50,18 @@ class FileMetadataMongoRepository @Inject()(mongoComponent: MongoComponent)
 
     val filters = Seq(optionalIdsFilter, optionalPublishedFilter).flatten
 
-    if (filters.isEmpty) {
-      collection
-        .find()
-        .skip((pagination.page - 1) * pagination.pageSize)
-        .limit(pagination.pageSize)
-        .toFuture()
-        .map(results => Paged(results, pagination, results.size))
+    val query = if (filters.isEmpty) {
+      empty()
     } else {
-      val query = and(filters: _*)
-
-      collection
-        .find(query)
-        .skip((pagination.page - 1) * pagination.pageSize)
-        .limit(pagination.pageSize)
-        .toFuture()
-        .map(results => Paged(results, pagination, results.size))
+      and(filters: _*)
     }
+
+    collection
+      .find(query)
+      .skip((pagination.page - 1) * pagination.pageSize)
+      .limit(pagination.pageSize)
+      .toFuture()
+      .map(results => Paged(results, pagination, results.size))
   }
 
   def insertFile(att: FileMetadata): Future[Option[FileMetadata]] = {
@@ -93,7 +88,7 @@ class FileMetadataMongoRepository @Inject()(mongoComponent: MongoComponent)
     collection.deleteOne(byId(id)).toFuture().map(_ => ())
 
   def deleteAll()(implicit ec: ExecutionContext): Future[Unit] =
-    collection.deleteMany( notEqual("id", "")).toFuture().map(_ -> Future.unit)
+    collection.deleteMany(empty()).toFuture().map(_ -> Future.unit)
 
   private def byId(id: String): Bson =
     equal("id", id)
