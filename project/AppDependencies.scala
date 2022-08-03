@@ -4,7 +4,7 @@ import play.core.PlayVersion.current
 object AppDependencies {
 
   private lazy val apacheHttpVersion = "4.5.13"
-  private lazy val mongoHmrcVersion = "0.67.0"
+  private lazy val mongoHmrcVersion = "0.68.0"
 
   val compile: Seq[ModuleID] = Seq(
     "com.amazonaws"             % "aws-java-sdk-s3"            % "1.11.882",
