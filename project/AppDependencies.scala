@@ -8,7 +8,7 @@ object AppDependencies {
 
   val compile: Seq[ModuleID] = Seq(
     "com.amazonaws"             % "aws-java-sdk-s3"            % "1.11.882",
-    "uk.gov.hmrc"               %% "bootstrap-backend-play-28" % "6.3.0",
+    "uk.gov.hmrc"               %% "bootstrap-backend-play-28" % "7.0.0",
     "uk.gov.hmrc.mongo"         %% "hmrc-mongo-play-28"        % mongoHmrcVersion,
     "uk.gov.hmrc"               %% "play-json-union-formatter" % "1.15.0-play-28",
     "org.apache.httpcomponents" % "httpclient"                 % apacheHttpVersion,
