@@ -37,14 +37,18 @@ import scala.util.Try
 import uk.gov.hmrc.http.HttpReads.Implicits._
 
 @Singleton
-class UpscanConnector @Inject() (appConfig: AppConfig, http: HttpClient)(implicit executionContext: ExecutionContext) extends Logging {
+class UpscanConnector @Inject() (appConfig: AppConfig, http: HttpClient)(implicit executionContext: ExecutionContext)
+    extends Logging {
 
   def initiate(uploadSettings: UploadSettings)(implicit headerCarrier: HeaderCarrier): Future[UpscanInitiateResponse] =
     http.POST[UploadSettings, UpscanInitiateResponse](
-      s"${appConfig.upscanInitiateUrl}/upscan/initiate", uploadSettings
+      s"${appConfig.upscanInitiateUrl}/upscan/initiate",
+      uploadSettings
     )
 
-  def initiateV2(uploadRequest: v2.UpscanInitiateRequest)(implicit hc: HeaderCarrier): Future[v2.UpscanInitiateResponse] =
+  def initiateV2(
+    uploadRequest: v2.UpscanInitiateRequest
+  )(implicit hc: HeaderCarrier): Future[v2.UpscanInitiateResponse] =
     http.POST[v2.UpscanInitiateRequest, v2.UpscanInitiateResponse](
       s"${appConfig.upscanInitiateUrl}/upscan/v2/initiate",
       uploadRequest
@@ -64,7 +68,8 @@ class UpscanConnector @Inject() (appConfig: AppConfig, http: HttpClient)(implici
         fileWithMetaData.metadata.mimeType
           .flatMap(typ => Option(ContentType.getByMimeType(typ)))
           .getOrElse(ContentType.DEFAULT_BINARY),
-        fileWithMetaData.metadata.fileName.getOrElse(fileWithMetaData.file.path.getFileName)
+        fileWithMetaData.metadata.fileName
+          .getOrElse(fileWithMetaData.file.path.getFileName)
           .asInstanceOf[java.lang.String] //There is a compatibility glitch in Scala version, it can't match Scala string with Java string for this library code
       )
     )

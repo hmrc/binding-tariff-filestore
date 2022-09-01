@@ -65,7 +65,7 @@ class AmazonS3ConnectorSpec
       val all: Seq[String] = connector.getAll
 
       // Then
-      all      should have size 1
+      all        should have size 1
       all.head shouldBe "image.jpg"
     }
 

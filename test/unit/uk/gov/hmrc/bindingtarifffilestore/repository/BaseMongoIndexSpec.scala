@@ -30,29 +30,33 @@ trait BaseMongoIndexSpec extends UnitSpec {
 
   protected def getIndexes(collection: MongoCollection[FileMetadata]): Seq[IndexModel] =
     await(
-      collection.listIndexes().toFuture().map(_.map(document => {
-        val indexFields = document.get("key").map(_.asDocument().keySet().asScala).getOrElse(Set.empty[String]).toSeq
-        val name = document.getString("name")
-        val isUnique = document.getBoolean("unique", false)
-        IndexModel(Indexes.ascending(indexFields:_*), IndexOptions().name(name).unique(isUnique))
-      }))
+      collection
+        .listIndexes()
+        .toFuture()
+        .map(_.map { document =>
+          val indexFields = document.get("key").map(_.asDocument().keySet().asScala).getOrElse(Set.empty[String]).toSeq
+          val name        = document.getString("name")
+          val isUnique    = document.getBoolean("unique", false)
+          IndexModel(Indexes.ascending(indexFields: _*), IndexOptions().name(name).unique(isUnique))
+        })
     )
 
   protected def assertIndexes(expectedIndexes: Iterable[IndexModel], actualIndexes: Iterable[IndexModel]): Unit = {
     actualIndexes.size shouldBe expectedIndexes.size
 
-    expectedIndexes.zip(actualIndexes)
-      .foreach(indexTuple => {
+    expectedIndexes
+      .zip(actualIndexes)
+      .foreach { indexTuple =>
         val expectedIndex = indexTuple._1
-        val actualIndex = indexTuple._2
+        val actualIndex   = indexTuple._2
 
         assertIndex(expectedIndex, actualIndex)
-      })
+      }
   }
 
   private def assertIndex(expectedIndex: IndexModel, actualIndex: IndexModel): Unit = {
     actualIndex.getKeys.toBsonDocument.keySet().asScala shouldBe expectedIndex.getKeys.toBsonDocument.keySet().asScala
-    actualIndex.getKeys.toBsonDocument.toString shouldBe expectedIndex.getKeys.toBsonDocument.toString
+    actualIndex.getKeys.toBsonDocument.toString         shouldBe expectedIndex.getKeys.toBsonDocument.toString
 
     actualIndex.getOptions.toString shouldBe expectedIndex.getOptions.toString
   }

@@ -36,7 +36,7 @@ class AppConfig @Inject() (
     Option(config.get[String]("s3.endpoint")).filter(_.nonEmpty)
   )
 
-  lazy val upscanInitiateUrl: String = servicesConfig.baseUrl("upscan-initiate")
+  lazy val upscanInitiateUrl: String  = servicesConfig.baseUrl("upscan-initiate")
   lazy val fileStoreSizeConfiguration = FileStoreSizeConfiguration(
     maxFileSize = config.get[Int]("upscan.maxFileSize"),
     minFileSize = config.get[Int]("upscan.minFileSize")

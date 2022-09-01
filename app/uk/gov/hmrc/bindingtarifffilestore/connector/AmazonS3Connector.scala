@@ -81,7 +81,7 @@ class AmazonS3Connector @Inject() (config: AppConfig) extends Logging {
     ).withCannedAcl(CannedAccessControlList.Private)
 
     Try(s3client.putObject(request)) match {
-      case Success(_) =>
+      case Success(_)            =>
         fileMetaData.copy(url = Some(s"${s3Config.baseUrl}/${s3Config.bucket}/${fileMetaData.id}"))
       case Failure(e: Throwable) =>
         log.error("Failed to upload to the S3 bucket.", e)
@@ -109,7 +109,7 @@ class AmazonS3Connector @Inject() (config: AppConfig) extends Logging {
     if (fileMetaData.url.isDefined) {
       val authenticatedURLRequest = new GeneratePresignedUrlRequest(config.s3Configuration.bucket, fileMetaData.id)
         .withMethod(HttpMethod.GET)
-      val authenticatedURL: URL = s3client.generatePresignedUrl(authenticatedURLRequest)
+      val authenticatedURL: URL   = s3client.generatePresignedUrl(authenticatedURLRequest)
       fileMetaData.copy(url = Some(authenticatedURL.toString))
     } else {
       fileMetaData

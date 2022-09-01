@@ -25,10 +25,10 @@ class ScanResultSpec extends UnitSpec {
 
   "Successful Scan Result" should {
     val model = SuccessfulScanResult("ref", "url", UploadDetails("file", "type", Instant.EPOCH, "checksum"))
-    val json = JsObject(
+    val json  = JsObject(
       Map(
-        "reference"   -> JsString("ref"),
-        "downloadUrl" -> JsString("url"),
+        "reference"     -> JsString("ref"),
+        "downloadUrl"   -> JsString("url"),
         "uploadDetails" -> JsObject(
           Map(
             "fileName"        -> JsString("file"),
@@ -37,7 +37,7 @@ class ScanResultSpec extends UnitSpec {
             "checksum"        -> JsString("checksum")
           )
         ),
-        "fileStatus" -> JsString("READY")
+        "fileStatus"    -> JsString("READY")
       )
     )
 
@@ -52,16 +52,16 @@ class ScanResultSpec extends UnitSpec {
 
   "Failed Scan Result" should {
     val model = FailedScanResult("ref", FailureDetails(FailureReason.QUARANTINE, "message"))
-    val json = JsObject(
+    val json  = JsObject(
       Map(
-        "reference" -> JsString("ref"),
+        "reference"      -> JsString("ref"),
         "failureDetails" -> JsObject(
           Map(
             "failureReason" -> JsString("QUARANTINE"),
             "message"       -> JsString("message")
           )
         ),
-        "fileStatus" -> JsString("FAILED")
+        "fileStatus"     -> JsString("FAILED")
       )
     )
 

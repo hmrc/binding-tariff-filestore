@@ -27,16 +27,16 @@ class AuditService @Inject() (auditConnector: DefaultAuditConnector) {
 
   import AuditPayloadType._
 
-  def auditUpScanInitiated(fileId: String, fileName: Option[String], upScanRef: String)(
-    implicit hc: HeaderCarrier
+  def auditUpScanInitiated(fileId: String, fileName: Option[String], upScanRef: String)(implicit
+    hc: HeaderCarrier
   ): Unit =
     sendExplicitAuditEvent(
       auditEventType = UpScanInitiated,
-      auditPayload   = fileDetailsAuditPayload(fileId, fileName) + ("upScanReference" -> upScanRef)
+      auditPayload = fileDetailsAuditPayload(fileId, fileName) + ("upScanReference" -> upScanRef)
     )
 
-  def auditFileScanned(fileId: String, fileName: Option[String], upScanRef: String, upScanStatus: String)(
-    implicit hc: HeaderCarrier
+  def auditFileScanned(fileId: String, fileName: Option[String], upScanRef: String, upScanStatus: String)(implicit
+    hc: HeaderCarrier
   ): Unit =
     sendExplicitAuditEvent(
       auditEventType = FileScanned,
@@ -47,7 +47,7 @@ class AuditService @Inject() (auditConnector: DefaultAuditConnector) {
   def auditFilePublished(fileId: String, fileName: String)(implicit hc: HeaderCarrier): Unit =
     sendExplicitAuditEvent(
       auditEventType = FilePublished,
-      auditPayload   = fileDetailsAuditPayload(fileId, fileName)
+      auditPayload = fileDetailsAuditPayload(fileId, fileName)
     )
 
   private def fileDetailsAuditPayload(fileId: String, fileName: String): Map[String, String] =
@@ -61,9 +61,9 @@ class AuditService @Inject() (auditConnector: DefaultAuditConnector) {
       "fileId" -> fileId
     ) ++ fileName.map(name => Map("fileName" -> name)).getOrElse(Map.empty)
 
-  private def sendExplicitAuditEvent(auditEventType: String, auditPayload: Map[String, String])(
-    implicit hc: HeaderCarrier
-  ): Unit =
+  private def sendExplicitAuditEvent(auditEventType: String, auditPayload: Map[String, String])(implicit
+    hc: HeaderCarrier
+  ): Unit                                                                                            =
     auditConnector.sendExplicitAudit(auditType = auditEventType, detail = auditPayload)
 
 }

@@ -21,7 +21,7 @@ import uk.gov.hmrc.bindingtarifffilestore.util.UnitSpec
 class PaginationTest extends UnitSpec {
 
   private val pagination = Pagination(
-    page     = 2,
+    page = 2,
     pageSize = 11
   )
 

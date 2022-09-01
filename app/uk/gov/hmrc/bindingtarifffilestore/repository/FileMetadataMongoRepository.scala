@@ -29,23 +29,22 @@ import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class FileMetadataMongoRepository @Inject()(mongoComponent: MongoComponent)
-                                           (implicit ec: ExecutionContext)
-  extends PlayMongoRepository[FileMetadata](
-    collectionName = "fileMetadata",
-    mongoComponent = mongoComponent,
-    domainFormat = FileMetadataMongo.format,
-    indexes = Seq(
-      IndexModel(Indexes.ascending("id"), IndexOptions().name("id_Index").unique(true))
+class FileMetadataMongoRepository @Inject() (mongoComponent: MongoComponent)(implicit ec: ExecutionContext)
+    extends PlayMongoRepository[FileMetadata](
+      collectionName = "fileMetadata",
+      mongoComponent = mongoComponent,
+      domainFormat = FileMetadataMongo.format,
+      indexes = Seq(
+        IndexModel(Indexes.ascending("id"), IndexOptions().name("id_Index").unique(true))
+      )
     )
-  ) with Logging {
+    with Logging {
 
-  def get(id: String): Future[Option[FileMetadata]] = {
+  def get(id: String): Future[Option[FileMetadata]] =
     collection.find[FileMetadata](byId(id)).first().toFutureOption()
-  }
 
   def get(search: Search, pagination: Pagination): Future[Paged[FileMetadata]] = {
-    val optionalIdsFilter = search.ids.map(p => in("id", p.toSeq: _*))
+    val optionalIdsFilter       = search.ids.map(p => in("id", p.toSeq: _*))
     val optionalPublishedFilter = search.published.map(p => equal("published", p))
 
     val filters = Seq(optionalIdsFilter, optionalPublishedFilter).flatten
@@ -66,9 +65,7 @@ class FileMetadataMongoRepository @Inject()(mongoComponent: MongoComponent)
 
   def insertFile(att: FileMetadata): Future[Option[FileMetadata]] = {
     val insertedMetadata = collection
-      .replaceOne(byId(att.id),
-        att,
-        ReplaceOptions().upsert(true))
+      .replaceOne(byId(att.id), att, ReplaceOptions().upsert(true))
       .toFuture()
 
     insertedMetadata.flatMap(_ => collection.find[FileMetadata](byId(att.id)).first().toFutureOption())
@@ -76,9 +73,7 @@ class FileMetadataMongoRepository @Inject()(mongoComponent: MongoComponent)
 
   def update(att: FileMetadata): Future[Option[FileMetadata]] = {
     val updatedMetadata = collection
-      .replaceOne(byId(att.id),
-        att.copy(lastUpdated = Instant.now()),
-        ReplaceOptions().upsert(false))
+      .replaceOne(byId(att.id), att.copy(lastUpdated = Instant.now()), ReplaceOptions().upsert(false))
       .toFutureOption()
 
     updatedMetadata.flatMap(_ => collection.find[FileMetadata](byId(att.id)).first().toFutureOption())
@@ -90,7 +85,7 @@ class FileMetadataMongoRepository @Inject()(mongoComponent: MongoComponent)
   def deleteAll()(implicit ec: ExecutionContext): Future[Unit] =
     collection.deleteMany(empty()).toFuture().map(_ -> Future.unit)
 
-  private def byId(id: String): Bson =
+  private def byId(id: String): Bson                           =
     equal("id", id)
 
 }

@@ -32,7 +32,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 
 abstract class BaseFeatureSpec
-  extends AnyFeatureSpec
+    extends AnyFeatureSpec
     with Matchers
     with GivenWhenThen
     with GuiceOneServerPerSuite
@@ -40,7 +40,7 @@ abstract class BaseFeatureSpec
     with BeforeAndAfterAll
     with DefaultPlayMongoRepositorySupport[FileMetadata] {
 
-  protected lazy val apiTokenKey = "X-Api-Token"
+  protected lazy val apiTokenKey          = "X-Api-Token"
   protected lazy val appConfig: AppConfig = app.injector.instanceOf[AppConfig]
 
   override lazy val repository = new FileMetadataMongoRepository(mongoComponent)

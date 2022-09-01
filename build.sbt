@@ -22,16 +22,12 @@ lazy val microservice = (project in file("."))
     targetJvm := "jvm-1.8",
     playDefaultPort := 9583,
     scalacOptions ++= Seq("-Ywarn-unused-import", "-deprecation", "-feature"),
-    libraryDependencies ++= (AppDependencies.compile ++ AppDependencies.test),
+    libraryDependencies ++= AppDependencies(),
     Test / parallelExecution := false,
     Test / fork := true,
     retrieveManaged := true,
     // Use the silencer plugin to suppress warnings from unused imports in compiled twirl templates
     scalacOptions += "-P:silencer:pathFilters=views;routes",
-    libraryDependencies ++= Seq(
-      compilerPlugin("com.github.ghik" % "silencer-plugin" % "1.7.9" cross CrossVersion.full),
-      "com.github.ghik" % "silencer-lib" % "1.7.9" % Provided cross CrossVersion.full
-    )
   )
   .settings(inConfig(TemplateTest)(Defaults.testSettings): _*)
   .settings(

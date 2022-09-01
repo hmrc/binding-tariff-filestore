@@ -30,7 +30,7 @@ trait ErrorHandling {
   private[controllers] def mongoErrorHandler: PartialFunction[Throwable, Result] = {
     case e: MongoWriteException if e.getCode == duplicateErrorCode =>
       Conflict(JsErrorResponse(ErrorCode.CONFLICT, "Entity already exists"))
-    case e: Throwable =>
+    case e: Throwable                                              =>
       logger.error(s"An unexpected error occurred: ${e.getMessage}", e)
       InternalServerError(JsErrorResponse(ErrorCode.UNKNOWN_ERROR, "An unexpected error occurred"))
   }
