@@ -4,7 +4,7 @@ import uk.gov.hmrc.sbtdistributables.SbtDistributablesPlugin.publishingSettings
 
 val appName = "binding-tariff-filestore"
 
-lazy val plugins: Seq[Plugins] =
+lazy val plugins: Seq[Plugins]         =
   Seq(PlayScala, SbtAutoBuildPlugin, SbtGitVersioning, SbtDistributablesPlugin)
 lazy val playSettings: Seq[Setting[_]] = Seq.empty
 
@@ -27,7 +27,7 @@ lazy val microservice = (project in file("."))
     Test / fork := true,
     retrieveManaged := true,
     // Use the silencer plugin to suppress warnings from unused imports in compiled twirl templates
-    scalacOptions += "-P:silencer:pathFilters=views;routes",
+    scalacOptions += "-P:silencer:pathFilters=views;routes"
   )
   .settings(inConfig(TemplateTest)(Defaults.testSettings): _*)
   .settings(
