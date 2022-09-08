@@ -25,8 +25,8 @@ object FileStoreInitiateResponse {
 
   def fromUpscanResponse(id: String, response: UpscanInitiateResponse) =
     FileStoreInitiateResponse(
-      id              = id,
+      id = id,
       upscanReference = response.reference,
-      uploadRequest   = response.uploadRequest
+      uploadRequest = response.uploadRequest
     )
 }

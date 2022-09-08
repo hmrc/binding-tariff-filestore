@@ -43,7 +43,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future.{failed, successful}
 
 class FileStoreControllerSpec
-  extends UnitSpec
+    extends UnitSpec
     with Matchers
     with WithFakeApplication
     with MockitoSugar
@@ -51,11 +51,11 @@ class FileStoreControllerSpec
 
   private implicit val mat: Materializer = fakeApplication.materializer
 
-  private val appConfig = mock[AppConfig]
-  private val service = mock[FileStoreService]
+  private val appConfig                     = mock[AppConfig]
+  private val service                       = mock[FileStoreService]
   lazy val playBodyParsers: PlayBodyParsers = fakeApplication.injector.instanceOf[PlayBodyParsers]
   lazy val cc: MessagesControllerComponents = fakeApplication.injector.instanceOf[MessagesControllerComponents]
-  private val controller = new FileStoreController(appConfig, service, playBodyParsers, cc)
+  private val controller                    = new FileStoreController(appConfig, service, playBodyParsers, cc)
 
   private val fakeRequest = FakeRequest()
 
@@ -80,7 +80,7 @@ class FileStoreControllerSpec
 
       status(result) shouldEqual FORBIDDEN
       jsonBodyOf(result)
-        .toString() shouldEqual s"""{"code":"FORBIDDEN","message":"You are not allowed to call ${req.method} ${req.path}"}"""
+        .toString()  shouldEqual s"""{"code":"FORBIDDEN","message":"You are not allowed to call ${req.method} ${req.path}"}"""
     }
 
     "return 204 if the test mode is enabled" in {
@@ -100,7 +100,7 @@ class FileStoreControllerSpec
 
       val result = await(controller.deleteAll()(req))
 
-      status(result) shouldEqual INTERNAL_SERVER_ERROR
+      status(result)                shouldEqual INTERNAL_SERVER_ERROR
       jsonBodyOf(result).toString() shouldEqual """{"code":"UNKNOWN_ERROR","message":"An unexpected error occurred"}"""
     }
 
@@ -108,7 +108,7 @@ class FileStoreControllerSpec
 
   "Delete By ID" should {
 
-    val id = "ABC-123_000"
+    val id  = "ABC-123_000"
     val req = FakeRequest(method = HttpVerbs.DELETE, path = s"/file/$id")
 
     "return 204" in {
@@ -128,7 +128,7 @@ class FileStoreControllerSpec
 
       val result = await(controller.delete(id)(req))
 
-      status(result) shouldEqual INTERNAL_SERVER_ERROR
+      status(result)                shouldEqual INTERNAL_SERVER_ERROR
       jsonBodyOf(result).toString() shouldEqual """{"code":"UNKNOWN_ERROR","message":"An unexpected error occurred"}"""
     }
 
@@ -141,7 +141,7 @@ class FileStoreControllerSpec
 
       val result = await(controller.get("id")(fakeRequest))
 
-      status(result) shouldBe OK
+      status(result)    shouldBe OK
       bodyOf(result) shouldEqual Json.toJson(attachment).toString()
     }
 
@@ -161,7 +161,7 @@ class FileStoreControllerSpec
 
       val result = await(controller.getAll(Search(ids = Some(Set.empty)), None)(fakeRequest))
 
-      status(result) shouldBe OK
+      status(result)    shouldBe OK
       bodyOf(result) shouldEqual Json.toJson(Seq.empty).toString()
     }
 
@@ -174,7 +174,7 @@ class FileStoreControllerSpec
 
       val result = await(controller.getAll(Search(ids = Some(Set("id1", "id2"))), None)(fakeRequest))
 
-      status(result) shouldBe OK
+      status(result)    shouldBe OK
       bodyOf(result) shouldEqual Json.toJson(Seq(attachment1, attachment2)).toString()
     }
 
@@ -187,15 +187,15 @@ class FileStoreControllerSpec
 
       val result = await(controller.getAll(Search(ids = Some(Set("id1", "id2"))), Some(Pagination()))(fakeRequest))
 
-      status(result) shouldBe OK
+      status(result)    shouldBe OK
       bodyOf(result) shouldEqual Json.toJson(Paged(Seq(attachment1, attachment2))).toString()
     }
   }
 
   "Notify" should {
     "return 201 when found" in {
-      val scanResult = SuccessfulScanResult("ref", "url", UploadDetails("file", "type", Instant.now(), "checksum"))
-      val attachment = FileMetadata(id = "id", fileName = Some("file"), mimeType = Some("type"))
+      val scanResult        = SuccessfulScanResult("ref", "url", UploadDetails("file", "type", Instant.now(), "checksum"))
+      val attachment        = FileMetadata(id = "id", fileName = Some("file"), mimeType = Some("type"))
       val attachmentUpdated =
         FileMetadata(id = "id", fileName = Some("file"), mimeType = Some("type"), url = Some("url"))
       when(service.find(id = "id")).thenReturn(successful(Some(attachment)))
@@ -203,9 +203,9 @@ class FileStoreControllerSpec
         .thenReturn(successful(Some(attachmentUpdated)))
 
       val request: FakeRequest[JsValue] = fakeRequest.withBody(Json.toJson[ScanResult](scanResult))
-      val result: Result = await(controller.notification(id = "id")(request))
+      val result: Result                = await(controller.notification(id = "id")(request))
 
-      status(result) shouldBe CREATED
+      status(result)     shouldBe CREATED
       jsonBodyOf(result) shouldBe Json.toJson(attachmentUpdated)
     }
 
@@ -214,7 +214,7 @@ class FileStoreControllerSpec
       when(service.find("id")).thenReturn(successful(None))
 
       val request: FakeRequest[JsValue] = fakeRequest.withBody(Json.toJson[ScanResult](scanResult))
-      val result: Result = await(controller.notification(id = "id")(request))
+      val result: Result                = await(controller.notification(id = "id")(request))
 
       status(result) shouldBe NOT_FOUND
     }
@@ -224,7 +224,7 @@ class FileStoreControllerSpec
     "return 201 when found" in {
       val attachmentExisting =
         FileMetadata(id = "id", fileName = Some("file"), mimeType = Some("type"), scanStatus = Some(ScanStatus.READY))
-      val attachmentUpdated = FileMetadata(
+      val attachmentUpdated  = FileMetadata(
         id = "id",
         fileName = Some("file"),
         mimeType = Some("type"),
@@ -237,7 +237,7 @@ class FileStoreControllerSpec
 
       val result: Result = await(controller.publish(id = "id")(fakeRequest))
 
-      status(result) shouldBe ACCEPTED
+      status(result)     shouldBe ACCEPTED
       jsonBodyOf(result) shouldBe Json.toJson(attachmentUpdated)
     }
 
@@ -268,7 +268,7 @@ class FileStoreControllerSpec
       when(service.initiateV2(any[FileStoreInitiateRequest])(any[HeaderCarrier])).thenReturn(successful(response))
 
       // When
-      val request = FileStoreInitiateRequest(publishable = true)
+      val request        = FileStoreInitiateRequest(publishable = true)
       val result: Result = await(controller.initiate(jsonRequest(request)))
 
       // Then
@@ -281,7 +281,7 @@ class FileStoreControllerSpec
       when(service.initiateV2(any[FileStoreInitiateRequest])(any[HeaderCarrier])).thenReturn(successful(response))
 
       // When
-      val request = FileStoreInitiateRequest(id = Some("id"), publishable = true)
+      val request        = FileStoreInitiateRequest(id = Some("id"), publishable = true)
       val result: Result = await(controller.initiate(jsonRequest(request)))
 
       // Then
@@ -301,7 +301,7 @@ class FileStoreControllerSpec
 
     val fileName = "file.txt"
     val mimeType = "text/plain"
-    val tmpFile = SingletonTemporaryFileCreator.create("example-file.txt")
+    val tmpFile  = SingletonTemporaryFileCreator.create("example-file.txt")
 
     def multipartRequest(body: MultipartFormData[TemporaryFile]): Request[AnyContent] =
       fakeRequest
@@ -314,7 +314,7 @@ class FileStoreControllerSpec
       when(service.initiate(any[FileMetadata])(any[HeaderCarrier])).thenReturn(successful(response))
 
       // When
-      val request = UploadRequest(fileName = "file.txt", mimeType = "text/plain", publishable = true)
+      val request        = UploadRequest(fileName = "file.txt", mimeType = "text/plain", publishable = true)
       val result: Result = await(controller.upload(jsonRequest(request)))
 
       // Then
@@ -322,8 +322,8 @@ class FileStoreControllerSpec
 
       val metadata = theFileInitiated
       metadata.publishable shouldBe true
-      metadata.fileName shouldBe Some("file.txt")
-      metadata.mimeType shouldBe Some("text/plain")
+      metadata.fileName    shouldBe Some("file.txt")
+      metadata.mimeType    shouldBe Some("text/plain")
     }
 
     "return 202 on valid json with ID" in {
@@ -332,17 +332,17 @@ class FileStoreControllerSpec
       when(service.initiate(any[FileMetadata])(any[HeaderCarrier])).thenReturn(successful(response))
 
       // When
-      val request = UploadRequest(id = Some("id"), fileName = "file.txt", mimeType = "text/plain", publishable = true)
+      val request        = UploadRequest(id = Some("id"), fileName = "file.txt", mimeType = "text/plain", publishable = true)
       val result: Result = await(controller.upload(jsonRequest(request)))
 
       // Then
       status(result) shouldBe ACCEPTED
 
       val metadata = theFileInitiated
-      metadata.id shouldBe "id"
+      metadata.id          shouldBe "id"
       metadata.publishable shouldBe true
-      metadata.fileName shouldBe Some("file.txt")
-      metadata.mimeType shouldBe Some("text/plain")
+      metadata.fileName    shouldBe Some("file.txt")
+      metadata.mimeType    shouldBe Some("text/plain")
     }
 
     "return 202 on valid file" in {
@@ -352,7 +352,7 @@ class FileStoreControllerSpec
 
       // When
       val filePart = FilePart[TemporaryFile](key = "file", fileName, contentType = Some(mimeType), ref = tmpFile)
-      val form = MultipartFormData[TemporaryFile](dataParts = Map(), files = Seq(filePart), badParts = Seq.empty)
+      val form     = MultipartFormData[TemporaryFile](dataParts = Map(), files = Seq(filePart), badParts = Seq.empty)
 
       val result: Result = await(controller.upload(multipartRequest(form)))
 
@@ -361,8 +361,8 @@ class FileStoreControllerSpec
 
       val metadata = theFileUploaded.metadata
       metadata.published shouldBe false
-      metadata.fileName shouldBe Some("file.txt")
-      metadata.mimeType shouldBe Some("text/plain")
+      metadata.fileName  shouldBe Some("file.txt")
+      metadata.mimeType  shouldBe Some("text/plain")
     }
 
     "return 202 on valid file with id" in {
@@ -372,7 +372,7 @@ class FileStoreControllerSpec
 
       // When
       val filePart = FilePart[TemporaryFile](key = "file", fileName, contentType = Some(mimeType), ref = tmpFile)
-      val form = MultipartFormData[TemporaryFile](
+      val form     = MultipartFormData[TemporaryFile](
         dataParts = Map("id" -> Seq("id")),
         files = Seq(filePart),
         badParts = Seq.empty
@@ -384,10 +384,10 @@ class FileStoreControllerSpec
       status(result) shouldBe ACCEPTED
 
       val metadata = theFileUploaded.metadata
-      metadata.id shouldBe "id"
+      metadata.id        shouldBe "id"
       metadata.published shouldBe false
-      metadata.fileName shouldBe Some("file.txt")
-      metadata.mimeType shouldBe Some("text/plain")
+      metadata.fileName  shouldBe Some("file.txt")
+      metadata.mimeType  shouldBe Some("text/plain")
     }
 
     "return 202 on valid file with publish=true" in {
@@ -398,7 +398,7 @@ class FileStoreControllerSpec
 
       // When=
       val filePart = FilePart[TemporaryFile](key = "file", fileName, contentType = Some(mimeType), ref = tmpFile)
-      val form = MultipartFormData[TemporaryFile](
+      val form     = MultipartFormData[TemporaryFile](
         dataParts = Map("publish" -> Seq("true")),
         files = Seq(filePart),
         badParts = Seq.empty
@@ -411,8 +411,8 @@ class FileStoreControllerSpec
 
       val metadata = theFileUploaded.metadata
       metadata.publishable shouldBe true
-      metadata.fileName shouldBe Some("file.txt")
-      metadata.mimeType shouldBe Some("text/plain")
+      metadata.fileName    shouldBe Some("file.txt")
+      metadata.mimeType    shouldBe Some("text/plain")
     }
 
     "return 202 on valid file with publish=false" in {
@@ -423,7 +423,7 @@ class FileStoreControllerSpec
 
       // When=
       val filePart = FilePart[TemporaryFile](key = "file", fileName, contentType = Some(mimeType), ref = tmpFile)
-      val form = MultipartFormData[TemporaryFile](
+      val form     = MultipartFormData[TemporaryFile](
         dataParts = Map("publish" -> Seq("false")),
         files = Seq(filePart),
         badParts = Seq.empty
@@ -436,13 +436,13 @@ class FileStoreControllerSpec
 
       val metadata = theFileUploaded.metadata
       metadata.published shouldBe false
-      metadata.fileName shouldBe Some("file.txt")
-      metadata.mimeType shouldBe Some("text/plain")
+      metadata.fileName  shouldBe Some("file.txt")
+      metadata.mimeType  shouldBe Some("text/plain")
     }
 
     "Throw exception on missing mime type" in {
       val filePart = FilePart[TemporaryFile](key = "file", fileName, contentType = None, ref = tmpFile)
-      val form = MultipartFormData[TemporaryFile](dataParts = Map(), files = Seq(filePart), badParts = Seq.empty)
+      val form     = MultipartFormData[TemporaryFile](dataParts = Map(), files = Seq(filePart), badParts = Seq.empty)
 
       val exception = intercept[RuntimeException] {
         controller.upload(multipartRequest(form))
@@ -461,7 +461,7 @@ class FileStoreControllerSpec
     "return 400 on missing filename" in {
       val filePart =
         FilePart[TemporaryFile](key = "file", filename = "", contentType = Some("text/plain"), ref = tmpFile)
-      val form = MultipartFormData[TemporaryFile](dataParts = Map(), files = Seq(filePart), badParts = Seq.empty)
+      val form     = MultipartFormData[TemporaryFile](dataParts = Map(), files = Seq(filePart), badParts = Seq.empty)
 
       val result: Result = await(controller.upload(multipartRequest(form)))
 

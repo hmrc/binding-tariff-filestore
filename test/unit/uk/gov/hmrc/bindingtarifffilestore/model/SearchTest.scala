@@ -23,7 +23,7 @@ import java.net.URLDecoder
 class SearchTest extends UnitSpec {
 
   private val search = Search(
-    ids       = Some(Set("file-id1", "file-id2")),
+    ids = Some(Set("file-id1", "file-id2")),
     published = Some(true)
   )
 

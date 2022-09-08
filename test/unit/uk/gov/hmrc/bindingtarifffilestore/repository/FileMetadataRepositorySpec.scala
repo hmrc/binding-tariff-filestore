@@ -30,7 +30,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 
 class FileMetadataRepositorySpec
-  extends BaseMongoIndexSpec
+    extends BaseMongoIndexSpec
     with BeforeAndAfterAll
     with BeforeAndAfterEach
     with MongoSupport
@@ -39,8 +39,8 @@ class FileMetadataRepositorySpec
     with Logging {
   self =>
 
-  private lazy val att1 = generateAttachment
-  private lazy val att2 = generateAttachment
+  private lazy val att1  = generateAttachment
+  private lazy val att2  = generateAttachment
   private val repository = createMongoRepo
 
   private def createMongoRepo =
@@ -64,11 +64,11 @@ class FileMetadataRepositorySpec
 
   private def insertFilesWithAssert(files: FileMetadata*): Assertion = {
     val beforeSize = currentCollectionSize
-    files.foreach(file => {
+    files.foreach { file =>
       log.logger.info(s"Insert file in database => $file")
       insertFileWithAssert(file)
-    })
-    val afterSize = currentCollectionSize
+    }
+    val afterSize  = currentCollectionSize
 
     eventually(timeout(5.second), interval(50.milliseconds)) {
       (afterSize - beforeSize) shouldBe files.size
@@ -89,7 +89,7 @@ class FileMetadataRepositorySpec
       insertFilesWithAssert(att1, att2)
 
       await(repository.deleteAll) shouldBe ((): Unit)
-      currentCollectionSize shouldBe 0
+      currentCollectionSize       shouldBe 0
     }
 
   }
@@ -115,9 +115,9 @@ class FileMetadataRepositorySpec
       currentCollectionSize shouldBe size
 
       val metadata = await(repository.get(att1.id))
-      metadata.map(_.id) shouldBe Some(att1.id)
-      metadata.map(_.mimeType) shouldBe Some(updated.mimeType)
-      metadata.map(_.fileName) shouldBe Some(updated.fileName)
+      metadata.map(_.id)                                           shouldBe Some(att1.id)
+      metadata.map(_.mimeType)                                     shouldBe Some(updated.mimeType)
+      metadata.map(_.fileName)                                     shouldBe Some(updated.fileName)
       metadata.map(_.lastUpdated).get.isAfter(updated.lastUpdated) shouldBe true
     }
 
@@ -125,7 +125,7 @@ class FileMetadataRepositorySpec
       val size = currentCollectionSize
 
       await(repository.update(att1)) shouldBe None
-      currentCollectionSize shouldBe size
+      currentCollectionSize          shouldBe size
     }
   }
 
@@ -151,7 +151,7 @@ class FileMetadataRepositorySpec
       insertFilesWithAssert(att1, att2)
 
       await(repository.delete(att1.id))
-      currentCollectionSize shouldBe 1
+      currentCollectionSize          shouldBe 1
       await(repository.get(att1.id)) shouldBe None
     }
 
@@ -167,7 +167,7 @@ class FileMetadataRepositorySpec
         await(repository.collection.insertOne(att1.copy(url = Some(generateString))).toFuture())
       }
 
-      caught.getCode shouldBe 11000
+      caught.getCode        shouldBe 11000
       currentCollectionSize shouldBe size
     }
 
@@ -202,7 +202,7 @@ class FileMetadataRepositorySpec
     "retrieve the expected documents by published" in {
       insertFilesWithAssert(att1.copy(published = true), att2.copy(published = false))
 
-      await(repository.get(Search(published = Some(true)), Pagination())) shouldBe Paged(
+      await(repository.get(Search(published = Some(true)), Pagination()))  shouldBe Paged(
         Seq(att1.copy(published = true))
       )
       await(repository.get(Search(published = Some(false)), Pagination())) shouldBe Paged(

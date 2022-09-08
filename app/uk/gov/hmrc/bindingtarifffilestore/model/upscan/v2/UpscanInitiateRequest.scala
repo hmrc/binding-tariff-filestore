@@ -33,11 +33,11 @@ object UpscanInitiateRequest {
 
   def fromFileStoreRequest(callbackUrl: String, appConfig: AppConfig, request: FileStoreInitiateRequest) =
     UpscanInitiateRequest(
-      callbackUrl         = callbackUrl,
-      successRedirect     = request.successRedirect,
-      errorRedirect       = request.errorRedirect,
-      minimumFileSize     = Some(request.minFileSize.getOrElse(appConfig.fileStoreSizeConfiguration.minFileSize).toLong),
-      maximumFileSize     = Some(request.maxFileSize.getOrElse(appConfig.fileStoreSizeConfiguration.maxFileSize).toLong),
+      callbackUrl = callbackUrl,
+      successRedirect = request.successRedirect,
+      errorRedirect = request.errorRedirect,
+      minimumFileSize = Some(request.minFileSize.getOrElse(appConfig.fileStoreSizeConfiguration.minFileSize).toLong),
+      maximumFileSize = Some(request.maxFileSize.getOrElse(appConfig.fileStoreSizeConfiguration.maxFileSize).toLong),
       expectedContentType = request.expectedContentType
     )
 }

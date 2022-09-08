@@ -95,7 +95,7 @@ class UpscanConnectorSpec
           "key" -> "value"
         )
       )
-      val fileUploading = FileWithMetadata(
+      val fileUploading     = FileWithMetadata(
         SingletonTemporaryFileCreator.create("example-file.json"),
         FileMetadata("id", Some("file.txt"), Some("text/plain"))
       )
@@ -119,7 +119,7 @@ class UpscanConnectorSpec
           "key" -> "value"
         )
       )
-      val fileUploading = FileWithMetadata(
+      val fileUploading     = FileWithMetadata(
         SingletonTemporaryFileCreator.create("example-file.json"),
         FileMetadata("id", Some("file.txt"), Some("text/plain"))
       )

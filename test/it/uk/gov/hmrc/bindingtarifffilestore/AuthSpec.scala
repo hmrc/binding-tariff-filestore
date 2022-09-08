@@ -28,10 +28,13 @@ class AuthSpec extends BaseFeatureSpec with ResourceFiles {
 
   private val serviceUrl = s"http://localhost:$port"
 
-  private val hashedTokenValue = BaseEncoding.base64Url().encode(
-    MessageDigest.getInstance("SHA-256")
-      .digest(appConfig.authorization.getBytes("UTF-8"))
-  )
+  private val hashedTokenValue = BaseEncoding
+    .base64Url()
+    .encode(
+      MessageDigest
+        .getInstance("SHA-256")
+        .digest(appConfig.authorization.getBytes("UTF-8"))
+    )
 
   Feature("Authentication to incoming requests") {
 

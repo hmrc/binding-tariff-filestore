@@ -54,7 +54,7 @@ class FileStoreController @Inject() (
     service.find(id).flatMap {
       case Some(meta) =>
         f(meta)
-      case None =>
+      case None       =>
         Future.successful(FileNotFound)
     }
 
@@ -121,7 +121,7 @@ class FileStoreController @Inject() (
       service.publish(meta).map {
         case Some(updatedMeta) =>
           Accepted(Json.toJson(updatedMeta))
-        case None =>
+        case None              =>
           FileNotFound
       }
     }
@@ -146,9 +146,9 @@ class FileStoreController @Inject() (
       FileWithMetadata(
         file.ref,
         FileMetadata(
-          id          = id,
-          fileName    = Some(file.filename),
-          mimeType    = Some(file.contentType.getOrElse(throw new RuntimeException("Missing file type"))),
+          id = id,
+          fileName = Some(file.filename),
+          mimeType = Some(file.contentType.getOrElse(throw new RuntimeException("Missing file type"))),
           publishable = publishable
         )
       )

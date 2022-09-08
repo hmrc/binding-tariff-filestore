@@ -19,13 +19,13 @@ package uk.gov.hmrc.bindingtarifffilestore.model.upscan.v2
 import play.api.libs.json.{Json, OFormat}
 
 case class FileStoreInitiateRequest(
-  id: Option[String]                  = None,
-  successRedirect: Option[String]     = None,
-  errorRedirect: Option[String]       = None,
+  id: Option[String] = None,
+  successRedirect: Option[String] = None,
+  errorRedirect: Option[String] = None,
   expectedContentType: Option[String] = None,
-  publishable: Boolean                = false,
-  minFileSize: Option[Int]            = None,
-  maxFileSize: Option[Int]            = None
+  publishable: Boolean = false,
+  minFileSize: Option[Int] = None,
+  maxFileSize: Option[Int] = None
 )
 
 object FileStoreInitiateRequest {

@@ -20,7 +20,7 @@ import play.api.mvc.QueryStringBindable
 import uk.gov.hmrc.bindingtarifffilestore.model.Pagination.{defaultPageSize, defaultPageStart}
 
 case class Pagination(
-  page: Int     = defaultPageStart,
+  page: Int = defaultPageStart,
   pageSize: Int = defaultPageSize
 )
 

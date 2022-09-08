@@ -32,9 +32,9 @@ trait JsonParsing { self: BackendBaseController =>
   )(implicit request: Request[JsValue], m: Manifest[T], reads: Reads[T]): Future[Result] =
     Try(request.body.validate[T]) match {
       case Success(JsSuccess(payload, _)) => f(payload)
-      case Success(JsError(errs)) =>
+      case Success(JsError(errs))         =>
         successful(BadRequest(JsErrorResponse(INVALID_REQUEST_PAYLOAD, JsError.toJson(errs))))
-      case Failure(e) => successful(BadRequest(JsErrorResponse(UNKNOWN_ERROR, e.getMessage)))
+      case Failure(e)                     => successful(BadRequest(JsErrorResponse(UNKNOWN_ERROR, e.getMessage)))
     }
 
   protected def asJson[T](
@@ -42,9 +42,9 @@ trait JsonParsing { self: BackendBaseController =>
   )(implicit request: Request[AnyContent], reads: Reads[T]): Future[Result] =
     Try(request.body.asJson.map(_.validate[T])) match {
       case Success(Some(JsSuccess(payload, _))) => f(payload)
-      case Success(Some(JsError(errs))) =>
+      case Success(Some(JsError(errs)))         =>
         successful(BadRequest(JsErrorResponse(INVALID_REQUEST_PAYLOAD, JsError.toJson(errs))))
-      case Success(None) => successful(BadRequest)
-      case Failure(e)    => successful(BadRequest(JsErrorResponse(UNKNOWN_ERROR, e.getMessage)))
+      case Success(None)                        => successful(BadRequest)
+      case Failure(e)                           => successful(BadRequest(JsErrorResponse(UNKNOWN_ERROR, e.getMessage)))
     }
 }

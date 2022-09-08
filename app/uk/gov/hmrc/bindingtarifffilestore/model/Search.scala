@@ -21,7 +21,7 @@ import play.api.mvc.QueryStringBindable
 import scala.util.Try
 
 case class Search(
-  ids: Option[Set[String]]   = None,
+  ids: Option[Set[String]] = None,
   published: Option[Boolean] = None
 )
 
@@ -29,8 +29,7 @@ object Search {
   private val idKey        = "id"
   private val publishedKey = "published"
 
-  implicit def bindable(
-    implicit
+  implicit def bindable(implicit
     stringBinder: QueryStringBindable[String],
     booleanBinder: QueryStringBindable[Boolean]
   ): QueryStringBindable[Search] = new QueryStringBindable[Search] {
@@ -54,7 +53,7 @@ object Search {
       Some(
         Right(
           Search(
-            ids       = params(idKey, s => s),
+            ids = params(idKey, s => s),
             published = param(publishedKey, _.toBoolean)
           )
         )
