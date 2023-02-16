@@ -88,8 +88,8 @@ class FileMetadataRepositorySpec
     "clear the collection" in {
       insertFilesWithAssert(att1, att2)
 
-      await(repository.deleteAll) shouldBe ((): Unit)
-      currentCollectionSize       shouldBe 0
+      await(repository.deleteAll()) shouldBe ((): Unit)
+      currentCollectionSize         shouldBe 0
     }
 
   }
@@ -184,7 +184,7 @@ class FileMetadataRepositorySpec
         assertIndexes(expectedIndexes.sorted, getIndexes(repo.collection).sorted)
       }
 
-      await(repo.collection.drop)
+      await(repo.collection.drop())
     }
   }
 

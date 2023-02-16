@@ -1,6 +1,5 @@
 import play.sbt.PlayImport.PlayKeys._
 import uk.gov.hmrc.DefaultBuildSettings._
-import uk.gov.hmrc.sbtdistributables.SbtDistributablesPlugin.publishingSettings
 
 val appName = "binding-tariff-filestore"
 
@@ -13,21 +12,23 @@ lazy val microservice = (project in file("."))
   .disablePlugins(JUnitXmlReportPlugin) //Required to prevent https://github.com/scalatest/scalatest/issues/1427
   .settings(playSettings: _*)
   .settings(scalaSettings: _*)
-  .settings(publishingSettings: _*)
+  // To resolve a bug with version 2.x.x of the scoverage plugin - https://github.com/sbt/sbt/issues/6997
+  .settings(libraryDependencySchemes ++= Seq("org.scala-lang.modules" %% "scala-xml" % VersionScheme.Always))
   .settings(defaultSettings(): _*)
   .settings(majorVersion := 0)
   .settings(
     name := appName,
-    scalaVersion := "2.12.16",
+    scalaVersion := "2.13.10",
     targetJvm := "jvm-1.8",
     playDefaultPort := 9583,
-    scalacOptions ++= Seq("-Ywarn-unused-import", "-deprecation", "-feature"),
+    scalacOptions ++= Seq(
+      "-feature",
+      "-Wconf:src=routes/.*:s"
+    ),
     libraryDependencies ++= AppDependencies(),
     Test / parallelExecution := false,
     Test / fork := true,
-    retrieveManaged := true,
-    // Use the silencer plugin to suppress warnings from unused imports in compiled twirl templates
-    scalacOptions += "-P:silencer:pathFilters=views;routes"
+    retrieveManaged := true
   )
   .settings(inConfig(TemplateTest)(Defaults.testSettings): _*)
   .settings(
@@ -49,9 +50,6 @@ lazy val microservice = (project in file("."))
     IntegrationTest / resourceDirectory := baseDirectory.value / "test" / "resources",
     addTestReportOption(IntegrationTest, "int-test-reports"),
     IntegrationTest / parallelExecution := false
-  )
-  .settings(
-    resolvers += Resolver.jcenterRepo
   )
 
 lazy val allPhases   = "tt->test;test->test;test->compile;compile->compile"

@@ -45,7 +45,7 @@ object Paged {
       Try(
         new Paged[T](
           js \ "results" match {
-            case JsDefined(JsArray(r)) => r.map(jsResult => jsResult.as[T])
+            case JsDefined(JsArray(r)) => r.map(jsResult => jsResult.as[T]).toSeq
             case _                     => throw new IllegalArgumentException("invalid results")
           },
           (js \ "pageIndex").as[Int],

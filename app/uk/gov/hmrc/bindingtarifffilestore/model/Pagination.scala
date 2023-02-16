@@ -37,7 +37,7 @@ object Pagination {
     new QueryStringBindable[Pagination] {
 
       override def bind(key: String, params: Map[String, Seq[String]]): Option[Either[String, Pagination]] = {
-        def param(name: String): Option[Int] = intBinder.bind(name, params).filter(_.isRight).map(_.right.get)
+        def param(name: String): Option[Int] = intBinder.bind(name, params).filter(_.isRight).map(_.toOption.get)
 
         val page: Option[Int]     = param(pageKey).filter(_ > 0)
         val pageSize: Option[Int] = param(pageSizeKey)

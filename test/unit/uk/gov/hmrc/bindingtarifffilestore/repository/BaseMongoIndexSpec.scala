@@ -21,7 +21,7 @@ import org.mongodb.scala.model.{IndexModel, IndexOptions, Indexes}
 import uk.gov.hmrc.bindingtarifffilestore.model.FileMetadata
 import uk.gov.hmrc.bindingtarifffilestore.util.UnitSpec
 
-import scala.collection.JavaConverters.asScalaSetConverter
+import scala.jdk.CollectionConverters._
 import scala.concurrent.ExecutionContext.Implicits.global
 
 trait BaseMongoIndexSpec extends UnitSpec {

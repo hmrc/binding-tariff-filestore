@@ -131,7 +131,13 @@ class AmazonS3ConnectorSpec
       val exception = intercept[AmazonS3Exception] {
         connector.upload(fileUploading)
       }
-      exception.getMessage shouldBe "Bad Gateway (Service: Amazon S3; Status Code: 502; Error Code: 502 Bad Gateway; Request ID: null; S3 Extended Request ID: null; Proxy: null)"
+      exception.getMessage shouldBe
+        """Bad Gateway (Service: Amazon S3;
+          | Status Code: 502;
+          | Error Code: 502 Bad Gateway;
+          | Request ID: null;
+          | S3 Extended Request ID: null;
+          | Proxy: null)""".stripMargin.replaceAll("\n", "")
     }
   }
 

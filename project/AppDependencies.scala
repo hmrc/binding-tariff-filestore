@@ -5,18 +5,12 @@ object AppDependencies {
 
   private lazy val apacheHttpVersion = "4.5.13"
   private lazy val mongoHmrcVersion  = "0.71.0"
-  private val silencerVersion        = "1.7.9"
-
-  private val silencerDependencies: Seq[ModuleID] = Seq(
-    compilerPlugin("com.github.ghik" % "silencer-plugin" % silencerVersion cross CrossVersion.full),
-    "com.github.ghik" % "silencer-lib" % silencerVersion % Provided cross CrossVersion.full
-  )
 
   val compile: Seq[ModuleID] = Seq(
     "com.amazonaws"                 % "aws-java-sdk-s3"           % "1.12.298",
     "uk.gov.hmrc"                  %% "bootstrap-backend-play-28" % "7.2.0",
     "uk.gov.hmrc.mongo"            %% "hmrc-mongo-play-28"        % mongoHmrcVersion,
-    "uk.gov.hmrc"                  %% "play-json-union-formatter" % "1.15.0-play-28",
+    "uk.gov.hmrc"                  %% "play-json-union-formatter" % "1.18.0-play-28",
     "com.fasterxml.jackson.module" %% "jackson-module-scala"      % "2.13.4",
     "org.apache.httpcomponents"     % "httpclient"                % apacheHttpVersion,
     "org.apache.httpcomponents"     % "httpmime"                  % apacheHttpVersion
@@ -37,5 +31,5 @@ object AppDependencies {
     "org.scalaj"             %% "scalaj-http"              % "2.4.2"
   ).map(_ % "test, it")
 
-  def apply(): Seq[ModuleID] = compile ++ silencerDependencies ++ test
+  def apply(): Seq[ModuleID] = compile ++ test
 }

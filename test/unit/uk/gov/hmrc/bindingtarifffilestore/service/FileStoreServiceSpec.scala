@@ -53,7 +53,11 @@ class FileStoreServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfte
 
   override protected def afterEach(): Unit = {
     super.afterEach()
-    reset(config, s3Connector, repository, upscanConnector, auditService)
+    reset(config)
+    reset(s3Connector)
+    reset(repository)
+    reset(upscanConnector)
+    reset(auditService)
   }
 
   "Service 'delete all' " should {
