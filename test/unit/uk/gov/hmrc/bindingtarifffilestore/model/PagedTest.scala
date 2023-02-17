@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.bindingtarifffilestore.model
 
-import play.api.libs.json.{JsObject, Json}
+import play.api.libs.json.{JsObject, JsResultException, Json}
 import uk.gov.hmrc.bindingtarifffilestore.util.UnitSpec
 
 class PagedTest extends UnitSpec {
@@ -29,6 +29,16 @@ class PagedTest extends UnitSpec {
     "calculate size" in {
       Paged.empty.size    shouldBe 0
       Paged(Seq("")).size shouldBe 1
+    }
+
+    "calculate isEmpty" in {
+      Paged.empty.isEmpty    shouldBe true
+      Paged(Seq("")).isEmpty shouldBe false
+    }
+
+    "calculate nonEmpty" in {
+      Paged.empty.nonEmpty    shouldBe false
+      Paged(Seq("")).nonEmpty shouldBe true
     }
 
     "serialize to JSON" in {
@@ -50,6 +60,84 @@ class PagedTest extends UnitSpec {
         )
         .as[Paged[String]] shouldBe Paged(Seq("Hello"), 1, 2, 3)
     }
+
+    "invalid results when no results are provided" in {
+      val exception: JsResultException = intercept[JsResultException] {
+        Json
+          .obj(
+            "pageIndex"   -> 1,
+            "pageSize"    -> 1,
+            "resultCount" -> 1
+          )
+          .as[Paged[String]]
+      }
+
+      exception.errors.size shouldBe 1
+      errorsList(exception) shouldBe List("invalid results")
+    }
+
+    "invalid json when no results are provided" in {
+      val exception: JsResultException = intercept[JsResultException] {
+        Json
+          .obj(
+            "pageIndex"   -> 1,
+            "pageSize"    -> 1,
+            "resultCount" -> 1
+          )
+          .as[Paged[String]]
+      }
+
+      exception.errors.size shouldBe 1
+      errorsList(exception) shouldBe List("invalid results")
+    }
+
+    "invalid json when no pageIndex provided" in {
+      val exception = intercept[JsResultException] {
+        Json
+          .obj(
+            "results"     -> Seq(""),
+            "pageSize"    -> 1,
+            "resultCount" -> 1
+          )
+          .as[Paged[String]]
+      }
+
+      exception.errors.size shouldBe 1
+      errorsList(exception) shouldBe List("invalid pageIndex")
+    }
+
+    "invalid json when no pageSize provided" in {
+      val exception = intercept[JsResultException] {
+        Json
+          .obj(
+            "results"     -> Seq(""),
+            "pageIndex"   -> 1,
+            "resultCount" -> 1
+          )
+          .as[Paged[String]]
+      }
+
+      exception.errors.size shouldBe 1
+      errorsList(exception) shouldBe List("invalid pageSize")
+    }
+
+    "invalid json when no resultCount provided" in {
+      val exception = intercept[JsResultException] {
+        Json
+          .obj(
+            "results"   -> Seq(""),
+            "pageIndex" -> 1,
+            "pageSize"  -> 1
+          )
+          .as[Paged[String]]
+      }
+
+      exception.errors.size shouldBe 1
+      errorsList(exception) shouldBe List("invalid resultCount")
+    }
+
   }
+  private def errorsList(exception: JsResultException): Seq[String] =
+    exception.errors.flatMap(_._2.flatMap(_.messages)).toList
 
 }

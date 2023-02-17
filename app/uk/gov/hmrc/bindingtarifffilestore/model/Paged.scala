@@ -40,17 +40,26 @@ object Paged {
   implicit def format[T](implicit fmt: Format[T]): Format[Paged[T]] =
     Format[Paged[T]](Reads[Paged[T]](reads), Writes[Paged[T]](writes))
 
-  private def reads[T](implicit fmt: Reads[T]): JsValue => JsResult[Paged[T]] =
+  implicit def reads[T](implicit fmt: Reads[T]): JsValue => JsResult[Paged[T]] =
     js =>
       Try(
         new Paged[T](
           js \ "results" match {
-            case JsDefined(JsArray(r)) => r.map(jsResult => jsResult.as[T]).toSeq
-            case _                     => throw new IllegalArgumentException("invalid results")
+            case JsDefined(JsArray(results)) => results.map(jsResult => jsResult.as[T]).toSeq
+            case _                           => throw new IllegalArgumentException("invalid results")
           },
-          (js \ "pageIndex").as[Int],
-          (js \ "pageSize").as[Int],
-          (js \ "resultCount").as[Int]
+          js \ "pageIndex" match {
+            case JsDefined(pageIndex) => pageIndex.as[Int]
+            case _                    => throw new IllegalArgumentException("invalid pageIndex")
+          },
+          js \ "pageSize" match {
+            case JsDefined(pageSize) => pageSize.as[Int]
+            case _                   => throw new IllegalArgumentException("invalid pageSize")
+          },
+          js \ "resultCount" match {
+            case JsDefined(resultCount) => resultCount.as[Int]
+            case _                      => throw new IllegalArgumentException("invalid resultCount")
+          }
         )
       ).map(JsSuccess(_))
         .recover { case t: Throwable =>
@@ -58,13 +67,14 @@ object Paged {
         }
         .get
 
-  private def writes[T](implicit fmt: Writes[T]): Paged[T] => JsValue =
-    (paged: Paged[T]) =>
+  implicit def writes[T](implicit fmt: Writes[T]): Paged[T] => JsValue =
+    (paged: Paged[T]) => {
       Json.obj(
         "results"     -> JsArray(paged.results.map(fmt.writes)),
         "pageIndex"   -> JsNumber(paged.pageIndex),
         "pageSize"    -> JsNumber(paged.pageSize),
         "resultCount" -> JsNumber(paged.resultCount)
       )
+    }
 
 }

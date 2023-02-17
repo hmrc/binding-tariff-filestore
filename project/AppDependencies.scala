@@ -8,7 +8,7 @@ object AppDependencies {
   private lazy val bootstrapPlayVersion = "7.13.0"
 
   val compile: Seq[ModuleID] = Seq(
-    "com.amazonaws"                 % "aws-java-sdk-s3"           % "1.12.408",
+    "com.amazonaws"                 % "aws-java-sdk-s3"           % "1.12.409",
     "uk.gov.hmrc"                  %% "bootstrap-backend-play-28" % bootstrapPlayVersion,
     "uk.gov.hmrc.mongo"            %% "hmrc-mongo-play-28"        % mongoHmrcVersion,
     "uk.gov.hmrc"                  %% "play-json-union-formatter" % "1.18.0-play-28",
@@ -24,7 +24,6 @@ object AppDependencies {
     "org.jsoup"               % "jsoup"                   % "1.15.3",
     "org.scalatest"          %% "scalatest"               % "3.2.15",
     "org.scalatestplus.play" %% "scalatestplus-play"      % "5.1.0",
-    "org.scalatestplus"      %% "mockito-3-4"             % "3.2.10.0",
     "com.vladsch.flexmark"    % "flexmark-all"            % "0.62.2",
     "org.scalacheck"         %% "scalacheck"              % "1.17.0",
     "uk.gov.hmrc.mongo"      %% "hmrc-mongo-test-play-28" % mongoHmrcVersion,
