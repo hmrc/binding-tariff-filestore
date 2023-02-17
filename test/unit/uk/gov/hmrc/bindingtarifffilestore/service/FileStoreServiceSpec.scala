@@ -22,7 +22,7 @@ import org.mockito.BDDMockito.given
 import org.mockito.Mockito._
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.concurrent.Eventually
-import org.scalatestplus.mockito.MockitoSugar
+import org.mockito.MockitoSugar
 import play.api.libs.Files.TemporaryFile
 import uk.gov.hmrc.bindingtarifffilestore.audit.AuditService
 import uk.gov.hmrc.bindingtarifffilestore.config.{AppConfig, FileStoreSizeConfiguration}
@@ -121,7 +121,7 @@ class FileStoreServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfte
 
       await(service.find("id")) shouldBe Some(attachment)
 
-      verify(s3Connector, never()).sign(any[FileMetadata])
+      verify(s3Connector, never).sign(any[FileMetadata])
     }
   }
 
@@ -306,6 +306,10 @@ class FileStoreServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfte
       given(attachmentUploaded.published).willReturn(true)
       given(attachmentUploaded.publishable).willReturn(true)
       given(attachmentUploaded.isLive).willReturn(true)
+      given(attachmentUploaded.fileName).willReturn(Some("file"))
+      given(attachmentUploaded.mimeType).willReturn(Some("mimetype"))
+      given(attachmentUploaded.url).willReturn(Some("url"))
+      given(attachmentUploaded.scanStatus).willReturn(Some(ScanStatus.READY))
       given(attachmentUploaded.copy(published = true, publishable = true)).willReturn(attachmentUploadedUpdating)
 
       given(attachmentUploadedUpdated.published).willReturn(true)
@@ -316,7 +320,8 @@ class FileStoreServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfte
       given(repository.update(attachmentUploadedUpdating)).willReturn(successful(Some(attachmentUploadedUpdated)))
       given(s3Connector.sign(attachmentUploadedUpdated)).willReturn(attachmentSigned)
 
-      await(service.notify(attachment, scanResult)) shouldBe Some(attachmentSigned)
+      val test = await(service.notify(attachment, scanResult))
+      test shouldBe Some(attachmentSigned)
 
       verify(auditService, times(1))
         .auditFileScanned(fileId = "id", fileName = Some("file"), upScanRef = "ref", upScanStatus = "READY")
@@ -347,11 +352,11 @@ class FileStoreServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfte
 
       await(service.notify(attachment, scanResult)) shouldBe None
 
-      verify(s3Connector, never()).upload(any[FileMetadata])
-      verify(s3Connector, never()).sign(any[FileMetadata])
+      verify(s3Connector, never).upload(any[FileMetadata])
+      verify(s3Connector, never).sign(any[FileMetadata])
       verify(auditService, times(1))
         .auditFileScanned(fileId = "id", fileName = Some("file"), upScanRef = "ref", upScanStatus = "READY")
-      verify(auditService, never()).auditFilePublished(fileId = "id", fileName = "file")
+      verify(auditService, never).auditFilePublished(fileId = "id", fileName = "file")
       verifyNoMoreInteractions(auditService)
     }
 

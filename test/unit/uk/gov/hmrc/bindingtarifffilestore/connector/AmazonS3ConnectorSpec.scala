@@ -17,10 +17,11 @@
 package uk.gov.hmrc.bindingtarifffilestore.connector
 
 import com.amazonaws.services.s3.model.AmazonS3Exception
+import com.github.tomakehurst.wiremock.client.WireMock
 import com.github.tomakehurst.wiremock.client.WireMock._
 import org.mockito.BDDMockito.given
 import org.scalatest.BeforeAndAfterEach
-import org.scalatestplus.mockito.MockitoSugar
+import org.mockito.MockitoSugar
 import play.api.http.Status
 import play.api.libs.Files.SingletonTemporaryFileCreator
 import uk.gov.hmrc.bindingtarifffilestore.config.{AppConfig, S3Configuration}
@@ -188,7 +189,7 @@ class AmazonS3ConnectorSpec
 
       connector.deleteAll()
 
-      verify(
+      WireMock.verify(
         postRequestedFor(urlEqualTo("/bucket/?delete"))
           .withRequestBody(equalToXml(fromFile("aws/delete-objects_request.xml")))
       )
@@ -210,7 +211,7 @@ class AmazonS3ConnectorSpec
 
       connector.deleteAll()
 
-      verify(0, postRequestedFor(urlEqualTo("/bucket/?delete")))
+      WireMock.verify(0, postRequestedFor(urlEqualTo("/bucket/?delete")))
     }
   }
 
@@ -230,7 +231,7 @@ class AmazonS3ConnectorSpec
 
       connector.delete("id")
 
-      verify(deleteRequestedFor(urlEqualTo("/bucket/id")))
+      WireMock.verify(deleteRequestedFor(urlEqualTo("/bucket/id")))
     }
   }
 

@@ -17,9 +17,8 @@
 package uk.gov.hmrc.bindingtarifffilestore.audit
 
 import org.mockito.ArgumentMatchers.refEq
-import org.mockito.Mockito.{reset, verify}
+import org.mockito.MockitoSugar
 import org.scalatest.BeforeAndAfterEach
-import org.scalatestplus.mockito.MockitoSugar
 import uk.gov.hmrc.bindingtarifffilestore.audit.AuditPayloadType._
 import uk.gov.hmrc.bindingtarifffilestore.util.UnitSpec
 import uk.gov.hmrc.http.HeaderCarrier
