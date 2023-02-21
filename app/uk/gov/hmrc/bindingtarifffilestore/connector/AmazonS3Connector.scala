@@ -19,7 +19,6 @@ package uk.gov.hmrc.bindingtarifffilestore.connector
 import java.io.BufferedInputStream
 import java.net.URL
 import java.util
-
 import com.amazonaws.HttpMethod
 import com.amazonaws.auth.{AWSStaticCredentialsProvider, BasicAWSCredentials}
 import com.amazonaws.client.builder.AwsClientBuilder.EndpointConfiguration
@@ -33,7 +32,7 @@ import uk.gov.hmrc.bindingtarifffilestore.config.AppConfig
 import uk.gov.hmrc.bindingtarifffilestore.model.FileMetadata
 import uk.gov.hmrc.bindingtarifffilestore.util.Logging
 
-import scala.collection.JavaConverters
+import scala.jdk.CollectionConverters._
 import scala.util.{Failure, Success, Try}
 
 @Singleton
@@ -97,7 +96,7 @@ class AmazonS3Connector @Inject() (config: AppConfig) extends Logging {
     if (keys.nonEmpty) {
       log.info(s"Removing [${keys.length}] files from S3")
       val request = new DeleteObjectsRequest(s3Config.bucket)
-        .withKeys(JavaConverters.seqAsJavaList(keys))
+        .withKeys(keys.toList.asJava)
         .withQuiet(false)
       s3client.deleteObjects(request)
     } else {
@@ -119,6 +118,6 @@ class AmazonS3Connector @Inject() (config: AppConfig) extends Logging {
     url.openConnection.getContentLengthLong
 
   private def sequenceOf[T](list: util.List[T]): Seq[T] =
-    JavaConverters.asScalaIteratorConverter(list.iterator).asScala.toSeq
+    list.iterator.asScala.toSeq
 
 }

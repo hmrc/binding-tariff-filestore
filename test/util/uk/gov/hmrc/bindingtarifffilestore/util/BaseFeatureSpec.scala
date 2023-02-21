@@ -69,6 +69,6 @@ abstract class BaseFeatureSpec
   }
 
   private def drop(): Unit =
-    result(repository.collection.drop.toFuture(), timeout)
+    result(repository.collection.drop().toFuture(), timeout)
 
 }

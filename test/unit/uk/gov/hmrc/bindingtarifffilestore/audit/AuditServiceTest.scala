@@ -17,9 +17,8 @@
 package uk.gov.hmrc.bindingtarifffilestore.audit
 
 import org.mockito.ArgumentMatchers.refEq
-import org.mockito.Mockito.{reset, verify}
+import org.mockito.MockitoSugar
 import org.scalatest.BeforeAndAfterEach
-import org.scalatestplus.mockito.MockitoSugar
 import uk.gov.hmrc.bindingtarifffilestore.audit.AuditPayloadType._
 import uk.gov.hmrc.bindingtarifffilestore.util.UnitSpec
 import uk.gov.hmrc.http.HeaderCarrier
@@ -60,7 +59,8 @@ class AuditServiceTest extends UnitSpec with MockitoSugar with BeforeAndAfterEac
     "send the expected payload to the audit connector" in {
       service.auditFileScanned(fileId, Some(fileName), upScanRef, upScanStatus)
 
-      val payload = auditPayload(fileId, fileName) + ("upScanReference" -> upScanRef, "upScanStatus" -> upScanStatus)
+      val payload =
+        auditPayload(fileId, fileName) ++ Map("upScanReference" -> upScanRef, "upScanStatus" -> upScanStatus)
 
       verify(connector).sendExplicitAudit(refEq(FileScanned), refEq(payload))(refEq(hc), refEq(global))
     }

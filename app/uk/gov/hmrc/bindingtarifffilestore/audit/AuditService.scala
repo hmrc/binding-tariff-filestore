@@ -20,10 +20,10 @@ import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.audit.DefaultAuditConnector
 
 import javax.inject.{Inject, Singleton}
-import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.ExecutionContext
 
 @Singleton
-class AuditService @Inject() (auditConnector: DefaultAuditConnector) {
+class AuditService @Inject() (auditConnector: DefaultAuditConnector)(implicit ec: ExecutionContext) {
 
   import AuditPayloadType._
 
@@ -41,7 +41,7 @@ class AuditService @Inject() (auditConnector: DefaultAuditConnector) {
     sendExplicitAuditEvent(
       auditEventType = FileScanned,
       auditPayload =
-        fileDetailsAuditPayload(fileId, fileName) + ("upScanReference" -> upScanRef, "upScanStatus" -> upScanStatus)
+        fileDetailsAuditPayload(fileId, fileName) ++ Map("upScanReference" -> upScanRef, "upScanStatus" -> upScanStatus)
     )
 
   def auditFilePublished(fileId: String, fileName: String)(implicit hc: HeaderCarrier): Unit =

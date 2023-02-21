@@ -49,7 +49,7 @@ class SearchTest extends UnitSpec {
     }
 
     "Bind query string with empty values" in {
-      Search.bindable.bind("", params.mapValues(_.map(_ => ""))) shouldBe Some(Right(Search()))
+      Search.bindable.bind("", params.view.mapValues(_.map(_ => "")).toMap) shouldBe Some(Right(Search()))
     }
 
     "Bind populated query string" in {

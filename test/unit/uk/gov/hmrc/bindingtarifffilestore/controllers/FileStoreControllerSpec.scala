@@ -17,12 +17,10 @@
 package uk.gov.hmrc.bindingtarifffilestore.controllers
 
 import akka.stream.Materializer
-import org.mockito.ArgumentCaptor
 import org.mockito.ArgumentMatchers.{any, refEq}
-import org.mockito.Mockito.{reset, verify, when}
+import org.mockito.{ArgumentCaptor, MockitoSugar}
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.matchers.should.Matchers
-import org.scalatestplus.mockito.MockitoSugar
 import play.api.http.Status._
 import play.api.libs.Files.{SingletonTemporaryFileCreator, TemporaryFile}
 import play.api.libs.json.{JsValue, Json, Writes}

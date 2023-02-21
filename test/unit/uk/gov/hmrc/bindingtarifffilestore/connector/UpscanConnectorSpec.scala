@@ -20,7 +20,7 @@ import akka.actor.ActorSystem
 import com.github.tomakehurst.wiremock.client.WireMock._
 import org.mockito.BDDMockito.given
 import org.scalatest.BeforeAndAfterEach
-import org.scalatestplus.mockito.MockitoSugar
+import org.mockito.MockitoSugar
 import play.api.http.Status
 import play.api.libs.Files.SingletonTemporaryFileCreator
 import play.api.libs.ws.WSClient

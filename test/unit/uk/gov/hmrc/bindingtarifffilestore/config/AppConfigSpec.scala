@@ -17,10 +17,8 @@
 package uk.gov.hmrc.bindingtarifffilestore.config
 
 import org.mockito.ArgumentMatchers.refEq
-import org.mockito.Mockito
-import org.mockito.Mockito.when
+import org.mockito.{Mockito, MockitoSugar}
 import org.scalatest.BeforeAndAfterEach
-import org.scalatestplus.mockito.MockitoSugar
 import play.api.Configuration
 import uk.gov.hmrc.bindingtarifffilestore.util.{UnitSpec, WithFakeApplication}
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
