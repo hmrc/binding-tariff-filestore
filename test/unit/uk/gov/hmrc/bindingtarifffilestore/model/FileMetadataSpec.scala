@@ -23,71 +23,70 @@ import java.time.Instant
 
 class FileMetadataSpec extends UnitSpec {
 
-  "File Meta Data" should {
+  private val model: FileMetadata = FileMetadata(
+    id = "id",
+    fileName = Some("fileName"),
+    mimeType = Some("type"),
+    url = Some("url"),
+    publishable = true,
+    published = true,
+    scanStatus = Some(ScanStatus.READY),
+    lastUpdated = Instant.EPOCH
+  )
 
-    val model = FileMetadata(
-      id = "id",
-      fileName = Some("fileName"),
-      mimeType = Some("type"),
-      url = Some("url"),
-      publishable = true,
-      published = true,
-      scanStatus = Some(ScanStatus.READY),
-      lastUpdated = Instant.EPOCH
-    )
+  private val jsonMongo: JsObject = Json.obj(
+    "id"          -> JsString("id"),
+    "fileName"    -> JsString("fileName"),
+    "mimeType"    -> JsString("type"),
+    "url"         -> JsString("url"),
+    "scanStatus"  -> JsString("READY"),
+    "publishable" -> JsBoolean(true),
+    "published"   -> JsBoolean(true),
+    "lastUpdated" -> Json.obj("$date" -> JsNumber(0))
+  )
 
-    val jsonMongo: JsObject = Json.obj(
-      "id"          -> JsString("id"),
-      "fileName"    -> JsString("fileName"),
-      "mimeType"    -> JsString("type"),
-      "url"         -> JsString("url"),
-      "scanStatus"  -> JsString("READY"),
-      "publishable" -> JsBoolean(true),
-      "published"   -> JsBoolean(true),
-      "lastUpdated" -> Json.obj("$date" -> JsNumber(0))
-    )
+  private val jsonMongoWithoutDefaults: JsObject = Json.obj(
+    "id"          -> JsString("id"),
+    "fileName"    -> JsString("fileName"),
+    "mimeType"    -> JsString("type"),
+    "url"         -> JsString("url"),
+    "scanStatus"  -> JsString("READY"),
+    "lastUpdated" -> Json.obj("$date" -> JsNumber(0))
+  )
 
-    val jsonMongoWithoutDefaults: JsObject = Json.obj(
-      "id"          -> JsString("id"),
-      "fileName"    -> JsString("fileName"),
-      "mimeType"    -> JsString("type"),
-      "url"         -> JsString("url"),
-      "scanStatus"  -> JsString("READY"),
-      "lastUpdated" -> Json.obj("$date" -> JsNumber(0))
-    )
+  private val jsonREST: JsObject = Json.obj(
+    "url"         -> JsString("url"),
+    "lastUpdated" -> JsString("1970-01-01T00:00:00Z"),
+    "published"   -> JsBoolean(true),
+    "scanStatus"  -> JsString("READY"),
+    "fileName"    -> JsString("fileName"),
+    "mimeType"    -> JsString("type"),
+    "id"          -> JsString("id"),
+    "publishable" -> JsBoolean(true)
+  )
 
-    val jsonREST: JsObject = Json.obj(
-      "url"         -> JsString("url"),
-      "lastUpdated" -> JsString("1970-01-01T00:00:00Z"),
-      "published"   -> JsBoolean(true),
-      "scanStatus"  -> JsString("READY"),
-      "fileName"    -> JsString("fileName"),
-      "mimeType"    -> JsString("type"),
-      "id"          -> JsString("id"),
-      "publishable" -> JsBoolean(true)
-    )
-
-    "Convert to Mongo JSON" in {
+  "FileMetadata" should {
+    "convert to Mongo JSON" in {
       val value = Json.toJson(model)(FileMetadataMongo.format)
       value.toString() shouldBe jsonMongo.toString()
     }
 
-    "Convert from Mongo JSON" in {
+    "convert from Mongo JSON" in {
       val value = Json.fromJson[FileMetadata](jsonMongo)(FileMetadataMongo.format).get
       value shouldBe model
     }
 
-    "Convert from Mongo JSON with defaults" in {
+    "convert from Mongo JSON with defaults" in {
       val value = Json.fromJson[FileMetadata](jsonMongoWithoutDefaults)(FileMetadataMongo.format).get
       value shouldBe model.copy(publishable = false, published = false)
     }
 
-    "Convert to REST JSON" in {
+    "convert to REST JSON" in {
       val value = Json.toJson(model)(FileMetadataREST.format)
       value.toString() shouldBe jsonREST.toString()
     }
 
-    "Convert to REST JSON ignoring URL if Un-scanned" in {
+    "convert to REST JSON ignoring URL if Un-scanned" in {
       val value = Json.toJson(model.copy(scanStatus = None))(FileMetadataREST.format)
       value.toString() shouldBe Json
         .obj(
@@ -101,7 +100,7 @@ class FileMetadataSpec extends UnitSpec {
         .toString()
     }
 
-    "Convert to REST JSON ignoring URL if Failed" in {
+    "convert to REST JSON ignoring URL if Failed" in {
       val value = Json.toJson(model.copy(scanStatus = Some(ScanStatus.FAILED)))(FileMetadataREST.format)
       value.toString() shouldBe Json
         .obj(
@@ -116,12 +115,12 @@ class FileMetadataSpec extends UnitSpec {
         .toString()
     }
 
-    "Convert from REST JSON" in {
+    "convert from REST JSON" in {
       val value = Json.fromJson[FileMetadata](jsonREST)(FileMetadataREST.format).get
       value shouldBe model
     }
 
-    "Calculate liveness of signed URL" in {
+    "calculate liveness of signed URL" in {
       def metadata(url: String): FileMetadata = FileMetadata("id", Some("file"), Some("type"), Some(url))
 
       metadata(
@@ -135,6 +134,17 @@ class FileMetadataSpec extends UnitSpec {
       FileMetadata("id", Some("file"), Some("type")).isLive                                               shouldBe true
     }
 
-  }
+    def test(json: JsObject): Unit =
+      s"produce a JsError when converting from $json" in {
+        val result: JsResult[Instant] = FileMetadataMongo.instantFormat.reads(json)
 
+        result shouldBe JsError("Unexpected Instant Format")
+      }
+
+    Seq(
+      Json.obj("$date" -> JsBoolean(true)),
+      Json.obj("$date" -> Json.obj()),
+      Json.obj()
+    ).foreach(test)
+  }
 }

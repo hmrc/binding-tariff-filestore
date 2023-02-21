@@ -35,21 +35,24 @@ import uk.gov.hmrc.http.HeaderCarrier
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future.successful
+import scala.concurrent.Future.{failed, successful}
 
 class FileStoreServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfterEach with Eventually {
 
-  private val config          = mock[AppConfig]
-  private val s3Connector     = mock[AmazonS3Connector]
-  private val repository      = mock[FileMetadataMongoRepository]
-  private val upscanConnector = mock[UpscanConnector]
-  private val auditService    = mock[AuditService]
+  private val config: AppConfig                       = mock[AppConfig]
+  private val s3Connector: AmazonS3Connector          = mock[AmazonS3Connector]
+  private val repository: FileMetadataMongoRepository = mock[FileMetadataMongoRepository]
+  private val upscanConnector: UpscanConnector        = mock[UpscanConnector]
+  private val auditService: AuditService              = mock[AuditService]
 
   private implicit val hc: HeaderCarrier = HeaderCarrier()
 
-  private val service = new FileStoreService(config, s3Connector, repository, upscanConnector, auditService)
+  private val service: FileStoreService =
+    new FileStoreService(config, s3Connector, repository, upscanConnector, auditService)
 
-  private final val emulatedFailure = new RuntimeException("Emulated failure.")
+  private final val emulatedFailure: RuntimeException = new RuntimeException("Emulated failure.")
+
+  private val (minimumFileSize, maximumFileSize): (Int, Int) = (1, 1000)
 
   override protected def afterEach(): Unit = {
     super.afterEach()
@@ -159,7 +162,7 @@ class FileStoreServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfte
       val initiateResponse    = UpscanInitiateResponse("ref", uploadTemplate)
 
       given(config.filestoreUrl).willReturn("host")
-      given(config.fileStoreSizeConfiguration).willReturn(FileStoreSizeConfiguration(1, 1000))
+      given(config.fileStoreSizeConfiguration).willReturn(FileStoreSizeConfiguration(minimumFileSize, maximumFileSize))
       given(config.authorization).willReturn("auth-token")
       given(repository.insertFile(fileMetadata)).willReturn(successful(Some(fileMetaDataCreated)))
       given(upscanConnector.initiate(any[UploadSettings])(any[HeaderCarrier])).willReturn(successful(initiateResponse))
@@ -173,10 +176,10 @@ class FileStoreServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfte
       verify(auditService, times(1)).auditUpScanInitiated(fileId = "id", fileName = Some("file"), upScanRef = "ref")
       verifyNoMoreInteractions(auditService)
 
-      theInitatePayload shouldBe UploadSettings(
+      theInitiatePayload shouldBe UploadSettings(
         "http://host/file/id/notify?X-Api-Token=2yL0YYIInq0TGnTCyaUwQhXpxtIktdzWH7QIx9mmMWU=",
-        1,
-        1000
+        minimumFileSize,
+        maximumFileSize
       )
     }
   }
@@ -190,7 +193,7 @@ class FileStoreServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfte
 
       given(config.filestoreSSL).willReturn(false)
       given(config.filestoreUrl).willReturn("host")
-      given(config.fileStoreSizeConfiguration).willReturn(FileStoreSizeConfiguration(1, 1000))
+      given(config.fileStoreSizeConfiguration).willReturn(FileStoreSizeConfiguration(minimumFileSize, maximumFileSize))
       given(config.authorization).willReturn("auth-token")
       given(repository.insertFile(any[FileMetadata])).willReturn(successful(Some(fileMetadata)))
       given(upscanConnector.initiateV2(any[v2.UpscanInitiateRequest])(any[HeaderCarrier]))
@@ -206,8 +209,8 @@ class FileStoreServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfte
         callbackUrl = "http://host/file/id/notify?X-Api-Token=2yL0YYIInq0TGnTCyaUwQhXpxtIktdzWH7QIx9mmMWU=",
         successRedirect = None,
         errorRedirect = None,
-        minimumFileSize = Some(1),
-        maximumFileSize = Some(1000),
+        minimumFileSize = Some(minimumFileSize),
+        maximumFileSize = Some(maximumFileSize),
         expectedContentType = None
       )
     }
@@ -219,20 +222,20 @@ class FileStoreServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfte
     captor.getValue
   }
 
-  "Service 'upload' " should {
+  "Service 'upload'" should {
+    val file: TemporaryFile                      = mock[TemporaryFile]
+    val fileMetadata: FileMetadata               = FileMetadata(id = "id", fileName = Some("file"), mimeType = Some("text/plain"))
+    val fileWithMetadata: FileWithMetadata       = FileWithMetadata(file, fileMetadata)
+    val fileMetaDataCreated: FileMetadata        = mock[FileMetadata]
+    val uploadTemplate: UpscanTemplate           = mock[UpscanTemplate]
+    val initiateResponse: UpscanInitiateResponse = UpscanInitiateResponse("ref", uploadTemplate)
 
     "Delegate to Connector" in {
-      val file                = mock[TemporaryFile]
-      val fileMetadata        = FileMetadata(id = "id", fileName = Some("file"), mimeType = Some("text/plain"))
-      val fileWithMetadata    = FileWithMetadata(file, fileMetadata)
-      val fileMetaDataCreated = mock[FileMetadata]
-      val uploadTemplate      = mock[UpscanTemplate]
-      val initiateResponse    = UpscanInitiateResponse("ref", uploadTemplate)
-
       given(config.filestoreUrl).willReturn("host")
-      given(config.fileStoreSizeConfiguration).willReturn(FileStoreSizeConfiguration(1, 1000))
+      given(config.fileStoreSizeConfiguration).willReturn(FileStoreSizeConfiguration(minimumFileSize, maximumFileSize))
       given(config.authorization).willReturn("auth-token")
       given(repository.insertFile(fileMetadata)).willReturn(successful(Some(fileMetaDataCreated)))
+
       given(upscanConnector.initiate(any[UploadSettings])(any[HeaderCarrier])).willReturn(successful(initiateResponse))
       given(upscanConnector.upload(any[UpscanTemplate], any[FileWithMetadata])).willReturn(successful((): Unit))
 
@@ -241,15 +244,28 @@ class FileStoreServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfte
       verify(auditService, times(1)).auditUpScanInitiated(fileId = "id", fileName = Some("file"), upScanRef = "ref")
       verifyNoMoreInteractions(auditService)
 
-      theInitatePayload shouldBe UploadSettings(
+      theInitiatePayload shouldBe UploadSettings(
         "http://host/file/id/notify?X-Api-Token=2yL0YYIInq0TGnTCyaUwQhXpxtIktdzWH7QIx9mmMWU=",
-        1,
-        1000
+        minimumFileSize,
+        maximumFileSize
       )
+    }
+
+    "return an exception" in {
+      given(config.filestoreUrl).willReturn("host")
+      given(config.fileStoreSizeConfiguration).willReturn(FileStoreSizeConfiguration(minimumFileSize, maximumFileSize))
+      given(config.authorization).willReturn("auth-token")
+      given(repository.insertFile(fileMetadata)).willReturn(successful(Some(fileMetaDataCreated)))
+
+      given(upscanConnector.initiate(any[UploadSettings])(any[HeaderCarrier])).willReturn(successful(initiateResponse))
+      given(upscanConnector.upload(any[UpscanTemplate], any[FileWithMetadata]))
+        .willReturn(failed(new Exception("Test")))
+
+      service.upload(fileWithMetadata).failed.map(_ shouldBe an[Exception])
     }
   }
 
-  private def theInitatePayload: UploadSettings = {
+  private def theInitiatePayload: UploadSettings = {
     val captor: ArgumentCaptor[UploadSettings] = ArgumentCaptor.forClass(classOf[UploadSettings])
     verify(upscanConnector).initiate(captor.capture())(any[HeaderCarrier])
     captor.getValue
@@ -329,36 +345,38 @@ class FileStoreServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfte
       verifyNoMoreInteractions(auditService)
     }
 
-    "Skip publishing when the file no longer exists" in {
-      val attachment         = mock[FileMetadata]("Attachment")
-      val uploadDetails      = mock[UploadDetails]
-      val scanResult         = SuccessfulScanResult("ref", "url", uploadDetails)
-      val attachmentUpdating = mock[FileMetadata]("AttachmentUpdating")
-      val attachmentUpdated  = mock[FileMetadata]("AttachmentUpdated")
+    def test(value: Boolean): Unit =
+      s"Skip publishing when the file no longer exists and publishable for attachmentUpdating is set to $value" in {
+        val attachment: FileMetadata         = mock[FileMetadata]("Attachment")
+        val uploadDetails: UploadDetails     = mock[UploadDetails]
+        val scanResult: SuccessfulScanResult = SuccessfulScanResult("ref", "url", uploadDetails)
+        val attachmentUpdating: FileMetadata =
+          FileMetadata(id = "id", fileName = Some("file"), mimeType = Some("type"), publishable = value)
+        val attachmentUpdated: FileMetadata  = mock[FileMetadata]("AttachmentUpdated")
 
-      given(attachment.withScanResult(scanResult)).willReturn(attachmentUpdating)
-      given(attachment.publishable).willReturn(true)
-      given(attachment.id).willReturn("id")
-      given(attachment.fileName).willReturn(Some("file"))
+        given(attachment.withScanResult(scanResult)).willReturn(attachmentUpdating)
+        given(attachment.publishable).willReturn(true)
+        given(attachment.id).willReturn("id")
+        given(attachment.fileName).willReturn(Some("file"))
 
-      given(attachmentUpdating.published).willReturn(true)
+        given(attachmentUpdated.published).willReturn(true)
+        given(attachmentUpdated.scanStatus).willReturn(Some(ScanStatus.READY))
+        given(attachmentUpdated.id).willReturn("id")
+        given(attachmentUpdated.fileName).willReturn(Some("file"))
 
-      given(attachmentUpdated.published).willReturn(true)
-      given(attachmentUpdated.scanStatus).willReturn(Some(ScanStatus.READY))
-      given(attachmentUpdated.id).willReturn("id")
-      given(attachmentUpdated.fileName).willReturn(Some("file"))
+        given(repository.update(attachmentUpdating)).willReturn(successful(None))
 
-      given(repository.update(attachmentUpdating)).willReturn(successful(None))
+        await(service.notify(attachment, scanResult)) shouldBe None
 
-      await(service.notify(attachment, scanResult)) shouldBe None
+        verify(s3Connector, never).upload(any[FileMetadata])
+        verify(s3Connector, never).sign(any[FileMetadata])
+        verify(auditService, times(1))
+          .auditFileScanned(fileId = "id", fileName = Some("file"), upScanRef = "ref", upScanStatus = "READY")
+        verify(auditService, never).auditFilePublished(fileId = "id", fileName = "file")
+        verifyNoMoreInteractions(auditService)
+      }
 
-      verify(s3Connector, never).upload(any[FileMetadata])
-      verify(s3Connector, never).sign(any[FileMetadata])
-      verify(auditService, times(1))
-        .auditFileScanned(fileId = "id", fileName = Some("file"), upScanRef = "ref", upScanStatus = "READY")
-      verify(auditService, never).auditFilePublished(fileId = "id", fileName = "file")
-      verifyNoMoreInteractions(auditService)
-    }
+    Seq(false, true).foreach(test)
 
     "Update the attachment for Failed Scan and Delegate to Connector" in {
       val attachment         = FileMetadata(id = "id", fileName = Some("file"), mimeType = Some("type"))

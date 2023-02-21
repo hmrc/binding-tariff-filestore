@@ -3,18 +3,14 @@ import uk.gov.hmrc.DefaultBuildSettings._
 
 val appName = "binding-tariff-filestore"
 
-lazy val plugins: Seq[Plugins] =
-  Seq(PlayScala, SbtAutoBuildPlugin, SbtDistributablesPlugin)
-
-lazy val microservice = (project in file("."))
-  .enablePlugins(plugins: _*)
+lazy val microservice = Project(appName, file("."))
+  .enablePlugins(PlayScala, SbtAutoBuildPlugin, SbtDistributablesPlugin)
   .disablePlugins(JUnitXmlReportPlugin) //Required to prevent https://github.com/scalatest/scalatest/issues/1427
   // To resolve a bug with version 2.x.x of the scoverage plugin - https://github.com/sbt/sbt/issues/6997
   .settings(libraryDependencySchemes ++= Seq("org.scala-lang.modules" %% "scala-xml" % VersionScheme.Always))
   .settings(defaultSettings(): _*)
   .settings(majorVersion := 0)
   .settings(
-    name := appName,
     scalaVersion := "2.13.10",
     targetJvm := "jvm-1.8",
     playDefaultPort := 9583,
@@ -47,11 +43,12 @@ lazy val microservice = (project in file("."))
     IntegrationTest / resourceDirectory := baseDirectory.value / "test" / "resources",
     addTestReportOption(IntegrationTest, "int-test-reports")
   )
-
-// Coverage configuration
-coverageMinimumStmtTotal := 93
-coverageFailOnMinimum := true
-coverageExcludedPackages := "<empty>;com.kenshoo.play.metrics.*;prod.*;testOnlyDoNotUseInAppConf.*;app.*;uk.gov.hmrc.BuildInfo"
+  .settings(
+    // Coverage configuration
+    coverageMinimumStmtTotal := 100,
+    coverageFailOnMinimum := true,
+    coverageExcludedPackages := "<empty>;com.kenshoo.play.metrics.*;prod.*;testOnlyDoNotUseInAppConf.*;app.*;uk.gov.hmrc.BuildInfo"
+  )
 
 addCommandAlias("scalafmtAll", "all scalafmtSbt scalafmt Test/scalafmt")
 addCommandAlias("scalastyleAll", "all scalastyle Test/scalastyle")
