@@ -61,7 +61,7 @@ class PagedTest extends UnitSpec {
         .as[Paged[String]] shouldBe Paged(Seq("Hello"), 1, 2, 3)
     }
 
-    "invalid results when no results are provided" in {
+    "return invalid results when no results are provided" in {
       val exception: JsResultException = intercept[JsResultException] {
         Json
           .obj(
@@ -76,22 +76,7 @@ class PagedTest extends UnitSpec {
       errorsList(exception) shouldBe List("invalid results")
     }
 
-    "invalid json when no results are provided" in {
-      val exception: JsResultException = intercept[JsResultException] {
-        Json
-          .obj(
-            "pageIndex"   -> 1,
-            "pageSize"    -> 1,
-            "resultCount" -> 1
-          )
-          .as[Paged[String]]
-      }
-
-      exception.errors.size shouldBe 1
-      errorsList(exception) shouldBe List("invalid results")
-    }
-
-    "invalid json when no pageIndex provided" in {
+    "return invalid pageIndex when no pageIndex is provided" in {
       val exception = intercept[JsResultException] {
         Json
           .obj(
@@ -106,7 +91,7 @@ class PagedTest extends UnitSpec {
       errorsList(exception) shouldBe List("invalid pageIndex")
     }
 
-    "invalid json when no pageSize provided" in {
+    "return invalid pageSize when no pageSize is provided" in {
       val exception = intercept[JsResultException] {
         Json
           .obj(
@@ -121,7 +106,7 @@ class PagedTest extends UnitSpec {
       errorsList(exception) shouldBe List("invalid pageSize")
     }
 
-    "invalid json when no resultCount provided" in {
+    "return invalid resultCount when no resultCount is provided" in {
       val exception = intercept[JsResultException] {
         Json
           .obj(

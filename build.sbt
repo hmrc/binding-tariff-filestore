@@ -3,15 +3,12 @@ import uk.gov.hmrc.DefaultBuildSettings._
 
 val appName = "binding-tariff-filestore"
 
-lazy val plugins: Seq[Plugins]         =
-  Seq(PlayScala, SbtAutoBuildPlugin, SbtGitVersioning, SbtDistributablesPlugin)
-lazy val playSettings: Seq[Setting[_]] = Seq.empty
+lazy val plugins: Seq[Plugins] =
+  Seq(PlayScala, SbtAutoBuildPlugin, SbtDistributablesPlugin)
 
 lazy val microservice = (project in file("."))
   .enablePlugins(plugins: _*)
   .disablePlugins(JUnitXmlReportPlugin) //Required to prevent https://github.com/scalatest/scalatest/issues/1427
-  .settings(playSettings: _*)
-  .settings(scalaSettings: _*)
   // To resolve a bug with version 2.x.x of the scoverage plugin - https://github.com/sbt/sbt/issues/6997
   .settings(libraryDependencySchemes ++= Seq("org.scala-lang.modules" %% "scala-xml" % VersionScheme.Always))
   .settings(defaultSettings(): _*)
@@ -26,11 +23,10 @@ lazy val microservice = (project in file("."))
       "-Wconf:src=routes/.*:s"
     ),
     libraryDependencies ++= AppDependencies(),
-    Test / parallelExecution := false,
     Test / fork := true,
     retrieveManaged := true
   )
-  .settings(inConfig(TemplateTest)(Defaults.testSettings): _*)
+  .settings(inConfig(Test)(Defaults.testSettings): _*)
   .settings(
     Test / unmanagedSourceDirectories := Seq(
       (Test / baseDirectory).value / "test/unit",
@@ -40,23 +36,17 @@ lazy val microservice = (project in file("."))
     addTestReportOption(Test, "test-reports")
   )
   .configs(IntegrationTest)
-  .settings(inConfig(TemplateItTest)(Defaults.itSettings): _*)
+  .settings(inConfig(IntegrationTest)(Defaults.itSettings): _*)
   .settings(
+    integrationTestSettings(),
     IntegrationTest / Keys.fork := true,
     IntegrationTest / unmanagedSourceDirectories := Seq(
       (IntegrationTest / baseDirectory).value / "test/it",
       (IntegrationTest / baseDirectory).value / "test/util"
     ),
     IntegrationTest / resourceDirectory := baseDirectory.value / "test" / "resources",
-    addTestReportOption(IntegrationTest, "int-test-reports"),
-    IntegrationTest / parallelExecution := false
+    addTestReportOption(IntegrationTest, "int-test-reports")
   )
-
-lazy val allPhases   = "tt->test;test->test;test->compile;compile->compile"
-lazy val allItPhases = "tit->it;it->it;it->compile;compile->compile"
-
-lazy val TemplateTest   = config("tt") extend Test
-lazy val TemplateItTest = config("tit") extend IntegrationTest
 
 // Coverage configuration
 coverageMinimumStmtTotal := 93

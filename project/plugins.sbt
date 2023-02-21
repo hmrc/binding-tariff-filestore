@@ -10,7 +10,6 @@ ThisBuild / libraryDependencySchemes ++= Seq(
 )
 
 addSbtPlugin("com.typesafe.play"   % "sbt-plugin"         % "2.8.19")
-addSbtPlugin("org.irundaia.sbt"    % "sbt-sassify"        % "1.4.12")
 addSbtPlugin("com.beautiful-scala" % "sbt-scalastyle"     % "1.5.1")
 addSbtPlugin("org.scoverage"       % "sbt-scoverage"      % "2.0.6")
 addSbtPlugin("uk.gov.hmrc"         % "sbt-auto-build"     % "3.9.0")
