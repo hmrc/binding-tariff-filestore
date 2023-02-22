@@ -22,6 +22,7 @@ import uk.gov.hmrc.bindingtarifffilestore.model.ErrorCode._
 import uk.gov.hmrc.bindingtarifffilestore.model.JsErrorResponse
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendBaseController
 
+import scala.annotation.nowarn
 import scala.concurrent.Future
 import scala.concurrent.Future.successful
 import scala.util.{Failure, Success, Try}
@@ -29,7 +30,11 @@ import scala.util.{Failure, Success, Try}
 trait JsonParsing { self: BackendBaseController =>
   override protected def withJsonBody[T](
     f: T => Future[Result]
-  )(implicit request: Request[JsValue], m: Manifest[T], reads: Reads[T]): Future[Result] =
+  )(implicit
+    request: Request[JsValue],
+    @nowarn("msg=parameter value m") m: Manifest[T],
+    reads: Reads[T]
+  ): Future[Result] =
     Try(request.body.validate[T]) match {
       case Success(JsSuccess(payload, _)) => f(payload)
       case Success(JsError(errs))         =>

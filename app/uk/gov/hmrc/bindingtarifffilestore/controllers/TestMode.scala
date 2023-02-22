@@ -23,24 +23,26 @@ import uk.gov.hmrc.bindingtarifffilestore.model.{ErrorCode, JsErrorResponse}
 import scala.concurrent.{ExecutionContext, Future}
 
 object TestMode {
-  def actionFilter(appConfig: AppConfig, bodyParser: BodyParser[AnyContent])(implicit ec: ExecutionContext) =
-    new ActionBuilder[Request, AnyContent] with ActionFilter[Request] {
+  def actionFilter(appConfig: AppConfig, bodyParser: BodyParser[AnyContent])(implicit
+    ec: ExecutionContext
+  ): ActionBuilder[Request, AnyContent] with ActionFilter[Request] = new ActionBuilder[Request, AnyContent]
+    with ActionFilter[Request] {
 
-      override protected def filter[A](request: Request[A]): Future[Option[Result]] = Future.successful {
-        if (appConfig.isTestMode) {
-          None
-        } else {
-          Some(
-            Results.Forbidden(
-              JsErrorResponse(ErrorCode.FORBIDDEN, s"You are not allowed to call ${request.method} ${request.uri}")
-            )
+    override protected def filter[A](request: Request[A]): Future[Option[Result]] = Future.successful {
+      if (appConfig.isTestMode) {
+        None
+      } else {
+        Some(
+          Results.Forbidden(
+            JsErrorResponse(ErrorCode.FORBIDDEN, s"You are not allowed to call ${request.method} ${request.uri}")
           )
-        }
+        )
       }
-
-      override def parser: BodyParser[AnyContent] = bodyParser
-
-      override protected def executionContext: ExecutionContext = ec
     }
+
+    override def parser: BodyParser[AnyContent] = bodyParser
+
+    override protected def executionContext: ExecutionContext = ec
+  }
 
 }

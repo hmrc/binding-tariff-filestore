@@ -41,6 +41,10 @@ class PagedTest extends UnitSpec {
       Paged(Seq("")).nonEmpty shouldBe true
     }
 
+    "calculate pageCount" in {
+      Paged(Seq("Hello"), 1, 2, 3).pageCount shouldBe 2
+    }
+
     "serialize to JSON" in {
       Json.toJson(Paged(Seq("Hello"), 1, 2, 3)).as[JsObject] shouldBe Json.obj(
         "results"     -> Json.arr("Hello"),
@@ -120,9 +124,8 @@ class PagedTest extends UnitSpec {
       exception.errors.size shouldBe 1
       errorsList(exception) shouldBe List("invalid resultCount")
     }
-
   }
+
   private def errorsList(exception: JsResultException): Seq[String] =
     exception.errors.flatMap(_._2.flatMap(_.messages)).toList
-
 }

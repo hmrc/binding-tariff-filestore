@@ -21,7 +21,7 @@ import com.github.tomakehurst.wiremock.client.WireMock._
 import org.mockito.BDDMockito.given
 import org.scalatest.BeforeAndAfterEach
 import org.mockito.MockitoSugar
-import play.api.http.Status
+import play.api.http.Status._
 import play.api.libs.Files.SingletonTemporaryFileCreator
 import play.api.libs.ws.WSClient
 import uk.gov.hmrc.bindingtarifffilestore.config.AppConfig
@@ -42,23 +42,23 @@ class UpscanConnectorSpec
     with BeforeAndAfterEach
     with ResourceFiles {
 
-  private val config = mock[AppConfig]
-
-  private val actorSystem        = ActorSystem.create("test")
-  private val wsClient: WSClient = fakeApplication.injector.instanceOf[WSClient]
-  private val httpAuditing       = fakeApplication.injector.instanceOf[HttpAuditing]
-  private val hmrcWsClient       = new DefaultHttpClient(fakeApplication.configuration, httpAuditing, wsClient, actorSystem)
+  private val config: AppConfig               = mock[AppConfig]
+  private val actorSystem: ActorSystem        = ActorSystem.create("test")
+  private val wsClient: WSClient              = fakeApplication.injector.instanceOf[WSClient]
+  private val httpAuditing: HttpAuditing      = fakeApplication.injector.instanceOf[HttpAuditing]
+  private val hmrcWsClient: DefaultHttpClient =
+    new DefaultHttpClient(fakeApplication.configuration, httpAuditing, wsClient, actorSystem)
 
   private implicit val headers: HeaderCarrier = HeaderCarrier()
 
-  private val connector = new UpscanConnector(config, hmrcWsClient)
+  private val connector: UpscanConnector = new UpscanConnector(config, hmrcWsClient)
 
   override protected def beforeEach(): Unit = {
     super.beforeEach()
     given(config.upscanInitiateUrl).willReturn(wireMockUrl)
   }
 
-  "Connector" should {
+  "UpscanConnector" should {
     "Initiate" in {
       stubFor(
         post("/upscan/initiate")
@@ -68,7 +68,10 @@ class UpscanConnectorSpec
           )
       )
 
-      val response = await(connector.initiate(UploadSettings("callback", 1, 1000)))
+      val (minimumFileSize, maximumFileSize): (Int, Int) = (1, 1000)
+      val response: UpscanInitiateResponse               =
+        await(connector.initiate(UploadSettings("callback", minimumFileSize, maximumFileSize)))
+
       response shouldBe UpscanInitiateResponse(
         reference = "reference",
         uploadRequest = UpscanTemplate(
@@ -80,46 +83,57 @@ class UpscanConnectorSpec
       )
     }
 
-    "Upload" in {
-      stubFor(
-        post("/path")
-          .willReturn(
-            aResponse()
-              .withStatus(Status.NO_CONTENT)
+    "Upload" when {
+      def test(fileName: Option[String], mimeType: Option[String]): Unit =
+        s"fileName is $fileName and mimeType is $mimeType if 204 NO_CONTENT is returned" in {
+          stubFor(
+            post("/path")
+              .willReturn(
+                aResponse()
+                  .withStatus(NO_CONTENT)
+              )
           )
-      )
 
-      val templateUploading = UpscanTemplate(
-        href = s"$wireMockUrl/path",
-        fields = Map(
-          "key" -> "value"
-        )
-      )
-      val fileUploading     = FileWithMetadata(
-        SingletonTemporaryFileCreator.create("example-file.json"),
-        FileMetadata("id", Some("file.txt"), Some("text/plain"))
-      )
+          val templateUploading: UpscanTemplate = UpscanTemplate(
+            href = s"$wireMockUrl/path",
+            fields = Map(
+              "key" -> "value"
+            )
+          )
 
-      await(connector.upload(templateUploading, fileUploading))
+          val fileUploading: FileWithMetadata = FileWithMetadata(
+            SingletonTemporaryFileCreator.create("example-file.json"),
+            FileMetadata("id", fileName, mimeType)
+          )
+
+          await(connector.upload(templateUploading, fileUploading)) shouldBe ((): Unit)
+        }
+
+      Seq(
+        (Some("file.txt"), Some("text/plain")),
+        (None, Some("text/plain")),
+        (Some("file.txt"), None),
+        (None, None)
+      ).foreach(args => (test _).tupled(args))
     }
 
-    "Upload with error handling" in {
+    "Upload with error handling if 502 BAD_GATEWAY is returned" in {
       stubFor(
         post("/path")
           .willReturn(
             aResponse()
-              .withStatus(Status.BAD_GATEWAY)
+              .withStatus(BAD_GATEWAY)
               .withBody("content")
           )
       )
 
-      val templateUploading = UpscanTemplate(
+      val templateUploading: UpscanTemplate = UpscanTemplate(
         href = s"$wireMockUrl/path",
         fields = Map(
           "key" -> "value"
         )
       )
-      val fileUploading     = FileWithMetadata(
+      val fileUploading: FileWithMetadata   = FileWithMetadata(
         SingletonTemporaryFileCreator.create("example-file.json"),
         FileMetadata("id", Some("file.txt"), Some("text/plain"))
       )
@@ -129,5 +143,4 @@ class UpscanConnectorSpec
       }.getMessage shouldBe "Bad AWS response for file [id] with status [502] body [content]"
     }
   }
-
 }

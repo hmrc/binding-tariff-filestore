@@ -31,7 +31,11 @@ case class UpscanInitiateRequest(
 object UpscanInitiateRequest {
   implicit val format: OFormat[UpscanInitiateRequest] = Json.format[UpscanInitiateRequest]
 
-  def fromFileStoreRequest(callbackUrl: String, appConfig: AppConfig, request: FileStoreInitiateRequest) =
+  def fromFileStoreRequest(
+    callbackUrl: String,
+    appConfig: AppConfig,
+    request: FileStoreInitiateRequest
+  ): UpscanInitiateRequest =
     UpscanInitiateRequest(
       callbackUrl = callbackUrl,
       successRedirect = request.successRedirect,

@@ -23,7 +23,7 @@ case class FileStoreInitiateResponse(id: String, upscanReference: String, upload
 object FileStoreInitiateResponse {
   implicit val format: OFormat[FileStoreInitiateResponse] = Json.format[FileStoreInitiateResponse]
 
-  def fromUpscanResponse(id: String, response: UpscanInitiateResponse) =
+  def fromUpscanResponse(id: String, response: UpscanInitiateResponse): FileStoreInitiateResponse =
     FileStoreInitiateResponse(
       id = id,
       upscanReference = response.reference,

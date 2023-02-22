@@ -34,9 +34,12 @@ import uk.gov.hmrc.bindingtarifffilestore.model.upscan.v2.{FileStoreInitiateRequ
 import uk.gov.hmrc.bindingtarifffilestore.model.upscan.{ScanResult, SuccessfulScanResult, UploadDetails}
 import uk.gov.hmrc.bindingtarifffilestore.service.FileStoreService
 import uk.gov.hmrc.bindingtarifffilestore.util.{UnitSpec, WithFakeApplication}
-import uk.gov.hmrc.http.{HeaderCarrier, HttpVerbs}
-
+import uk.gov.hmrc.http.HeaderCarrier
 import java.time.Instant
+
+import com.mongodb.{MongoWriteException, ServerAddress, WriteError}
+import org.mongodb.scala.bson.BsonDocument
+
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future.{failed, successful}
 
@@ -49,13 +52,13 @@ class FileStoreControllerSpec
 
   private implicit val mat: Materializer = fakeApplication.materializer
 
-  private val appConfig                     = mock[AppConfig]
-  private val service                       = mock[FileStoreService]
-  lazy val playBodyParsers: PlayBodyParsers = fakeApplication.injector.instanceOf[PlayBodyParsers]
-  lazy val cc: MessagesControllerComponents = fakeApplication.injector.instanceOf[MessagesControllerComponents]
-  private val controller                    = new FileStoreController(appConfig, service, playBodyParsers, cc)
+  private val appConfig: AppConfig                  = mock[AppConfig]
+  private val service: FileStoreService             = mock[FileStoreService]
+  private lazy val playBodyParsers: PlayBodyParsers = fakeApplication.injector.instanceOf[PlayBodyParsers]
+  lazy val cc: MessagesControllerComponents         = fakeApplication.injector.instanceOf[MessagesControllerComponents]
+  private val controller: FileStoreController       = new FileStoreController(appConfig, service, playBodyParsers, cc)
 
-  private val fakeRequest = FakeRequest()
+  private val fakeRequest: FakeRequest[AnyContentAsEmpty.type] = FakeRequest()
 
   private def jsonRequest[T](body: T)(implicit writes: Writes[T]): Request[AnyContent] =
     fakeRequest
@@ -69,7 +72,7 @@ class FileStoreControllerSpec
 
   "Delete All" should {
 
-    val req = FakeRequest(method = HttpVerbs.DELETE, path = "/file")
+    val req = FakeRequest(method = "DELETE", path = "/file")
 
     "return 403 if the test mode is disabled" in {
       when(appConfig.isTestMode).thenReturn(false)
@@ -107,7 +110,7 @@ class FileStoreControllerSpec
   "Delete By ID" should {
 
     val id  = "ABC-123_000"
-    val req = FakeRequest(method = HttpVerbs.DELETE, path = s"/file/$id")
+    val req = FakeRequest(method = "DELETE", path = s"/file/$id")
 
     "return 204" in {
       when(appConfig.isTestMode).thenReturn(true)
@@ -216,6 +219,36 @@ class FileStoreControllerSpec
 
       status(result) shouldBe NOT_FOUND
     }
+
+    "return 409 when a MongoWriteException occurred" in {
+      val code: Int                        = 11000
+      val scanResult: SuccessfulScanResult =
+        SuccessfulScanResult("ref", "url", UploadDetails("file", "type", Instant.now(), "checksum"))
+      val attachment: FileMetadata         = FileMetadata(id = "id", fileName = Some("file"), mimeType = Some("type"))
+      when(service.find(id = "id")).thenReturn(successful(Some(attachment)))
+      when(service.notify(refEq(attachment), refEq(scanResult))(any[HeaderCarrier]))
+        .thenThrow(new MongoWriteException(new WriteError(code, "", new BsonDocument()), new ServerAddress()))
+
+      val request: FakeRequest[JsValue] = fakeRequest.withBody(Json.toJson[ScanResult](scanResult))
+      val result: Result                = await(controller.notification(id = "id")(request))
+
+      status(result)                shouldEqual CONFLICT
+      jsonBodyOf(result).toString() shouldEqual """{"code":"CONFLICT","message":"Entity already exists"}"""
+    }
+
+    "return 400" when {
+      "the body is an invalid JSON" in {
+        val result: Result = await(controller.notification(id = "id")(fakeRequest.withBody(Json.obj())))
+
+        status(result) shouldBe BAD_REQUEST
+      }
+
+      "the body cannot be parsed" in {
+        val result: Result = await(controller.notification(id = "id")(fakeRequest.withBody(None.orNull)))
+
+        status(result) shouldBe BAD_REQUEST
+      }
+    }
   }
 
   "Publish" should {
@@ -286,12 +319,24 @@ class FileStoreControllerSpec
       status(result) shouldBe ACCEPTED
     }
 
-    "return 400 on invalid json" in {
-      // When
-      val result: Result = await(controller.initiate(jsonRequest(Json.obj())))
+    "return 400" when {
+      "the body is an invalid JSON" in {
+        val result: Result = await(controller.initiate(jsonRequest(Json.obj())))
 
-      // Then
-      status(result) shouldBe BAD_REQUEST
+        status(result) shouldBe BAD_REQUEST
+      }
+
+      "the body cannot be parsed" in {
+        val result: Result = await(controller.initiate(fakeRequest.withBody(None.orNull)))
+
+        status(result) shouldBe BAD_REQUEST
+      }
+
+      "no body is supplied" in {
+        val result: Result = await(controller.initiate(fakeRequest))
+
+        status(result) shouldBe BAD_REQUEST
+      }
     }
   }
 
@@ -476,6 +521,17 @@ class FileStoreControllerSpec
 
     "return 400 on missing content type" in {
       val result: Result = await(controller.upload(FakeRequest()))
+
+      status(result) shouldBe BAD_REQUEST
+    }
+
+    "return 400 on missing multipart form data body when content type is multipart/form-data" in {
+      val result: Result = await(
+        controller.upload(
+          fakeRequest
+            .withHeaders("Content-Type" -> "multipart/form-data")
+        )
+      )
 
       status(result) shouldBe BAD_REQUEST
     }

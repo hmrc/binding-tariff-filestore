@@ -69,8 +69,7 @@ class UpscanConnector @Inject() (appConfig: AppConfig, http: HttpClient)(implici
           .flatMap(typ => Option(ContentType.getByMimeType(typ)))
           .getOrElse(ContentType.DEFAULT_BINARY),
         fileWithMetaData.metadata.fileName
-          .getOrElse(fileWithMetaData.file.path.getFileName)
-          .asInstanceOf[java.lang.String] //There is a compatibility glitch in Scala version, it can't match Scala string with Java string for this library code
+          .getOrElse(fileWithMetaData.file.path.getFileName.toString)
       )
     )
 

@@ -20,9 +20,10 @@ import uk.gov.hmrc.bindingtarifffilestore.util.UnitSpec
 
 class PaginationTest extends UnitSpec {
 
-  private val pagination = Pagination(
-    page = 2,
-    pageSize = 11
+  private val (page, pageSize): (Int, Int) = (2, 11)
+  private val pagination: Pagination       = Pagination(
+    page = page,
+    pageSize = pageSize
   )
 
   private val params: Map[String, Seq[String]] = Map(
@@ -46,11 +47,11 @@ class PaginationTest extends UnitSpec {
     }
 
     "Bind page only" in {
-      Pagination.bindable.bind("", Map("page" -> Seq("10"))) shouldBe Some(Right(Pagination(page = 10)))
+      Pagination.bindable.bind("", Map("page" -> Seq("2"))) shouldBe Some(Right(Pagination(page = page)))
     }
 
     "Bind page_size only" in {
-      Pagination.bindable.bind("", Map("page_size" -> Seq("10"))) shouldBe Some(Right(Pagination(pageSize = 10)))
+      Pagination.bindable.bind("", Map("page_size" -> Seq("11"))) shouldBe Some(Right(Pagination(pageSize = pageSize)))
     }
 
     "Ignore page <1" in {
