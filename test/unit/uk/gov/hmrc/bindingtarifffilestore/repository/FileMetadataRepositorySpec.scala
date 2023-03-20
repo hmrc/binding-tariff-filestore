@@ -25,6 +25,7 @@ import uk.gov.hmrc.bindingtarifffilestore.model.{FileMetadata, Paged, Pagination
 import uk.gov.hmrc.bindingtarifffilestore.util.Logging
 import uk.gov.hmrc.mongo.test.MongoSupport
 
+import java.time.temporal.ChronoUnit
 import java.util.UUID
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
@@ -66,7 +67,7 @@ class FileMetadataRepositorySpec
     val beforeSize = currentCollectionSize
     files.foreach { file =>
       log.logger.info(s"Insert file in database => $file")
-      insertFileWithAssert(file)
+      insertFileWithAssert(file.copy(lastUpdated = file.lastUpdated.truncatedTo(ChronoUnit.MILLIS)))
     }
     val afterSize  = currentCollectionSize
 
@@ -75,11 +76,15 @@ class FileMetadataRepositorySpec
     }
   }
 
-  private def generateAttachment = FileMetadata(
-    id = generateString,
-    fileName = Some(generateString),
-    mimeType = Some(generateString)
-  )
+  private def generateAttachment = {
+    val baseFile =
+      FileMetadata(
+        id = generateString,
+        fileName = Some(generateString),
+        mimeType = Some(generateString)
+      )
+    baseFile.copy(lastUpdated = baseFile.lastUpdated.truncatedTo(ChronoUnit.MILLIS))
+  }
 
   private def generateString = UUID.randomUUID().toString
 
