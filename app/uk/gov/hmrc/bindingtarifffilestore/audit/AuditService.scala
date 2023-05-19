@@ -27,7 +27,7 @@ class AuditService @Inject() (auditConnector: DefaultAuditConnector)(implicit ec
 
   import AuditPayloadType._
 
-  def auditUpScanInitiated(fileId: String, fileName: Option[String], upScanRef: String)(implicit
+  def auditUpScanInitiated(fileId: String, fileName: String, upScanRef: String)(implicit
     hc: HeaderCarrier
   ): Unit =
     sendExplicitAuditEvent(
@@ -35,7 +35,7 @@ class AuditService @Inject() (auditConnector: DefaultAuditConnector)(implicit ec
       auditPayload = fileDetailsAuditPayload(fileId, fileName) + ("upScanReference" -> upScanRef)
     )
 
-  def auditFileScanned(fileId: String, fileName: Option[String], upScanRef: String, upScanStatus: String)(implicit
+  def auditFileScanned(fileId: String, fileName:  String, upScanRef: String, upScanStatus: String)(implicit
     hc: HeaderCarrier
   ): Unit =
     sendExplicitAuditEvent(

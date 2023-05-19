@@ -19,14 +19,16 @@ package uk.gov.hmrc.bindingtarifffilestore.model
 import play.api.libs.json._
 import uk.gov.hmrc.bindingtarifffilestore.model.ScanStatus._
 import uk.gov.hmrc.bindingtarifffilestore.model.upscan._
+import uk.gov.hmrc.bindingtarifffilestore.model.upscan.v2.FileStoreInitiateRequest
 
 import java.time.{Instant, LocalDateTime, ZoneOffset}
 import java.{util => ju}
+import scala.concurrent.Future
 
 case class FileMetadata(
   id: String,
-  fileName: Option[String],
-  mimeType: Option[String],
+  fileName: String,
+  mimeType: String,
   url: Option[String] = None,
   scanStatus: Option[ScanStatus] = None,
   publishable: Boolean = false,
@@ -67,8 +69,8 @@ case class FileMetadata(
   def withScanResult(scanResult: ScanResult): FileMetadata = scanResult match {
     case SuccessfulScanResult(_, downloadUrl, uploadDetails) =>
       copy(
-        fileName = Some(uploadDetails.fileName),
-        mimeType = Some(uploadDetails.fileMimeType),
+        fileName = uploadDetails.fileName,
+        mimeType = uploadDetails.fileMimeType,
         url = Some(downloadUrl),
         scanStatus = Some(ScanStatus.READY)
       )
@@ -82,16 +84,16 @@ object FileMetadata {
   def fromUploadRequest(uploadRequest: UploadRequest): FileMetadata =
     FileMetadata(
       id = uploadRequest.id.getOrElse(ju.UUID.randomUUID().toString),
-      fileName = Some(uploadRequest.fileName),
-      mimeType = Some(uploadRequest.mimeType),
+      fileName = uploadRequest.fileName,
+      mimeType = uploadRequest.mimeType,
       publishable = uploadRequest.publishable
     )
 
-  def fromInitiateRequestV2(id: String, request: v2.FileStoreInitiateRequest): FileMetadata =
+  def fromInitiateRequestV2(id: String, request: v2.FileStoreInitiateRequest, file: Option[FileMetadata]): FileMetadata =
     FileMetadata(
       id = id,
-      fileName = None,
-      mimeType = None,
+      fileName = file.map(_.fileName).getOrElse("AUTO_GENERATED_" + ju.UUID.randomUUID().toString.take(20)),
+      mimeType = file.map(_.mimeType).getOrElse("application/binary"),
       publishable = request.publishable
     )
 }
@@ -103,10 +105,10 @@ object FileMetadataREST {
         "id"                         -> JsString(o.id),
         "publishable"                -> JsBoolean(o.publishable),
         "published"                  -> JsBoolean(o.published),
-        "lastUpdated"                -> JsString(o.lastUpdated.toString)
+        "lastUpdated"                -> JsString(o.lastUpdated.toString),
+        "fileName"                -> JsString(o.fileName),
+        "mimeType"                -> JsString(o.mimeType)
       )
-        ++ o.fileName.map("fileName" -> Json.toJson(_))
-        ++ o.mimeType.map("mimeType" -> Json.toJson(_))
         ++ o.scanStatus.map("scanStatus" -> Json.toJson(_))
         ++ o.url.filter(_ => o.scanStatus.contains(READY)).map("url" -> JsString(_))
     )

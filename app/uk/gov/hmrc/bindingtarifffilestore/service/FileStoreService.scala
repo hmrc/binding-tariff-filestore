@@ -24,6 +24,7 @@ import uk.gov.hmrc.bindingtarifffilestore.controllers.routes
 import uk.gov.hmrc.bindingtarifffilestore.model.ScanStatus.READY
 import uk.gov.hmrc.bindingtarifffilestore.model._
 import uk.gov.hmrc.bindingtarifffilestore.model.upscan._
+import uk.gov.hmrc.bindingtarifffilestore.model.upscan.v2.FileStoreInitiateRequest
 import uk.gov.hmrc.bindingtarifffilestore.repository.FileMetadataMongoRepository
 import uk.gov.hmrc.bindingtarifffilestore.util.HashUtil
 import uk.gov.hmrc.http.HeaderCarrier
@@ -56,8 +57,7 @@ class FileStoreService @Inject() (
     } yield UploadTemplate(fileId, template.href, template.fields)
   }
 
-  def initiateV2(
-    request: v2.FileStoreInitiateRequest
+  def initiateV2(request: v2.FileStoreInitiateRequest, file: Option[FileMetadata]
   )(implicit hc: HeaderCarrier): Future[v2.FileStoreInitiateResponse] = {
     val fileId = request.id.getOrElse(ju.UUID.randomUUID().toString)
 
@@ -67,7 +67,7 @@ class FileStoreService @Inject() (
       .notification(fileId)
       .absoluteURL(appConfig.filestoreSSL, appConfig.filestoreUrl) + s"?X-Api-Token=$authToken"
 
-    val fileMetadata  = FileMetadata.fromInitiateRequestV2(fileId, request)
+    val fileMetadata  = FileMetadata.fromInitiateRequestV2(fileId, request, file)
     val upscanRequest = v2.UpscanInitiateRequest.fromFileStoreRequest(callbackUrl, appConfig, request)
 
     for {
@@ -80,7 +80,7 @@ class FileStoreService @Inject() (
         )
       _                 = auditService.auditUpScanInitiated(
                             update.map(_.id).getOrElse(""),
-                            update.map(_.fileName).getOrElse(Option.empty),
+                            update.map(_.fileName).getOrElse(""),
                             initiateResponse.reference
                           )
     } yield v2.FileStoreInitiateResponse.fromUpscanResponse(fileId, initiateResponse)
@@ -175,7 +175,7 @@ class FileStoreService @Inject() (
       case (Some(READY), false) if att.isLive =>
         log(att.id, "Publishing file to Permanent Storage")
         val metadata = fileStoreConnector.upload(att)
-        auditService.auditFilePublished(att.id, att.fileName.get)
+        auditService.auditFilePublished(att.id, att.fileName)
         log(att.id, "Published file to Permanent Storage")
         repository
           .update(metadata.copy(publishable = true, published = true))

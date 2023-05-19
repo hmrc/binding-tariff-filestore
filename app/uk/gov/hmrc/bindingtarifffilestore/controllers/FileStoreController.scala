@@ -77,9 +77,11 @@ class FileStoreController @Inject() (
   def initiate: Action[AnyContent] = withErrorHandling {
     Action.async { implicit request =>
       asJson[FileStoreInitiateRequest] { fileStoreRequest =>
-        service
-          .initiateV2(fileStoreRequest)
-          .map(response => Accepted(Json.toJson(response)))
+        withFileMetadata(fileStoreRequest.id.getOrElse(UUID.randomUUID().toString)) { file =>
+          service
+            .initiateV2(fileStoreRequest, file)
+            .map(response => Accepted(Json.toJson(response)))
+        }
       }
     }
   }
