@@ -33,7 +33,6 @@ import javax.inject.{Inject, Singleton}
 import scala.concurrent.Future.{failed, successful}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
-
 import uk.gov.hmrc.http.HttpReads.Implicits._
 
 @Singleton
@@ -65,11 +64,8 @@ class UpscanConnector @Inject() (appConfig: AppConfig, http: HttpClient)(implici
       "file",
       new FileBody(
         fileWithMetaData.file.path.toFile,
-        fileWithMetaData.metadata.mimeType
-          .flatMap(typ => Option(ContentType.getByMimeType(typ)))
-          .getOrElse(ContentType.DEFAULT_BINARY),
+        ContentType.getByMimeType(fileWithMetaData.metadata.mimeType),
         fileWithMetaData.metadata.fileName
-          .getOrElse(fileWithMetaData.file.path.getFileName.toString)
       )
     )
 

@@ -69,7 +69,7 @@ class AmazonS3Connector @Inject() (config: AppConfig) extends Logging {
     val metadata = new ObjectMetadata
     // This .get is scary but our file must have received a positive scan
     // result and received metadata from Upscan if it is being published
-    metadata.setContentType(fileMetaData.mimeType.get)
+    metadata.setContentType(fileMetaData.mimeType)
     metadata.setContentLength(contentLengthOf(url))
 
     val request = new PutObjectRequest(

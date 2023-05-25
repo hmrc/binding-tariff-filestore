@@ -24,7 +24,6 @@ import uk.gov.hmrc.bindingtarifffilestore.controllers.routes
 import uk.gov.hmrc.bindingtarifffilestore.model.ScanStatus.READY
 import uk.gov.hmrc.bindingtarifffilestore.model._
 import uk.gov.hmrc.bindingtarifffilestore.model.upscan._
-import uk.gov.hmrc.bindingtarifffilestore.model.upscan.v2.FileStoreInitiateRequest
 import uk.gov.hmrc.bindingtarifffilestore.repository.FileMetadataMongoRepository
 import uk.gov.hmrc.bindingtarifffilestore.util.HashUtil
 import uk.gov.hmrc.http.HeaderCarrier
@@ -69,7 +68,6 @@ class FileStoreService @Inject() (
 
     val fileMetadata  = FileMetadata.fromInitiateRequestV2(fileId, request, file)
     val upscanRequest = v2.UpscanInitiateRequest.fromFileStoreRequest(callbackUrl, appConfig, request)
-
     for {
       update           <- repository.insertFile(fileMetadata)
       initiateResponse <- upscanConnector.initiateV2(upscanRequest)

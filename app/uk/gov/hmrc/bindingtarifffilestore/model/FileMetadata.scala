@@ -19,11 +19,9 @@ package uk.gov.hmrc.bindingtarifffilestore.model
 import play.api.libs.json._
 import uk.gov.hmrc.bindingtarifffilestore.model.ScanStatus._
 import uk.gov.hmrc.bindingtarifffilestore.model.upscan._
-import uk.gov.hmrc.bindingtarifffilestore.model.upscan.v2.FileStoreInitiateRequest
 
 import java.time.{Instant, LocalDateTime, ZoneOffset}
 import java.{util => ju}
-import scala.concurrent.Future
 
 case class FileMetadata(
   id: String,

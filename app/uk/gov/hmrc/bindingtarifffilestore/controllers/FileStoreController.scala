@@ -79,7 +79,7 @@ class FileStoreController @Inject() (
       asJson[FileStoreInitiateRequest] { fileStoreRequest =>
         withFileMetadata(fileStoreRequest.id.getOrElse(UUID.randomUUID().toString)) { file =>
           service
-            .initiateV2(fileStoreRequest, file)
+            .initiateV2(fileStoreRequest, Option(file))
             .map(response => Accepted(Json.toJson(response)))
         }
       }
@@ -149,8 +149,8 @@ class FileStoreController @Inject() (
         file.ref,
         FileMetadata(
           id = id,
-          fileName = Some(file.filename),
-          mimeType = Some(file.contentType.getOrElse(throw new RuntimeException("Missing file type"))),
+          fileName = file.filename,
+          mimeType = file.contentType.getOrElse(throw new RuntimeException("Missing file type")),
           publishable = publishable
         )
       )
