@@ -46,7 +46,7 @@ class AuditServiceTest extends UnitSpec with MockitoSugar with BeforeAndAfterEac
   "auditUpScanInitiated()" should {
 
     "send the expected payload to the audit connector" in {
-      service.auditUpScanInitiated(fileId, Some(fileName), upScanRef)
+      service.auditUpScanInitiated(fileId, fileName, upScanRef)
 
       val payload = auditPayload(fileId, fileName) + ("upScanReference" -> upScanRef)
 
@@ -57,7 +57,7 @@ class AuditServiceTest extends UnitSpec with MockitoSugar with BeforeAndAfterEac
   "auditFileScanned()" should {
 
     "send the expected payload to the audit connector" in {
-      service.auditFileScanned(fileId, Some(fileName), upScanRef, upScanStatus)
+      service.auditFileScanned(fileId, fileName, upScanRef, upScanStatus)
 
       val payload =
         auditPayload(fileId, fileName) ++ Map("upScanReference" -> upScanRef, "upScanStatus" -> upScanStatus)

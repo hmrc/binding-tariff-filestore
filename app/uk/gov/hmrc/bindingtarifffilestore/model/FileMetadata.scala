@@ -87,7 +87,11 @@ object FileMetadata {
       publishable = uploadRequest.publishable
     )
 
-  def fromInitiateRequestV2(id: String, request: v2.FileStoreInitiateRequest, file: Option[FileMetadata]): FileMetadata =
+  def fromInitiateRequestV2(
+    id: String,
+    request: v2.FileStoreInitiateRequest,
+    file: Option[FileMetadata]
+  ): FileMetadata =
     FileMetadata(
       id = id,
       fileName = file.map(_.fileName).getOrElse("AUTO_GENERATED_" + ju.UUID.randomUUID().toString.take(20)),
@@ -100,12 +104,12 @@ object FileMetadataREST {
   val writes: OWrites[FileMetadata]          = (o: FileMetadata) =>
     JsObject(
       Map[String, JsValue](
-        "id"                         -> JsString(o.id),
-        "publishable"                -> JsBoolean(o.publishable),
-        "published"                  -> JsBoolean(o.published),
-        "lastUpdated"                -> JsString(o.lastUpdated.toString),
-        "fileName"                -> JsString(o.fileName),
-        "mimeType"                -> JsString(o.mimeType)
+        "id"                             -> JsString(o.id),
+        "publishable"                    -> JsBoolean(o.publishable),
+        "published"                      -> JsBoolean(o.published),
+        "lastUpdated"                    -> JsString(o.lastUpdated.toString),
+        "fileName"                       -> JsString(o.fileName),
+        "mimeType"                       -> JsString(o.mimeType)
       )
         ++ o.scanStatus.map("scanStatus" -> Json.toJson(_))
         ++ o.url.filter(_ => o.scanStatus.contains(READY)).map("url" -> JsString(_))

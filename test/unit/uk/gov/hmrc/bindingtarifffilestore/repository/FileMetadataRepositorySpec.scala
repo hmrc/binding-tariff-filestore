@@ -80,8 +80,8 @@ class FileMetadataRepositorySpec
     val baseFile =
       FileMetadata(
         id = generateString,
-        fileName = Some(generateString),
-        mimeType = Some(generateString)
+        fileName = generateString,
+        mimeType = generateString
       )
     baseFile.copy(lastUpdated = baseFile.lastUpdated.truncatedTo(ChronoUnit.MILLIS))
   }
@@ -115,14 +115,14 @@ class FileMetadataRepositorySpec
       insertFilesWithAssert(att1)
       val size = currentCollectionSize
 
-      val updated = att1.copy(mimeType = Some(generateString), fileName = Some(generateString))
+      val updated = att1.copy(mimeType = generateString, fileName = generateString)
       await(repository.update(updated))
       currentCollectionSize shouldBe size
 
       val metadata = await(repository.get(att1.id))
       metadata.map(_.id)                                           shouldBe Some(att1.id)
-      metadata.map(_.mimeType)                                     shouldBe Some(updated.mimeType)
-      metadata.map(_.fileName)                                     shouldBe Some(updated.fileName)
+      metadata.map(_.mimeType)                                     shouldBe updated.mimeType
+      metadata.map(_.fileName)                                     shouldBe updated.fileName
       metadata.map(_.lastUpdated).get.isAfter(updated.lastUpdated) shouldBe true
     }
 

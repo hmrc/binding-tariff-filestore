@@ -25,8 +25,8 @@ class FileMetadataSpec extends UnitSpec {
 
   private val model: FileMetadata = FileMetadata(
     id = "id",
-    fileName = Some("fileName"),
-    mimeType = Some("type"),
+    fileName = "fileName",
+    mimeType = "type",
     url = Some("url"),
     publishable = true,
     published = true,
@@ -121,7 +121,7 @@ class FileMetadataSpec extends UnitSpec {
     }
 
     "calculate liveness of signed URL" in {
-      def metadata(url: String): FileMetadata = FileMetadata("id", Some("file"), Some("type"), Some(url))
+      def metadata(url: String): FileMetadata = FileMetadata("id", "file", "type", Some(url))
 
       metadata(
         "https://s3.amazonaws.com/bucket/abc?X-Amz-Date=30000101T000000Zkey=value&X-Amz-Expires=86400"
@@ -131,7 +131,7 @@ class FileMetadataSpec extends UnitSpec {
       ).isLive                                                                                            shouldBe true
       metadata("https://s3.amazonaws.com/bucket/file?X-Amz-Date=20190101T000000Z&X-Amz-Expires=0").isLive shouldBe false
       metadata("url").isLive                                                                              shouldBe true
-      FileMetadata("id", Some("file"), Some("type")).isLive                                               shouldBe true
+      FileMetadata("id", "file", "type").isLive                                                           shouldBe true
     }
 
     def test(json: JsObject): Unit =

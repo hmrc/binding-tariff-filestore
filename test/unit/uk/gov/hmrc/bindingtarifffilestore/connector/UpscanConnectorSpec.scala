@@ -84,7 +84,7 @@ class UpscanConnectorSpec
     }
 
     "Upload" when {
-      def test(fileName: Option[String], mimeType: Option[String]): Unit =
+      def test(fileName: String, mimeType: String): Unit =
         s"fileName is $fileName and mimeType is $mimeType if 204 NO_CONTENT is returned" in {
           stubFor(
             post("/path")
@@ -110,10 +110,10 @@ class UpscanConnectorSpec
         }
 
       Seq(
-        (Some("file.txt"), Some("text/plain")),
-        (None, Some("text/plain")),
-        (Some("file.txt"), None),
-        (None, None)
+        ("file.txt", "text/plain"),
+        ("", "text/plain"),
+        ("file.txt", ""),
+        ("", "")
       ).foreach(args => (test _).tupled(args))
     }
 
@@ -135,7 +135,7 @@ class UpscanConnectorSpec
       )
       val fileUploading: FileWithMetadata   = FileWithMetadata(
         SingletonTemporaryFileCreator.create("example-file.json"),
-        FileMetadata("id", Some("file.txt"), Some("text/plain"))
+        FileMetadata("id", "file.txt", "text/plain")
       )
 
       intercept[RuntimeException] {

@@ -56,9 +56,10 @@ class FileStoreService @Inject() (
     } yield UploadTemplate(fileId, template.href, template.fields)
   }
 
-  def initiateV2(request: v2.FileStoreInitiateRequest, file: Option[FileMetadata]
-  )(implicit hc: HeaderCarrier): Future[v2.FileStoreInitiateResponse] = {
-    val fileId = request.id.getOrElse(ju.UUID.randomUUID().toString)
+  def initiateV2(request: v2.FileStoreInitiateRequest, file: Option[FileMetadata] = None)(implicit
+    hc: HeaderCarrier
+  ): Future[v2.FileStoreInitiateResponse] = {
+    val fileId = request.id.getOrElse(ju.UUID.randomUUID().toString) // why generating random, suppose to have a file already, error if not
 
     log(fileId, "Initiating")
 
@@ -66,10 +67,12 @@ class FileStoreService @Inject() (
       .notification(fileId)
       .absoluteURL(appConfig.filestoreSSL, appConfig.filestoreUrl) + s"?X-Api-Token=$authToken"
 
-    val fileMetadata  = FileMetadata.fromInitiateRequestV2(fileId, request, file)
+    val fileMetadata  = FileMetadata.fromInitiateRequestV2(fileId, request, file) // only request should be updated, maybe fileName and metadata
     val upscanRequest = v2.UpscanInitiateRequest.fromFileStoreRequest(callbackUrl, appConfig, request)
     for {
-      update           <- repository.insertFile(fileMetadata)
+      // todo if we get the file from DB OK, if not log
+
+      update           <- repository.insertFile(fileMetadata) // change to update
       initiateResponse <- upscanConnector.initiateV2(upscanRequest)
       _                 =
         log(

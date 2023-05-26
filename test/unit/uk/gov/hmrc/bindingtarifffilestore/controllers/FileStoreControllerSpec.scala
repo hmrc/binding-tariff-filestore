@@ -137,7 +137,7 @@ class FileStoreControllerSpec
 
   "Get By ID" should {
     "return 200 when found" in {
-      val attachment = FileMetadata(id = "id", fileName = Some("file"), mimeType = Some("type"))
+      val attachment = FileMetadata(id = "id", fileName = "file", mimeType = "type")
       when(service.find(id = "id")).thenReturn(successful(Some(attachment)))
 
       val result = await(controller.get("id")(fakeRequest))
@@ -167,8 +167,8 @@ class FileStoreControllerSpec
     }
 
     "return 200 with non empty array" in {
-      val attachment1 = FileMetadata(id = "id1", fileName = Some("file1"), mimeType = Some("type1"))
-      val attachment2 = FileMetadata(id = "id2", fileName = Some("file2"), mimeType = Some("type2"))
+      val attachment1 = FileMetadata(id = "id1", fileName = "file1", mimeType = "type1")
+      val attachment2 = FileMetadata(id = "id2", fileName = "file2", mimeType = "type2")
 
       when(service.find(Search(ids = Some(Set("id1", "id2"))), Pagination.max))
         .thenReturn(successful(Paged(Seq(attachment1, attachment2))))
@@ -180,8 +180,8 @@ class FileStoreControllerSpec
     }
 
     "return 200 with pagination and non empty pager" in {
-      val attachment1 = FileMetadata(id = "id1", fileName = Some("file1"), mimeType = Some("type1"))
-      val attachment2 = FileMetadata(id = "id2", fileName = Some("file2"), mimeType = Some("type2"))
+      val attachment1 = FileMetadata(id = "id1", fileName = "file1", mimeType = "type1")
+      val attachment2 = FileMetadata(id = "id2", fileName = "file2", mimeType = "type2")
 
       when(service.find(Search(ids = Some(Set("id1", "id2"))), Pagination()))
         .thenReturn(successful(Paged(Seq(attachment1, attachment2))))
@@ -196,9 +196,9 @@ class FileStoreControllerSpec
   "Notify" should {
     "return 201 when found" in {
       val scanResult        = SuccessfulScanResult("ref", "url", UploadDetails("file", "type", Instant.now(), "checksum"))
-      val attachment        = FileMetadata(id = "id", fileName = Some("file"), mimeType = Some("type"))
+      val attachment        = FileMetadata(id = "id", fileName = "file", mimeType = "type")
       val attachmentUpdated =
-        FileMetadata(id = "id", fileName = Some("file"), mimeType = Some("type"), url = Some("url"))
+        FileMetadata(id = "id", fileName = "file", mimeType = "type", url = Some("url"))
       when(service.find(id = "id")).thenReturn(successful(Some(attachment)))
       when(service.notify(refEq(attachment), refEq(scanResult))(any[HeaderCarrier]))
         .thenReturn(successful(Some(attachmentUpdated)))
@@ -224,7 +224,7 @@ class FileStoreControllerSpec
       val code: Int                        = 11000
       val scanResult: SuccessfulScanResult =
         SuccessfulScanResult("ref", "url", UploadDetails("file", "type", Instant.now(), "checksum"))
-      val attachment: FileMetadata         = FileMetadata(id = "id", fileName = Some("file"), mimeType = Some("type"))
+      val attachment: FileMetadata         = FileMetadata(id = "id", fileName = "file", mimeType = "type")
       when(service.find(id = "id")).thenReturn(successful(Some(attachment)))
       when(service.notify(refEq(attachment), refEq(scanResult))(any[HeaderCarrier]))
         .thenThrow(new MongoWriteException(new WriteError(code, "", new BsonDocument()), new ServerAddress()))
@@ -254,11 +254,11 @@ class FileStoreControllerSpec
   "Publish" should {
     "return 201 when found" in {
       val attachmentExisting =
-        FileMetadata(id = "id", fileName = Some("file"), mimeType = Some("type"), scanStatus = Some(ScanStatus.READY))
+        FileMetadata(id = "id", fileName = "file", mimeType = "type", scanStatus = Some(ScanStatus.READY))
       val attachmentUpdated  = FileMetadata(
         id = "id",
-        fileName = Some("file"),
-        mimeType = Some("type"),
+        fileName = "file",
+        mimeType = "type",
         scanStatus = Some(ScanStatus.READY),
         url = Some("url")
       )
@@ -282,7 +282,7 @@ class FileStoreControllerSpec
 
     "return 404 when publish returns not found" in {
       val attachmentExisting =
-        FileMetadata(id = "id", fileName = Some("file"), mimeType = Some("type"), scanStatus = Some(ScanStatus.READY))
+        FileMetadata(id = "id", fileName = "file", mimeType = "type", scanStatus = Some(ScanStatus.READY))
       when(service.find(id = "id")).thenReturn(successful(Some(attachmentExisting)))
       when(service.publish(refEq(attachmentExisting))(any[HeaderCarrier])).thenReturn(successful(None))
 
@@ -390,7 +390,7 @@ class FileStoreControllerSpec
 
     "return 202 on valid file" in {
       // Given
-      val metadataUploaded = FileMetadata(id = "id", fileName = Some(fileName), mimeType = Some(mimeType))
+      val metadataUploaded = FileMetadata(id = "id", fileName = fileName, mimeType = mimeType)
       when(service.upload(any[FileWithMetadata])(any[HeaderCarrier])).thenReturn(successful(Some(metadataUploaded)))
 
       // When
@@ -410,7 +410,7 @@ class FileStoreControllerSpec
 
     "return 202 on valid file with id" in {
       // Given
-      val metadataUploaded = FileMetadata(id = "id", fileName = Some(fileName), mimeType = Some(mimeType))
+      val metadataUploaded = FileMetadata(id = "id", fileName = fileName, mimeType = mimeType)
       when(service.upload(any[FileWithMetadata])(any[HeaderCarrier])).thenReturn(successful(Some(metadataUploaded)))
 
       // When
@@ -436,7 +436,7 @@ class FileStoreControllerSpec
     "return 202 on valid file with publish=true" in {
       // Given
       val metadataUploaded =
-        FileMetadata(id = "id", fileName = Some("name"), mimeType = Some(mimeType), published = true)
+        FileMetadata(id = "id", fileName = "name", mimeType = mimeType, published = true)
       when(service.upload(any[FileWithMetadata])(any[HeaderCarrier])).thenReturn(successful(Some(metadataUploaded)))
 
       // When=
@@ -461,7 +461,7 @@ class FileStoreControllerSpec
     "return 202 on valid file with publish=false" in {
       // Given
       val metadataUploaded =
-        FileMetadata(id = "id", fileName = Some("name"), mimeType = Some(mimeType), published = true)
+        FileMetadata(id = "id", fileName = "name", mimeType = mimeType, published = true)
       when(service.upload(any[FileWithMetadata])(any[HeaderCarrier])).thenReturn(successful(Some(metadataUploaded)))
 
       // When=
