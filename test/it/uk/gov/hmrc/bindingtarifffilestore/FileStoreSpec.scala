@@ -62,41 +62,6 @@ class FileStoreSpec extends WiremockFeatureTestServer with ResourceFiles {
     .overrides(bind[FileMetadataMongoRepository].to(repository))
     .build()
 
-  Feature("Delete All") {
-    Scenario("Clear collections & files") {
-      Given("There are some documents in the collection")
-      upload("some-file1.txt", "text/plain")
-      upload("some-file2.txt", "text/plain")
-      dbFileStoreSize shouldBe 2
-      stubS3ListAll()
-      stubS3DeleteAll()
-
-      When("I delete all documents")
-      val deleteResult = Http(s"$serviceUrl/file")
-        .header(apiTokenKey, appConfig.authorization)
-        .method(HttpVerbs.DELETE)
-        .asString
-
-      Then("The response code should be 204")
-      deleteResult.code shouldEqual Status.NO_CONTENT
-
-      And("The response body is empty")
-      deleteResult.body shouldBe ""
-
-      And("No documents exist in the mongo collection")
-      dbFileStoreSize shouldBe 0
-
-      And("the are no files")
-      val files = Http(s"$serviceUrl/file")
-        .header(apiTokenKey, appConfig.authorization)
-        .method(HttpVerbs.GET)
-        .execute(convertingArrayResponseToJS)
-      files.code            shouldBe 200
-      files.body.toString() shouldBe "[]"
-    }
-
-  }
-
   Feature("Delete") {
     Scenario("Delete the file") {
       Given("A file has been uploaded")
@@ -118,6 +83,38 @@ class FileStoreSpec extends WiremockFeatureTestServer with ResourceFiles {
       And("No documents exist in the mongo collection")
       dbFileStoreSize shouldBe 0
     }
+  }
+
+  Feature("Delete All") {
+    Scenario("Clear collections & files") {
+      Given("There are some documents in the collection")
+      upload("some-file1.txt", "text/plain")
+      upload("some-file2.txt", "text/plain")
+      dbFileStoreSize shouldBe 2
+      stubS3ListAll()
+      stubS3DeleteAll()
+
+      When("I delete all documents")
+      val deleteResult = deleteFiles()
+
+      Then("The response code should be 204")
+      deleteResult.code shouldEqual Status.NO_CONTENT
+
+      And("The response body is empty")
+      deleteResult.body shouldBe ""
+
+      And("No documents exist in the mongo collection")
+      dbFileStoreSize shouldBe 0
+
+      And("the are no files")
+      val files = Http(s"$serviceUrl/file")
+        .header(apiTokenKey, appConfig.authorization)
+        .method(HttpVerbs.GET)
+        .execute(convertingArrayResponseToJS)
+      files.code shouldBe 200
+      files.body.toString() shouldBe "[]"
+    }
+
   }
 
   Feature("Upload") {
@@ -362,7 +359,8 @@ class FileStoreSpec extends WiremockFeatureTestServer with ResourceFiles {
       response.body("published")   shouldBe JsBoolean(true)
 
       And("The response shows the file published")
-      response.body("url").as[JsString].value should include(s"$id?X-Amz-Algorithm=AWS4-HMAC-SHA256")
+      response.body("url").as[JsString].value should include(s"$id")
+      response.body("url").as[JsString].value should include("X-Amz-Algorithm=AWS4-HMAC-SHA256")
     }
 
     Scenario("Should mark an un-safe file as publishable, but not persist") {
@@ -423,6 +421,13 @@ class FileStoreSpec extends WiremockFeatureTestServer with ResourceFiles {
       .header(apiTokenKey, appConfig.authorization)
       .method(HttpVerbs.GET)
       .execute(convertingResponseToJS)
+
+  private def deleteFiles(): HttpResponse[String] = {
+    Http(s"$serviceUrl/file")
+      .header(apiTokenKey, appConfig.authorization)
+      .method(HttpVerbs.DELETE)
+      .asString
+  }
 
   private def deleteFile(id: String): HttpResponse[String] = {
     stubS3DeleteOne(id)

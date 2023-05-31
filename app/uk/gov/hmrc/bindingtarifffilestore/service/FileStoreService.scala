@@ -28,7 +28,7 @@ import uk.gov.hmrc.bindingtarifffilestore.repository.FileMetadataMongoRepository
 import uk.gov.hmrc.bindingtarifffilestore.util.HashUtil
 import uk.gov.hmrc.http.HeaderCarrier
 
-import java.{util => ju}
+import java.util.UUID
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -59,7 +59,7 @@ class FileStoreService @Inject() (
   def initiateV2(
     request: v2.FileStoreInitiateRequest
   )(implicit hc: HeaderCarrier): Future[v2.FileStoreInitiateResponse] = {
-    val fileId = request.id.getOrElse(ju.UUID.randomUUID().toString)
+    val fileId = request.id.getOrElse(UUID.randomUUID().toString)
 
     log(fileId, "Initiating")
 

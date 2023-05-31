@@ -43,11 +43,9 @@ class AppConfigSpec extends UnitSpec with WithFakeApplication with MockitoSugar 
 
   private def s3ConfigWith(pairs: (String, String)*): S3Configuration = {
     var config = Map(
-      "s3.secretKeyId" -> "",
-      "s3.accessKeyId" -> "",
-      "s3.region"      -> "",
-      "s3.bucket"      -> "",
-      "s3.endpoint"    -> ""
+      "s3.region"   -> "",
+      "s3.bucket"   -> "",
+      "s3.endpoint" -> ""
     )
     pairs.foreach(e => config = config + e)
     new AppConfig(Configuration.from(config), serviceConfig).s3Configuration
@@ -62,13 +60,6 @@ class AppConfigSpec extends UnitSpec with WithFakeApplication with MockitoSugar 
     new AppConfig(Configuration.from(pairs.map(e => e._1 -> e._2).toMap), serviceConfig)
 
   "Config" should {
-    "decode AWS S3 Secret" in {
-      s3ConfigWith("s3.secretKeyId" -> "dGVzdA==").secret shouldBe "test"
-    }
-
-    "return AWS S3 Access Key" in {
-      s3ConfigWith("s3.accessKeyId" -> "key").key shouldBe "key"
-    }
 
     "return AWS S3 region" in {
       s3ConfigWith("s3.region" -> "region").region shouldBe "region"

@@ -16,11 +16,12 @@
 
 package uk.gov.hmrc.bindingtarifffilestore.connector
 
+import com.amazonaws.auth.{AWSCredentials, BasicAWSCredentials, DefaultAWSCredentialsProviderChain}
+
 import java.io.BufferedInputStream
 import java.net.URL
 import java.util
-import com.amazonaws.HttpMethod
-import com.amazonaws.auth.{AWSStaticCredentialsProvider, BasicAWSCredentials}
+import com.amazonaws.{AmazonClientException, HttpMethod}
 import com.amazonaws.client.builder.AwsClientBuilder.EndpointConfiguration
 import com.amazonaws.services.s3.model.DeleteObjectsRequest.KeyVersion
 import com.amazonaws.services.s3.model._
@@ -40,15 +41,12 @@ class AmazonS3Connector @Inject() (config: AppConfig) extends Logging {
 
   private lazy val s3Config = config.s3Configuration
 
-  private lazy val credentials = new BasicAWSCredentials(s3Config.key, s3Config.secret)
-  private lazy val provider    = new AWSStaticCredentialsProvider(credentials)
-
   private lazy val s3client: AmazonS3 = {
-    log.info(s"${s3Config.bucket}:${s3Config.region}:${s3Config.key}:${s3Config.secret.substring(0, 3)}")
+    log.info(s"${s3Config.bucket}:${s3Config.region}")
     val builder = AmazonS3ClientBuilder
       .standard()
-      .withCredentials(provider)
       .withPathStyleAccessEnabled(true)
+      .withCredentials(new LocalDevelopmentS3CredentialsProviderChain())
 
     s3Config.endpoint match {
       case Some(endpoint) => builder.withEndpointConfiguration(new EndpointConfiguration(endpoint, s3Config.region))
@@ -95,6 +93,7 @@ class AmazonS3Connector @Inject() (config: AppConfig) extends Logging {
     val keys: Seq[KeyVersion] = getAll.map(new KeyVersion(_))
     if (keys.nonEmpty) {
       log.info(s"Removing [${keys.length}] files from S3")
+      log.info(s"bucket is: ${s3Config.bucket}")
       val request = new DeleteObjectsRequest(s3Config.bucket)
         .withKeys(keys.toList.asJava)
         .withQuiet(false)
@@ -120,4 +119,14 @@ class AmazonS3Connector @Inject() (config: AppConfig) extends Logging {
   private def sequenceOf[T](list: util.List[T]): Seq[T] =
     list.iterator.asScala.toSeq
 
+}
+
+class LocalDevelopmentS3CredentialsProviderChain() extends DefaultAWSCredentialsProviderChain {
+
+  override def getCredentials(): AWSCredentials =
+    Try {
+      super.getCredentials()
+    }.recover { case _: AmazonClientException =>
+      new BasicAWSCredentials("dummy-access-key", "dummy-secret-key")
+    }.get
 }

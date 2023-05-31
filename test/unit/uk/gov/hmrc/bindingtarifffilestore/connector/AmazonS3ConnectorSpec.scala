@@ -28,6 +28,9 @@ import uk.gov.hmrc.bindingtarifffilestore.config.{AppConfig, S3Configuration}
 import uk.gov.hmrc.bindingtarifffilestore.model.FileMetadata
 import uk.gov.hmrc.bindingtarifffilestore.util.{ResourceFiles, UnitSpec, WiremockTestServer}
 
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+
 class AmazonS3ConnectorSpec
     extends UnitSpec
     with WiremockTestServer
@@ -35,9 +38,9 @@ class AmazonS3ConnectorSpec
     with BeforeAndAfterEach
     with ResourceFiles {
 
-  private val s3Config = S3Configuration("key", "secret", "region", "bucket", Some(s"http://localhost:$wirePort"))
-  private val config   = mock[AppConfig]
-
+  private val s3Config  = S3Configuration("region", "bucket", Some(s"http://localhost:$wirePort"))
+  private val config    = mock[AppConfig]
+  private val date      = LocalDate.now().format(DateTimeFormatter.ofPattern("YYYYMMdd"))
   private val connector = new AmazonS3Connector(config)
 
   override protected def beforeEach(): Unit = {
@@ -53,7 +56,7 @@ class AmazonS3ConnectorSpec
         get("/bucket/?encoding-type=url")
           .withHeader(
             "Authorization",
-            matching(s"AWS4-HMAC-SHA256 Credential=${s3Config.key}/\\d+/${s3Config.region}/s3/aws4_request, .*")
+            matching(s"AWS4-HMAC-SHA256 Credential=(.*)/$date/${s3Config.region}/s3/aws4_request, .*")
           )
           .willReturn(
             aResponse()
@@ -80,7 +83,7 @@ class AmazonS3ConnectorSpec
         put("/bucket/id")
           .withHeader(
             "Authorization",
-            matching(s"AWS4-HMAC-SHA256 Credential=${s3Config.key}/\\d+/${s3Config.region}/s3/aws4_request, .*")
+            matching(s"AWS4-HMAC-SHA256 Credential=(.*)/$date/${s3Config.region}/s3/aws4_request, .*")
           )
           .withHeader("Content-Type", equalTo("text/plain"))
           .willReturn(
@@ -117,7 +120,7 @@ class AmazonS3ConnectorSpec
         put("/bucket/id")
           .withHeader(
             "Authorization",
-            matching(s"AWS4-HMAC-SHA256 Credential=${s3Config.key}/\\d+/${s3Config.region}/s3/aws4_request, .*")
+            matching(s"AWS4-HMAC-SHA256 Credential=(.*)/$date/${s3Config.region}/s3/aws4_request, .*")
           )
           .withHeader("Content-Type", equalTo("text/plain"))
           .willReturn(
@@ -148,7 +151,8 @@ class AmazonS3ConnectorSpec
       val file = FileMetadata("id", Some("file.txt"), Some("text/plain"), Some("url"))
 
       // When
-      connector.sign(file).url.get should startWith(s"$wireMockUrl/bucket/id?X-Amz-Algorithm=AWS4-HMAC-SHA256")
+      connector.sign(file).url.get should startWith(s"$wireMockUrl/bucket/id?")
+      connector.sign(file).url.get should include("X-Amz-Algorithm=AWS4-HMAC-SHA256")
     }
 
     "not append token to empty URL" in {
@@ -166,7 +170,7 @@ class AmazonS3ConnectorSpec
         get("/bucket/?encoding-type=url")
           .withHeader(
             "Authorization",
-            matching(s"AWS4-HMAC-SHA256 Credential=${s3Config.key}/\\d+/${s3Config.region}/s3/aws4_request, .*")
+            matching(s"AWS4-HMAC-SHA256 Credential=(.*)/$date/${s3Config.region}/s3/aws4_request, .*")
           )
           .willReturn(
             aResponse()
@@ -178,7 +182,7 @@ class AmazonS3ConnectorSpec
         post("/bucket/?delete")
           .withHeader(
             "Authorization",
-            matching(s"AWS4-HMAC-SHA256 Credential=${s3Config.key}/\\d+/${s3Config.region}/s3/aws4_request, .*")
+            matching(s"AWS4-HMAC-SHA256 Credential=(.*)/$date/${s3Config.region}/s3/aws4_request, .*")
           )
           .willReturn(
             aResponse()
@@ -200,7 +204,7 @@ class AmazonS3ConnectorSpec
         get("/bucket/?encoding-type=url")
           .withHeader(
             "Authorization",
-            matching(s"AWS4-HMAC-SHA256 Credential=${s3Config.key}/\\d+/${s3Config.region}/s3/aws4_request, .*")
+            matching(s"AWS4-HMAC-SHA256 Credential=(.*)/$date/${s3Config.region}/s3/aws4_request, .*")
           )
           .willReturn(
             aResponse()
@@ -221,7 +225,7 @@ class AmazonS3ConnectorSpec
         delete("/bucket/id")
           .withHeader(
             "Authorization",
-            matching(s"AWS4-HMAC-SHA256 Credential=${s3Config.key}/\\d+/${s3Config.region}/s3/aws4_request, .*")
+            matching(s"AWS4-HMAC-SHA256 Credential=(.*)/$date/${s3Config.region}/s3/aws4_request, .*")
           )
           .willReturn(
             aResponse()
