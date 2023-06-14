@@ -261,7 +261,8 @@ class FileStoreServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfte
       given(upscanConnector.upload(any[UpscanTemplate], any[FileWithMetadata]))
         .willReturn(failed(new Exception("Test")))
 
-      service.upload(fileWithMetadata).failed.map(_ shouldBe an[Exception])
+      val result = await(service.upload(fileWithMetadata))
+      result.failed.map(_ shouldBe an[Exception])
     }
   }
 
