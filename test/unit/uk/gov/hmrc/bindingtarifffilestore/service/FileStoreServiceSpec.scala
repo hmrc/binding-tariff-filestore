@@ -196,6 +196,7 @@ class FileStoreServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfte
       given(config.fileStoreSizeConfiguration).willReturn(FileStoreSizeConfiguration(minimumFileSize, maximumFileSize))
       given(config.authorization).willReturn("auth-token")
       given(repository.insertFile(any[FileMetadata])).willReturn(successful(Some(fileMetadata)))
+      given(repository.get("id")).willReturn(Option(fileMetadata))
       given(upscanConnector.initiateV2(any[v2.UpscanInitiateRequest])(any[HeaderCarrier]))
         .willReturn(successful(initiateResponse))
 

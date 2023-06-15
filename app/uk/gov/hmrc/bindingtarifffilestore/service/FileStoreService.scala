@@ -31,6 +31,8 @@ import uk.gov.hmrc.http.HeaderCarrier
 import java.util.UUID
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
+import java.util.Base64
+import java.nio.charset.StandardCharsets
 
 @Singleton()
 class FileStoreService @Inject() (
@@ -61,6 +63,8 @@ class FileStoreService @Inject() (
   )(implicit hc: HeaderCarrier): Future[v2.FileStoreInitiateResponse] = {
     val fileId = request.id.getOrElse(UUID.randomUUID().toString)
 
+    debug("Incoming file ID_3189", request.id.getOrElse("NON EXISTING ID"))
+
     log(fileId, "Initiating")
 
     val callbackUrl = routes.FileStoreController
@@ -71,12 +75,20 @@ class FileStoreService @Inject() (
     val upscanRequest = v2.UpscanInitiateRequest.fromFileStoreRequest(callbackUrl, appConfig, request)
 
     for {
+      existentFile     <- repository.get(fileId)
       update           <- repository.insertFile(fileMetadata)
       initiateResponse <- upscanConnector.initiateV2(upscanRequest)
       _                 =
         log(
           fileId,
           s"Upscan Initiated with url [${initiateResponse.uploadRequest.href}] and Upscan reference [${initiateResponse.reference}]"
+        )
+      _                 =
+        debug(
+          s"from DB_3189: $fileId",
+          existentFile
+            .map(fm => encodeInBase64(s"Name: ${fm.fileName.getOrElse("_")} MimeType: ${fm.mimeType.getOrElse("_")}"))
+            .getOrElse("No name/mimeType")
         )
       _                 = auditService.auditUpScanInitiated(
                             update.map(_.id).getOrElse(""),
@@ -240,4 +252,9 @@ class FileStoreService @Inject() (
   private def log(id: String, message: String): Unit =
     logger.info(s"File [$id]: $message")
 
+  private def debug(id: String, message: String): Unit =
+    logger.debug(s"File [$id]: $message")
+
+  private def encodeInBase64(text: String): String =
+    Base64.getEncoder.encodeToString(text.getBytes(StandardCharsets.UTF_8))
 }
