@@ -40,6 +40,8 @@ class FileMetadataMongoRepository @Inject() (mongoComponent: MongoComponent)(imp
     )
     with Logging {
 
+  override lazy val requiresTtlIndex: Boolean = false
+
   def get(id: String): Future[Option[FileMetadata]] =
     collection.find[FileMetadata](byId(id)).first().toFutureOption()
 

@@ -111,7 +111,7 @@ class FileStoreSpec extends WiremockFeatureTestServer with ResourceFiles {
         .header(apiTokenKey, appConfig.authorization)
         .method(HttpVerbs.GET)
         .execute(convertingArrayResponseToJS)
-      files.code shouldBe 200
+      files.code            shouldBe 200
       files.body.toString() shouldBe "[]"
     }
 
@@ -230,7 +230,7 @@ class FileStoreSpec extends WiremockFeatureTestServer with ResourceFiles {
       And("The response body contains the file details")
 
       response.body.asInstanceOf[JsArray].value.size shouldBe 2
-      (response.body \\ "fileName").map(_.as[String])  should contain.only ("some-file1.txt", "some-file2.txt")
+      (response.body \\ "fileName").map(_.as[String])  should contain.only("some-file1.txt", "some-file2.txt")
     }
 
     Scenario("Should return all files for empty search") {
@@ -247,7 +247,7 @@ class FileStoreSpec extends WiremockFeatureTestServer with ResourceFiles {
 
       And("The response body contains the file details")
 
-      (response.body \\ "fileName").map(_.as[String]) should contain.allOf ("some-file1.txt", "some-file2.txt")
+      (response.body \\ "fileName").map(_.as[String]) should contain.allOf("some-file1.txt", "some-file2.txt")
     }
 
   }
@@ -267,7 +267,7 @@ class FileStoreSpec extends WiremockFeatureTestServer with ResourceFiles {
       And("The response body contains the file details")
 
       response.body.asInstanceOf[JsObject].value("resultCount").toString().toInt shouldBe 2
-      (response.body \\ "fileName").map(_.as[String])                              should contain.only ("some-file1.txt", "some-file2.txt")
+      (response.body \\ "fileName").map(_.as[String])                              should contain.only("some-file1.txt", "some-file2.txt")
     }
 
     Scenario("Should return all files for empty search") {
@@ -284,7 +284,7 @@ class FileStoreSpec extends WiremockFeatureTestServer with ResourceFiles {
 
       And("The response body contains the file details")
       response.body.asInstanceOf[JsObject].value("resultCount").toString().toInt shouldBe 2
-      (response.body \\ "fileName").map(_.as[String])                              should contain.allOf ("some-file1.txt", "some-file2.txt")
+      (response.body \\ "fileName").map(_.as[String])                              should contain.allOf("some-file1.txt", "some-file2.txt")
     }
 
   }
@@ -422,12 +422,11 @@ class FileStoreSpec extends WiremockFeatureTestServer with ResourceFiles {
       .method(HttpVerbs.GET)
       .execute(convertingResponseToJS)
 
-  private def deleteFiles(): HttpResponse[String] = {
+  private def deleteFiles(): HttpResponse[String] =
     Http(s"$serviceUrl/file")
       .header(apiTokenKey, appConfig.authorization)
       .method(HttpVerbs.DELETE)
       .asString
-  }
 
   private def deleteFile(id: String): HttpResponse[String] = {
     stubS3DeleteOne(id)
