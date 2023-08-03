@@ -11,7 +11,7 @@ lazy val microservice = Project(appName, file("."))
   .settings(defaultSettings(): _*)
   .settings(majorVersion := 0)
   .settings(
-    scalaVersion := "2.13.10",
+    scalaVersion := "2.13.11",
     playDefaultPort := 9583,
     scalacOptions ++= Seq(
       "-feature",
