@@ -5,10 +5,10 @@ object AppDependencies {
 
   private lazy val apacheHttpVersion    = "4.5.14"
   private lazy val mongoHmrcVersion     = "1.3.0"
-  private lazy val bootstrapPlayVersion = "7.19.0"
+  private lazy val bootstrapPlayVersion = "7.21.0"
 
   val compile: Seq[ModuleID] = Seq(
-    "com.amazonaws"                 % "aws-java-sdk-s3"           % "1.12.502",
+    "com.amazonaws"                 % "aws-java-sdk-s3"           % "1.12.521",
     "uk.gov.hmrc"                  %% "bootstrap-backend-play-28" % bootstrapPlayVersion,
     "uk.gov.hmrc.mongo"            %% "hmrc-mongo-play-28"        % mongoHmrcVersion,
     "uk.gov.hmrc"                  %% "play-json-union-formatter" % "1.18.0-play-28",

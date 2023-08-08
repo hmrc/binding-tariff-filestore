@@ -7,7 +7,7 @@ The backend filestore service which manages attachment metadata and S3 bucket ac
 
 ##### To run this Service you will need:
 
-1) [Service Manager](https://github.com/hmrc/service-manager) installed
+1) [Service Manager 2](https://github.com/hmrc/sm2) installed
 2) [SBT](https://www.scala-sbt.org) Version `>=1.x` installed
 3) [MongoDB](https://www.mongodb.com/) version `>=3.6` installed and running on port 27017
 4) [Localstack](https://github.com/localstack/localstack) installed and running on port 4572
@@ -32,13 +32,13 @@ The easiest way to run MongoDB and Localstack for local development is to use [D
 
 #### Starting the application:
  
-Launch dependencies using `sm --start DIGITAL_TARIFF_DEPS -r`.
+Launch dependencies using `sm2 --start DIGITAL_TARIFFS_DEPS`.
 
-Use `sbt run` to boot the app or run it with Service Manager using `sm --start BINDING_TARIFF_FILESTORE -r`.
+Use `sbt run` to boot the app or run it with Service Manager 2 using `sm2 --start BINDING_TARIFF_FILESTORE`.
 
 This application runs on port 9583.
 
-You can also run the `DIGITAL_TARIFFS` profile using `sm --start DIGITAL_TARIFFS -r` and then stop the Service Manager instance of this service using `sm --stop BINDING_TARIFF_FILESTORE` before running with sbt.
+You can also run the `DIGITAL_TARIFFS` profile using `sm2 --start DIGITAL_TARIFFS` and then stop the Service Manager 2 instance of this service using `sm2 --stop BINDING_TARIFF_FILESTORE` before running with sbt.
 
 ### Testing
 
