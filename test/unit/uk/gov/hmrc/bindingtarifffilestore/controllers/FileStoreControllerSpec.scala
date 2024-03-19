@@ -16,7 +16,6 @@
 
 package uk.gov.hmrc.bindingtarifffilestore.controllers
 
-import akka.stream.Materializer
 import org.mockito.ArgumentMatchers.{any, refEq}
 import org.mockito.{ArgumentCaptor, MockitoSugar}
 import org.scalatest.BeforeAndAfterEach
@@ -35,9 +34,10 @@ import uk.gov.hmrc.bindingtarifffilestore.model.upscan.{ScanResult, SuccessfulSc
 import uk.gov.hmrc.bindingtarifffilestore.service.FileStoreService
 import uk.gov.hmrc.bindingtarifffilestore.util.{UnitSpec, WithFakeApplication}
 import uk.gov.hmrc.http.HeaderCarrier
-import java.time.Instant
 
+import java.time.Instant
 import com.mongodb.{MongoWriteException, ServerAddress, WriteError}
+import org.apache.pekko.stream.Materializer
 import org.mongodb.scala.bson.BsonDocument
 
 import scala.concurrent.ExecutionContext.Implicits.global

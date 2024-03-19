@@ -56,14 +56,12 @@ class AuditService @Inject() (auditConnector: DefaultAuditConnector)(implicit ec
       "fileName" -> fileName
     )
 
-  private def fileDetailsAuditPayload(fileId: String, fileName: Option[String]): Map[String, String] =
-    Map(
-      "fileId" -> fileId
-    ) ++ fileName.map(name => Map("fileName" -> name)).getOrElse(Map.empty)
+  private[audit] def fileDetailsAuditPayload(fileId: String, fileName: Option[String]): Map[String, String] =
+    Map("fileId" -> fileId) ++ fileName.fold[Map[String, String]](Map.empty)(name => Map("fileName" -> name))
 
   private def sendExplicitAuditEvent(auditEventType: String, auditPayload: Map[String, String])(implicit
     hc: HeaderCarrier
-  ): Unit                                                                                            =
+  ): Unit                                                                                                   =
     auditConnector.sendExplicitAudit(auditType = auditEventType, detail = auditPayload)
 
 }

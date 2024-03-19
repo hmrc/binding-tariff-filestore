@@ -16,16 +16,17 @@
 
 package uk.gov.hmrc.bindingtarifffilestore.connector
 
-import akka.actor.ActorSystem
 import com.github.tomakehurst.wiremock.client.WireMock._
+import org.apache.pekko.actor.ActorSystem
 import org.mockito.BDDMockito.given
-import org.scalatest.BeforeAndAfterEach
 import org.mockito.MockitoSugar
+import org.scalatest.BeforeAndAfterEach
 import play.api.http.Status._
 import play.api.libs.Files.SingletonTemporaryFileCreator
 import play.api.libs.ws.WSClient
 import uk.gov.hmrc.bindingtarifffilestore.config.AppConfig
-import uk.gov.hmrc.bindingtarifffilestore.model.upscan.{UploadSettings, UpscanInitiateResponse, UpscanTemplate}
+import uk.gov.hmrc.bindingtarifffilestore.model.upscan.v2.UpscanFormTemplate
+import uk.gov.hmrc.bindingtarifffilestore.model.upscan.{UploadSettings, UpscanInitiateResponse, UpscanTemplate, v2}
 import uk.gov.hmrc.bindingtarifffilestore.model.{FileMetadata, FileWithMetadata}
 import uk.gov.hmrc.bindingtarifffilestore.util._
 import uk.gov.hmrc.http.HeaderCarrier
@@ -59,6 +60,7 @@ class UpscanConnectorSpec
   }
 
   "UpscanConnector" should {
+
     "Initiate" in {
       stubFor(
         post("/upscan/initiate")
@@ -81,6 +83,33 @@ class UpscanConnectorSpec
           )
         )
       )
+    }
+
+    "Initiate V2" in {
+      stubFor(
+        post("/upscan/v2/initiate")
+          .willReturn(
+            aResponse()
+              .withBody(fromFile("upscan/initiate_response.json"))
+          )
+      )
+
+      val (minimumFileSize, maximumFileSize): (Int, Int) = (1, 1000)
+
+      val upscanInitiateRequest =
+        v2.UpscanInitiateRequest(
+          callbackUrl = "callback",
+          successRedirect = None,
+          errorRedirect = None,
+          minimumFileSize = Some(minimumFileSize),
+          maximumFileSize = Some(maximumFileSize),
+          expectedContentType = None
+        )
+
+      val response: v2.UpscanInitiateResponse =
+        await(connector.initiateV2(upscanInitiateRequest))
+
+      response shouldBe v2.UpscanInitiateResponse("reference", UpscanFormTemplate("href", Map("key" -> "value")))
     }
 
     "Upload" when {

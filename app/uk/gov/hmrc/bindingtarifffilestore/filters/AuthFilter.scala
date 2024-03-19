@@ -16,7 +16,8 @@
 
 package uk.gov.hmrc.bindingtarifffilestore.filters
 
-import akka.stream.Materializer
+import org.apache.pekko.stream.Materializer
+
 import javax.inject.{Inject, Singleton}
 import play.api.mvc.{Filter, RequestHeader, Result, Results}
 import uk.gov.hmrc.bindingtarifffilestore.config.AppConfig

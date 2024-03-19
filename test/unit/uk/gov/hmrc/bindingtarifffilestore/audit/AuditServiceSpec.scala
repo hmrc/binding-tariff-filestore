@@ -26,7 +26,7 @@ import uk.gov.hmrc.play.audit.DefaultAuditConnector
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class AuditServiceTest extends UnitSpec with MockitoSugar with BeforeAndAfterEach {
+class AuditServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfterEach {
 
   private implicit val hc: HeaderCarrier = HeaderCarrier()
   private val connector                  = mock[DefaultAuditConnector]
@@ -74,6 +74,16 @@ class AuditServiceTest extends UnitSpec with MockitoSugar with BeforeAndAfterEac
       val payload = auditPayload(fileId, fileName)
 
       verify(connector).sendExplicitAudit(refEq(FilePublished), refEq(payload))(refEq(hc), refEq(global))
+    }
+  }
+
+  "fileDetailsAuditPayload()" should {
+
+    "return an empty Map() when fileName is None" in {
+      val acutal   = service.fileDetailsAuditPayload("someFakeId", None)
+      val expected = Map("fileId" -> "someFakeId")
+
+      acutal shouldBe expected
     }
   }
 

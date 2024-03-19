@@ -47,11 +47,12 @@ sealed trait ScanResult {
 object ScanResult {
   implicit val formatSuccess: OFormat[SuccessfulScanResult] = Json.format[SuccessfulScanResult]
   implicit val formatFailed: OFormat[FailedScanResult]      = Json.format[FailedScanResult]
-  implicit val format: Format[ScanResult]                   = Union
-    .from[ScanResult]("fileStatus")
-    .and[SuccessfulScanResult](READY.toString)
-    .and[FailedScanResult](FAILED.toString)
-    .format
+  implicit val format: Format[ScanResult]                   =
+    Union
+      .from[ScanResult]("fileStatus")
+      .and[SuccessfulScanResult](READY.toString)
+      .and[FailedScanResult](FAILED.toString)
+      .format
 }
 
 case class UploadDetails(
