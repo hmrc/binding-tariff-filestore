@@ -16,11 +16,25 @@
 
 package uk.gov.hmrc.bindingtarifffilestore.util
 
-import play.api.libs.json.{Format, Reads, Writes}
+import play.api.libs.json._
+
+import scala.util.Try
 
 object EnumJson {
 
-  def format[E <: Enumeration](`enum`: E): Format[enum.Value] =
-    Format(Reads.enumNameReads(enum), Writes.enumNameWrites)
+  private def enumReads[E <: Enumeration](`enum`: E): Reads[E#Value] = {
+    case JsString(s) =>
+      Try(JsSuccess(enum.withName(s))).recover { case _: NoSuchElementException =>
+        JsError(
+          s"Expected an enumeration of type: '${enum.getClass.getSimpleName}', but it does not contain the name: '$s'"
+        )
+      }.get
+
+    case _ => JsError("String value is expected")
+  }
+
+  implicit def enumWrites[E <: Enumeration]: Writes[E#Value] = (v: E#Value) => JsString(v.toString)
+
+  implicit def format[E <: Enumeration](`enum`: E): Format[E#Value] = Format(enumReads(enum), enumWrites)
 
 }
