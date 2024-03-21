@@ -1,5 +1,3 @@
-import sbt.Keys.baseDirectory
-import sbt.Test
 import uk.gov.hmrc.DefaultBuildSettings
 
 val appName = "binding-tariff-filestore"
