@@ -14,7 +14,7 @@ lazy val microservice = Project(appName, file("."))
     Test / resourceDirectory := baseDirectory.value / "test" / "resources"
   )
   .settings(
-    PlayKeys.playDefaultPort := 9073,
+    PlayKeys.playDefaultPort := 9583,
     libraryDependencies ++= AppDependencies(),
     scalacOptions ++= Seq(
       "-feature",
