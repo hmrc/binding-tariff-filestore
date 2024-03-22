@@ -14,12 +14,11 @@
  * limitations under the License.
  */
 
-package utils
+package uk.gov.hmrc.bindingtarifffilestore.util
 
 import play.api.libs.json._
 import uk.gov.hmrc.bindingtarifffilestore.model.ScanStatus
 import uk.gov.hmrc.bindingtarifffilestore.model.ScanStatus.READY
-import uk.gov.hmrc.bindingtarifffilestore.util.UnitSpec
 
 class EnumJsonSpec extends UnitSpec {
 

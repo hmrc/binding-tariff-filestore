@@ -17,7 +17,7 @@
 package uk.gov.hmrc.bindingtarifffilestore.model.upscan
 
 import play.api.libs.json.{JsObject, JsString, Json}
-import uk.gov.hmrc.bindingtarifffilestore.util.UnitSpec
+import uk.gov.hmrc.bindingtarifffilestore.util._
 
 import java.time.Instant
 

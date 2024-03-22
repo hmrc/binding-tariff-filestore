@@ -26,7 +26,7 @@ import play.api.http.Status
 import play.api.libs.Files.SingletonTemporaryFileCreator
 import uk.gov.hmrc.bindingtarifffilestore.config.{AppConfig, S3Configuration}
 import uk.gov.hmrc.bindingtarifffilestore.model.FileMetadata
-import uk.gov.hmrc.bindingtarifffilestore.util.{ResourceFiles, UnitSpec, WiremockTestServer}
+import uk.gov.hmrc.bindingtarifffilestore.util._
 
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter

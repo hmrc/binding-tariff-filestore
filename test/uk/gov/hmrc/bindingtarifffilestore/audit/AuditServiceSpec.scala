@@ -21,7 +21,7 @@ import org.mockito.Mockito.{reset, verify}
 import org.scalatest.BeforeAndAfterEach
 import org.scalatestplus.mockito.MockitoSugar
 import uk.gov.hmrc.bindingtarifffilestore.audit.AuditPayloadType._
-import uk.gov.hmrc.bindingtarifffilestore.util.UnitSpec
+import uk.gov.hmrc.bindingtarifffilestore.util._
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.audit.DefaultAuditConnector
 
@@ -81,10 +81,10 @@ class AuditServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfterEac
   "fileDetailsAuditPayload()" should {
 
     "return an empty Map() when fileName is None" in {
-      val acutal   = service.fileDetailsAuditPayload("someFakeId", None)
+      val actual   = service.fileDetailsAuditPayload("someFakeId", None)
       val expected = Map("fileId" -> "someFakeId")
 
-      acutal shouldBe expected
+      actual shouldBe expected
     }
   }
 

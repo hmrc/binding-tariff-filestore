@@ -16,11 +16,15 @@
 
 package uk.gov.hmrc.bindingtarifffilestore.controllers
 
+import com.mongodb.{MongoWriteException, ServerAddress, WriteError}
+import org.apache.pekko.stream.Materializer
+import org.mockito.ArgumentCaptor
 import org.mockito.ArgumentMatchers.{any, refEq}
 import org.mockito.Mockito._
 import org.mongodb.scala.bson.BsonDocument
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.matchers.should.Matchers
+import org.scalatestplus.mockito.MockitoSugar
 import play.api.http.Status._
 import play.api.libs.Files.{SingletonTemporaryFileCreator, TemporaryFile}
 import play.api.libs.json.{JsValue, Json, Writes}
@@ -33,16 +37,10 @@ import uk.gov.hmrc.bindingtarifffilestore.model._
 import uk.gov.hmrc.bindingtarifffilestore.model.upscan.v2.{FileStoreInitiateRequest, FileStoreInitiateResponse, UpscanFormTemplate}
 import uk.gov.hmrc.bindingtarifffilestore.model.upscan.{ScanResult, SuccessfulScanResult, UploadDetails}
 import uk.gov.hmrc.bindingtarifffilestore.service.FileStoreService
-import uk.gov.hmrc.bindingtarifffilestore.util.{UnitSpec, WithFakeApplication}
+import uk.gov.hmrc.bindingtarifffilestore.util._
 import uk.gov.hmrc.http.HeaderCarrier
 
 import java.time.Instant
-import com.mongodb.{MongoWriteException, ServerAddress, WriteError}
-import org.apache.pekko.stream.Materializer
-import org.mockito.ArgumentCaptor
-import org.mongodb.scala.bson.BsonDocument
-import org.scalatestplus.mockito.MockitoSugar
-
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future.{failed, successful}
 
