@@ -26,9 +26,6 @@ lazy val it = project
   .enablePlugins(PlayScala)
   .dependsOn(microservice % "test->test")
   .settings(DefaultBuildSettings.itSettings())
-  .settings(
-    Test / fork := true
-  )
 
 addCommandAlias("scalafmtAll", "all scalafmtSbt scalafmt Test/scalafmt it/Test/scalafmt")
 addCommandAlias("scalastyleAll", "all scalastyle Test/scalastyle it/Test/scalastyle")
