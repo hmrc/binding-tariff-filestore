@@ -18,6 +18,7 @@ package uk.gov.hmrc.bindingtarifffilestore.util
 
 import play.api.libs.json._
 
+import scala.language.implicitConversions
 import scala.util.Try
 
 object EnumJson {

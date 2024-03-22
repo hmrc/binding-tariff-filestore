@@ -183,7 +183,7 @@ class FileMetadataRepositorySpec
       )
 
       val repo = createMongoRepo
-      await(repo.ensureIndexes)
+      await(repo.ensureIndexes())
 
       eventually(timeout(5.seconds), interval(100.milliseconds)) {
         assertIndexes(expectedIndexes.sorted, getIndexes(repo.collection).sorted)

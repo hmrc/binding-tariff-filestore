@@ -16,6 +16,8 @@
 
 package uk.gov.hmrc.bindingtarifffilestore.model.upscan
 
+import play.api.libs.json.Format
+import uk.gov.hmrc.bindingtarifffilestore.model.upscan
 import uk.gov.hmrc.bindingtarifffilestore.util.EnumJson
 
 object FailureReason extends Enumeration {
@@ -25,5 +27,5 @@ object FailureReason extends Enumeration {
   val REJECTED   = Value("REJECTED")
   val UNKNOWN    = Value("UNKNOWN")
 
-  implicit val format = EnumJson.format(FailureReason)
+  implicit val format: Format[upscan.FailureReason.Value] = EnumJson.format(FailureReason)
 }
