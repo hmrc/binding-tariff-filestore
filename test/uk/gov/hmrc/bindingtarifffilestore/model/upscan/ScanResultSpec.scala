@@ -24,7 +24,11 @@ import java.time.Instant
 class ScanResultSpec extends UnitSpec {
 
   "Successful Scan Result" should {
-    val model = SuccessfulScanResult("ref", "url", UploadDetails("file", "type", Instant.EPOCH, "checksum"))
+    val model = SuccessfulScanResult(
+      reference = "ref",
+      downloadUrl = "url",
+      uploadDetails = UploadDetails("file", "type", Instant.EPOCH, "checksum")
+    )
     val json  = JsObject(
       Map(
         "reference"     -> JsString("ref"),
@@ -51,7 +55,8 @@ class ScanResultSpec extends UnitSpec {
   }
 
   "Failed Scan Result" should {
-    val model = FailedScanResult("ref", FailureDetails(FailureReason.QUARANTINE, "message"))
+    val model =
+      FailedScanResult(reference = "ref", failureDetails = FailureDetails(FailureReason.QUARANTINE, "message"))
     val json  = JsObject(
       Map(
         "reference"      -> JsString("ref"),

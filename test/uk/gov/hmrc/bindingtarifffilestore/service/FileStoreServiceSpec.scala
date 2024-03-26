@@ -278,7 +278,7 @@ class FileStoreServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfte
       val attachment         = FileMetadata(id = "id", fileName = Some("file"), mimeType = Some("type"))
       val attachmentUpdated  = mock[FileMetadata]("updated")
       val uploadDetails      = mock[UploadDetails]
-      val scanResult         = SuccessfulScanResult("ref", "url", uploadDetails)
+      val scanResult         = SuccessfulScanResult(reference = "ref", downloadUrl = "url", uploadDetails = uploadDetails)
       val expectedAttachment = attachment.copy(url = Some("url"), scanStatus = Some(ScanStatus.READY))
 
       given(uploadDetails.fileName).willReturn("file")
@@ -294,7 +294,7 @@ class FileStoreServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfte
 
     "Call publish when notifying published files" in {
       val attachment                 = mock[FileMetadata]("Attachment")
-      val scanResult                 = SuccessfulScanResult("ref", "url", mock[UploadDetails])
+      val scanResult                 = SuccessfulScanResult(reference = "ref", downloadUrl = "url", uploadDetails = mock[UploadDetails])
       val attachmentUpdating         = mock[FileMetadata]("AttachmentUpdating")
       val attachmentUpdated          = mock[FileMetadata]("AttachmentUpdated")
       val attachmentUploaded         = mock[FileMetadata]("AttachmentUploaded")
@@ -350,7 +350,8 @@ class FileStoreServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfte
       s"Skip publishing when the file no longer exists and publishable for attachmentUpdating is set to $value" in {
         val attachment: FileMetadata         = mock[FileMetadata]("Attachment")
         val uploadDetails: UploadDetails     = mock[UploadDetails]
-        val scanResult: SuccessfulScanResult = SuccessfulScanResult("ref", "url", uploadDetails)
+        val scanResult: SuccessfulScanResult =
+          SuccessfulScanResult(reference = "ref", downloadUrl = "url", uploadDetails = uploadDetails)
         val attachmentUpdating: FileMetadata =
           FileMetadata(id = "id", fileName = Some("file"), mimeType = Some("type"), publishable = value)
         val attachmentUpdated: FileMetadata  = mock[FileMetadata]("AttachmentUpdated")
@@ -381,7 +382,7 @@ class FileStoreServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfte
 
     "Update the attachment for Failed Scan and Delegate to Connector" in {
       val attachment         = FileMetadata(id = "id", fileName = Some("file"), mimeType = Some("type"))
-      val scanResult         = FailedScanResult("ref", mock[FailureDetails])
+      val scanResult         = FailedScanResult(reference = "ref", failureDetails = mock[FailureDetails])
       val expectedAttachment = attachment.copy(scanStatus = Some(ScanStatus.FAILED))
       val attachmentUpdated  = mock[FileMetadata]("updated")
 

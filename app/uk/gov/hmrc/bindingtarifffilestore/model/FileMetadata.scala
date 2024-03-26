@@ -65,14 +65,14 @@ case class FileMetadata(
     }
 
   def withScanResult(scanResult: ScanResult): FileMetadata = scanResult match {
-    case SuccessfulScanResult(_, downloadUrl, uploadDetails) =>
+    case SuccessfulScanResult(_, _, downloadUrl, uploadDetails) =>
       copy(
         fileName = Some(uploadDetails.fileName),
         mimeType = Some(uploadDetails.fileMimeType),
         url = Some(downloadUrl),
         scanStatus = Some(ScanStatus.READY)
       )
-    case FailedScanResult(_, _)                              =>
+    case FailedScanResult(_, _, _)                              =>
       copy(scanStatus = Some(ScanStatus.FAILED))
   }
 
@@ -94,6 +94,8 @@ object FileMetadata {
       mimeType = None,
       publishable = request.publishable
     )
+
+  implicit val format: OFormat[FileMetadata] = Json.format[FileMetadata]
 }
 
 object FileMetadataREST {

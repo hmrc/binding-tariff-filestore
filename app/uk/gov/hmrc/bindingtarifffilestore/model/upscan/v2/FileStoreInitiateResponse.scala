@@ -21,6 +21,7 @@ import play.api.libs.json.{Json, OFormat}
 case class FileStoreInitiateResponse(id: String, upscanReference: String, uploadRequest: UpscanFormTemplate)
 
 object FileStoreInitiateResponse {
+
   implicit val format: OFormat[FileStoreInitiateResponse] = Json.format[FileStoreInitiateResponse]
 
   def fromUpscanResponse(id: String, response: UpscanInitiateResponse): FileStoreInitiateResponse =

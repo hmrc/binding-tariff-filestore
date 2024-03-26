@@ -21,9 +21,11 @@ import org.scalatest._
 import org.scalatest.featurespec.AnyFeatureSpec
 import org.scalatest.matchers.should.Matchers
 import org.scalatestplus.play.guice.GuiceOneServerPerSuite
+import play.api.libs.ws.WSClient
 import uk.gov.hmrc.bindingtarifffilestore.config.AppConfig
 import uk.gov.hmrc.bindingtarifffilestore.model.FileMetadata
 import uk.gov.hmrc.bindingtarifffilestore.repository.FileMetadataMongoRepository
+import uk.gov.hmrc.http.test.HttpClientSupport
 import uk.gov.hmrc.mongo.test.DefaultPlayMongoRepositorySupport
 
 import java.security.MessageDigest
@@ -33,6 +35,7 @@ import scala.concurrent.duration._
 
 abstract class BaseFeatureSpec
     extends AnyFeatureSpec
+    with HttpClientSupport
     with Matchers
     with GivenWhenThen
     with GuiceOneServerPerSuite
@@ -44,6 +47,9 @@ abstract class BaseFeatureSpec
   protected lazy val appConfig: AppConfig = app.injector.instanceOf[AppConfig]
 
   override lazy val repository = new FileMetadataMongoRepository(mongoComponent)
+
+  val testClient: WSClient = mkHttpClient().wsClient
+  val timeoutDuration      = 5
 
   protected def hash: String => String = { s: String =>
     BaseEncoding.base64Url().encode(MessageDigest.getInstance("SHA-256").digest(s.getBytes("UTF-8")))

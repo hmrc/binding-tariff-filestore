@@ -196,7 +196,11 @@ class FileStoreControllerSpec
 
   "Notify" should {
     "return 201 when found" in {
-      val scanResult        = SuccessfulScanResult("ref", "url", UploadDetails("file", "type", Instant.now(), "checksum"))
+      val scanResult        = SuccessfulScanResult(
+        reference = "ref",
+        downloadUrl = "url",
+        uploadDetails = UploadDetails("file", "type", Instant.now(), "checksum")
+      )
       val attachment        = FileMetadata(id = "id", fileName = Some("file"), mimeType = Some("type"))
       val attachmentUpdated =
         FileMetadata(id = "id", fileName = Some("file"), mimeType = Some("type"), url = Some("url"))
@@ -212,7 +216,11 @@ class FileStoreControllerSpec
     }
 
     "return 404 when not found" in {
-      val scanResult = SuccessfulScanResult("ref", "url", UploadDetails("file", "type", Instant.now(), "checksum"))
+      val scanResult = SuccessfulScanResult(
+        reference = "ref",
+        downloadUrl = "url",
+        uploadDetails = UploadDetails("file", "type", Instant.now(), "checksum")
+      )
       when(service.find("id")).thenReturn(successful(None))
 
       val request: FakeRequest[JsValue] = fakeRequest.withBody(Json.toJson[ScanResult](scanResult))
@@ -224,7 +232,11 @@ class FileStoreControllerSpec
     "return 409 when a MongoWriteException occurred" in {
       val code: Int                        = 11000
       val scanResult: SuccessfulScanResult =
-        SuccessfulScanResult("ref", "url", UploadDetails("file", "type", Instant.now(), "checksum"))
+        SuccessfulScanResult(
+          reference = "ref",
+          downloadUrl = "url",
+          uploadDetails = UploadDetails("file", "type", Instant.now(), "checksum")
+        )
       val attachment: FileMetadata         = FileMetadata(id = "id", fileName = Some("file"), mimeType = Some("type"))
       when(service.find(id = "id")).thenReturn(successful(Some(attachment)))
       when(service.notify(refEq(attachment), refEq(scanResult))(any[HeaderCarrier]))
