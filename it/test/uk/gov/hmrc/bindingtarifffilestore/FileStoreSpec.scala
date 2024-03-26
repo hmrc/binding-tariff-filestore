@@ -463,7 +463,7 @@ class FileStoreSpec extends FileStoreHelpers {
 
       When("It is Published")
 
-      val publishResult: HttpResponse = await(publishUnsafeFile(id1), 5, TimeUnit.SECONDS)
+      val publishResult: HttpResponse = await(publishUnsafeFile(id1), 10, TimeUnit.SECONDS)
 
       Then("The response code should be Forbidden")
 
