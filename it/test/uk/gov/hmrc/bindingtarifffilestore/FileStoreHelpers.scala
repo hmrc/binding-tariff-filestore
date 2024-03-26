@@ -44,13 +44,11 @@ trait FileStoreHelpers extends WiremockFeatureTestServer with ResourceFiles {
 
   val filePath = "test/resources/file.txt"
 
-  def getFile(id: String)(implicit hc: HeaderCarrier): Future[HttpResponse] = {
+  def getFile(id: String)(implicit hc: HeaderCarrier): Future[HttpResponse] =
     httpClient.GET(url"$serviceUrl/file/$id")
-  }
 
-  def deleteFiles()(implicit hc: HeaderCarrier): Future[HttpResponse] = {
+  def deleteFiles()(implicit hc: HeaderCarrier): Future[HttpResponse] =
     httpClient.DELETE(url"$serviceUrl/file")
-  }
 
   def deleteFile(id: String)(implicit hc: HeaderCarrier): Future[HttpResponse] = {
     stubS3DeleteOne(id)
@@ -73,20 +71,19 @@ trait FileStoreHelpers extends WiremockFeatureTestServer with ResourceFiles {
     )
   }
 
-  def publishUnsafeFile(id: String)(implicit hc: HeaderCarrier): Future[HttpResponse] = {
+  def publishUnsafeFile(id: String)(implicit hc: HeaderCarrier): Future[HttpResponse] =
     // Should NOT call S3 Upload
     httpClient.POST(
       url"$serviceUrl/file/$id/publish",
       Json.toJson[FileMetadata](FileMetadata(id, None, None))
     )
-  }
 
   def notifySuccess(
-                     id: String,
-                     fileName: String,
-                     uri: URI = new File(filePath).toURI
-                   )(implicit hc: HeaderCarrier): Future[HttpResponse] = {
-    val url = uri.toURL.toString
+    id: String,
+    fileName: String,
+    uri: URI = new File(filePath).toURI
+  )(implicit hc: HeaderCarrier): Future[HttpResponse] = {
+    val url   = uri.toURL.toString
     val model =
       SuccessfulScanResult(
         reference = "reference",
@@ -98,11 +95,14 @@ trait FileStoreHelpers extends WiremockFeatureTestServer with ResourceFiles {
   }
 
   def notifyFailure(id: String)(implicit hc: HeaderCarrier): Future[HttpResponse] = {
-    val model = FailedScanResult(reference = "reference", failureDetails = FailureDetails(FailureReason.QUARANTINE, "message"))
+    val model =
+      FailedScanResult(reference = "reference", failureDetails = FailureDetails(FailureReason.QUARANTINE, "message"))
     httpClient.POST(url"$serviceUrl/file/$id/notify", model)
   }
 
-  def upload(id: Option[String], filename: String, contentType: String, publishable: Boolean)(implicit hc: HeaderCarrier): Future[HttpResponse] = {
+  def upload(id: Option[String], filename: String, contentType: String, publishable: Boolean)(implicit
+    hc: HeaderCarrier
+  ): Future[HttpResponse] = {
     stubUpscanInitiate
     stubUpscanUpload
 
@@ -111,7 +111,8 @@ trait FileStoreHelpers extends WiremockFeatureTestServer with ResourceFiles {
 
     val response: Future[HttpResponse] =
       httpClient.POST(
-        url"$serviceUrl/file", UploadRequest(id = id, fileName = filename, mimeType = contentType, publishable = publishable)
+        url"$serviceUrl/file",
+        UploadRequest(id = id, fileName = filename, mimeType = contentType, publishable = publishable)
       )
 
     response
@@ -192,6 +193,5 @@ trait FileStoreHelpers extends WiremockFeatureTestServer with ResourceFiles {
 
   def dbFileStoreSize: Int =
     result(repository.collection.countDocuments().toFuture(), timeout).toInt
-
 
 }
