@@ -29,17 +29,13 @@ case class SuccessfulScanResult(
   override val reference: String,
   downloadUrl: String,
   uploadDetails: UploadDetails
-) extends ScanResult {
-  //  override val fileStatus: model.ScanStatus.Value = READY
-}
+) extends ScanResult
 
 case class FailedScanResult(
   override val fileStatus: model.ScanStatus.Value = FAILED,
   override val reference: String,
   failureDetails: FailureDetails
-) extends ScanResult {
-  //  override val fileStatus: model.ScanStatus.Value = FAILED
-}
+) extends ScanResult
 
 sealed trait ScanResult {
   val reference: String
