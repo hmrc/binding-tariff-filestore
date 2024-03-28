@@ -58,13 +58,14 @@ class FileStoreSpec extends FileStoreHelpers {
   val file2       = "some-file-2.txt"
   val contentType = "text/plain"
 
+  implicit val hc: HeaderCarrier =
+    HeaderCarrier(extraHeaders = Seq(apiTokenKey -> appConfig.authorization))
+
   Feature("Delete") {
 
     Scenario("Delete the file") {
 
       Given("A file has been uploaded")
-
-      implicit val hc: HeaderCarrier = HeaderCarrier(extraHeaders = Seq(apiTokenKey -> appConfig.authorization))
 
       val uploadResponse = upload(Some(id1), file1, contentType, publishable = true)
 
@@ -93,8 +94,6 @@ class FileStoreSpec extends FileStoreHelpers {
 
       Given("There are some documents in the collection")
 
-      implicit val hc: HeaderCarrier = HeaderCarrier(extraHeaders = Seq(apiTokenKey -> appConfig.authorization))
-
       upload(Some(id1), file1, contentType, publishable = true).futureValue
       upload(Some(id2), file2, contentType, publishable = true).futureValue
 
@@ -117,11 +116,11 @@ class FileStoreSpec extends FileStoreHelpers {
 
       And("the are no files")
 
-      val getFileResponse = mkHttpClient().GET(url"$serviceUrl/file")
+      val getFileResponse = getFiles(Seq("id" -> id1, "id" -> "doc_id_2")).futureValue
 
-      val fileResult = getFileResponse.futureValue
+      val fileResult = getFileResponse
 
-      fileResult.status shouldBe 200
+      fileResult.status shouldBe Status.OK
       fileResult.body   shouldBe "[]"
     }
   }
@@ -151,9 +150,6 @@ class FileStoreSpec extends FileStoreHelpers {
 
       Given("A Client of the FileStore has a file")
 
-      implicit val hc: HeaderCarrier =
-        HeaderCarrier(extraHeaders = Seq(apiTokenKey -> appConfig.authorization))
-
       upload(Some(id1), file1, contentType, publishable = true).futureValue
 
       dbFileStoreSize shouldBe 1
@@ -182,7 +178,6 @@ class FileStoreSpec extends FileStoreHelpers {
 
       When("It is requested")
 
-      implicit val hc: HeaderCarrier     = HeaderCarrier(extraHeaders = Seq(apiTokenKey -> appConfig.authorization))
       val response: Future[HttpResponse] = initiateV2(publishable = true)
 
       Then("The response code should be Accepted")
@@ -205,10 +200,7 @@ class FileStoreSpec extends FileStoreHelpers {
 
     When("It is requested")
 
-    implicit val hc: HeaderCarrier =
-      HeaderCarrier(extraHeaders = Seq(apiTokenKey -> appConfig.authorization))
-
-    val response                   = initiateV2(Some("slurm"), publishable = true)
+    val response = initiateV2(Some("slurm"), publishable = true)
 
     Then("The response code should be Accepted")
 
@@ -229,12 +221,9 @@ class FileStoreSpec extends FileStoreHelpers {
 
       Given("A file has been uploaded")
 
-      implicit val hc: HeaderCarrier =
-        HeaderCarrier(extraHeaders = Seq(apiTokenKey -> appConfig.authorization))
-
-      val uploadResponse             = upload(Some(id1), file1, contentType, publishable = true)
-      val uploadResult               = uploadResponse.futureValue
-      val id: String                 = uploadResult.json.as[UploadTemplate].id
+      val uploadResponse = upload(Some(id1), file1, contentType, publishable = true)
+      val uploadResult   = uploadResponse.futureValue
+      val id: String     = uploadResult.json.as[UploadTemplate].id
 
       When("I request the file details")
       val getFileResponse = getFile(id)
@@ -255,8 +244,6 @@ class FileStoreSpec extends FileStoreHelpers {
     Scenario("Should return all files matching search") {
 
       Given("Files have been uploaded")
-
-      implicit val hc: HeaderCarrier = HeaderCarrier(extraHeaders = Seq(apiTokenKey -> appConfig.authorization))
 
       upload(Some(id1), file1, contentType, publishable = true).futureValue
       upload(Some(id2), file2, contentType, publishable = false).futureValue
@@ -284,8 +271,6 @@ class FileStoreSpec extends FileStoreHelpers {
 
       Given("Files have been uploaded")
 
-      implicit val hc: HeaderCarrier = HeaderCarrier(extraHeaders = Seq(apiTokenKey -> appConfig.authorization))
-
       upload(Some(id1), file1, contentType, publishable = true).futureValue
       upload(Some(id2), file2, contentType, publishable = false).futureValue
 
@@ -310,8 +295,6 @@ class FileStoreSpec extends FileStoreHelpers {
 
       Given("Files have been uploaded")
 
-      implicit val hc: HeaderCarrier = HeaderCarrier(extraHeaders = Seq(apiTokenKey -> appConfig.authorization))
-
       upload(Some(id1), file1, contentType, publishable = true).futureValue
       upload(Some(id2), file2, contentType, publishable = false).futureValue
 
@@ -332,8 +315,6 @@ class FileStoreSpec extends FileStoreHelpers {
     Scenario("Should return all files for empty search") {
 
       Given("Files have been uploaded")
-
-      implicit val hc: HeaderCarrier = HeaderCarrier(extraHeaders = Seq(apiTokenKey -> appConfig.authorization))
 
       val id2 = "doc_id_2"
 
@@ -360,8 +341,6 @@ class FileStoreSpec extends FileStoreHelpers {
     Scenario("Successful scan should update the status") {
 
       Given("A File has been uploaded")
-
-      implicit val hc: HeaderCarrier = HeaderCarrier(extraHeaders = Seq(apiTokenKey -> appConfig.authorization))
 
       stubS3Upload(id1)
       upload(Some(id1), file1, contentType, publishable = true).futureValue
@@ -393,8 +372,6 @@ class FileStoreSpec extends FileStoreHelpers {
 
       Given("A File has been uploaded")
 
-      implicit val hc: HeaderCarrier = HeaderCarrier(extraHeaders = Seq(apiTokenKey -> appConfig.authorization))
-
       upload(Some(id1), file1, contentType, publishable = true).futureValue
 
       When("Notify is Called")
@@ -421,8 +398,6 @@ class FileStoreSpec extends FileStoreHelpers {
     Scenario("Should persist the file to permanent storage") {
 
       Given("A File has been uploaded and marked as safe")
-
-      implicit val hc: HeaderCarrier = HeaderCarrier(extraHeaders = Seq(apiTokenKey -> appConfig.authorization))
 
       upload(Some(id1), file1, contentType, publishable = true).futureValue
 
@@ -454,8 +429,6 @@ class FileStoreSpec extends FileStoreHelpers {
     Scenario("Should mark an un-safe file as publishable, but not persist") {
 
       Given("A File has been uploaded and marked as quarantined")
-
-      implicit val hc: HeaderCarrier = HeaderCarrier(extraHeaders = Seq(apiTokenKey -> appConfig.authorization))
 
       upload(Some(id1), file1, contentType, publishable = true).futureValue
 
@@ -493,8 +466,6 @@ class FileStoreSpec extends FileStoreHelpers {
     Scenario("Should remove publishable file which has expired") {
 
       Given("A File has been uploaded and marked as safe")
-
-      implicit val hc: HeaderCarrier = HeaderCarrier(extraHeaders = Seq(apiTokenKey -> appConfig.authorization))
 
       upload(Some(id1), file1, contentType, publishable = true).futureValue
 

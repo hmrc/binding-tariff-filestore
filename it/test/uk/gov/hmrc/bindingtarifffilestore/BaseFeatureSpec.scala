@@ -49,7 +49,7 @@ abstract class BaseFeatureSpec
   override lazy val repository = new FileMetadataMongoRepository(mongoComponent)
 
   val testClient: WSClient = mkHttpClient().wsClient
-  val timeoutDuration      = 5
+  val timeoutDuration: Int = 5
 
   protected def hash: String => String = { s: String =>
     BaseEncoding.base64Url().encode(MessageDigest.getInstance("SHA-256").digest(s.getBytes("UTF-8")))

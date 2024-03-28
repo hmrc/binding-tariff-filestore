@@ -23,7 +23,6 @@ import play.api.libs.Files.SingletonTemporaryFileCreator
 import play.api.libs.json._
 import uk.gov.hmrc.bindingtarifffilestore.model._
 import uk.gov.hmrc.bindingtarifffilestore.model.upscan._
-import uk.gov.hmrc.bindingtarifffilestore.util.ResourceFiles
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, StringContextOps}
 
 import java.io.File
@@ -34,15 +33,24 @@ import scala.concurrent.Await.result
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.concurrent.duration._
+import scala.io.Source
 import scala.jdk.CollectionConverters._
 
-trait FileStoreHelpers extends WiremockFeatureTestServer with ResourceFiles {
+trait FileStoreHelpers extends WiremockFeatureTestServer {
+
+  private def fromFile(path: String): String = {
+    val url     = getClass.getClassLoader.getResource(path)
+    val source  = Source.fromURL(url, "UTF-8")
+    val content = source.getLines().mkString
+    source.close()
+    content
+  }
 
   val timeout: FiniteDuration = 5.seconds
 
   val serviceUrl = s"http://localhost:$port"
 
-  val filePath = "test/resources/file.txt"
+  val filePath = "it/test/resources/file.txt"
 
   def getFile(id: String)(implicit hc: HeaderCarrier): Future[HttpResponse] =
     httpClient.GET(url"$serviceUrl/file/$id")
