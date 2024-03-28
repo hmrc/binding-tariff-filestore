@@ -41,6 +41,7 @@ import uk.gov.hmrc.bindingtarifffilestore.util._
 import uk.gov.hmrc.http.HeaderCarrier
 
 import java.time.Instant
+import java.util.Collections
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future.{failed, successful}
 
@@ -76,6 +77,7 @@ class FileStoreControllerSpec
     val req = FakeRequest(method = "DELETE", path = "/file")
 
     "return 403 if the test mode is disabled" in {
+
       when(appConfig.isTestMode).thenReturn(false)
 
       val result = await(controller.deleteAll()(req))
@@ -237,10 +239,17 @@ class FileStoreControllerSpec
           downloadUrl = "url",
           uploadDetails = UploadDetails("file", "type", Instant.now(), "checksum")
         )
-      val attachment: FileMetadata         = FileMetadata(id = "id", fileName = Some("file"), mimeType = Some("type"))
+
+      val attachment: FileMetadata = FileMetadata(id = "id", fileName = Some("file"), mimeType = Some("type"))
       when(service.find(id = "id")).thenReturn(successful(Some(attachment)))
       when(service.notify(refEq(attachment), refEq(scanResult))(any[HeaderCarrier]))
-        .thenThrow(new MongoWriteException(new WriteError(code, "", new BsonDocument()), new ServerAddress()))
+        .thenThrow(
+          new MongoWriteException(
+            new WriteError(code, "", new BsonDocument()),
+            new ServerAddress(),
+            Collections.emptySet
+          )
+        )
 
       val request: FakeRequest[JsValue] = fakeRequest.withBody(Json.toJson[ScanResult](scanResult))
       val result: Result                = await(controller.notification(id = "id")(request))

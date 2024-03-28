@@ -133,7 +133,7 @@ class FileStoreSpec extends FileStoreHelpers {
 
       When("It is uploaded")
 
-      val response                   = upload(Some(id1), file1, contentType, publishable = true)
+      val response = upload(Some(id1), file1, contentType, publishable = true)
 
       Then("The response code should be Accepted")
       val result = response.futureValue
