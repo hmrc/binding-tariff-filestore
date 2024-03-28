@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 HM Revenue & Customs
+ * Copyright 2024 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -138,10 +138,10 @@ class FileStoreService @Inject() (
     val updatedAttachment = attachment.withScanResult(scanResult)
 
     scanResult match {
-      case FailedScanResult(_, details)        =>
+      case FailedScanResult(_, _, details)        =>
         log(attachment.id, s"Scan failed because it was [${details.failureReason}] with message [${details.message}]")
         repository.update(updatedAttachment)
-      case SuccessfulScanResult(_, _, details) =>
+      case SuccessfulScanResult(_, _, _, details) =>
         log(
           attachment.id,
           s"Scan succeeded with details [${details.fileName}, ${details.fileMimeType}, ${details.checksum}, ${details.uploadTimestamp}]"

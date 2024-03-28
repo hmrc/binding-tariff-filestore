@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 HM Revenue & Customs
+ * Copyright 2024 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -65,14 +65,14 @@ case class FileMetadata(
     }
 
   def withScanResult(scanResult: ScanResult): FileMetadata = scanResult match {
-    case SuccessfulScanResult(_, downloadUrl, uploadDetails) =>
+    case SuccessfulScanResult(_, _, downloadUrl, uploadDetails) =>
       copy(
         fileName = Some(uploadDetails.fileName),
         mimeType = Some(uploadDetails.fileMimeType),
         url = Some(downloadUrl),
         scanStatus = Some(ScanStatus.READY)
       )
-    case FailedScanResult(_, _)                              =>
+    case FailedScanResult(_, _, _)                              =>
       copy(scanStatus = Some(ScanStatus.FAILED))
   }
 
@@ -94,6 +94,8 @@ object FileMetadata {
       mimeType = None,
       publishable = request.publishable
     )
+
+  implicit val format: OFormat[FileMetadata] = Json.format[FileMetadata]
 }
 
 object FileMetadataREST {

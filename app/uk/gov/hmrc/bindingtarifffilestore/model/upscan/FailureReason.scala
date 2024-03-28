@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 HM Revenue & Customs
+ * Copyright 2024 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +16,8 @@
 
 package uk.gov.hmrc.bindingtarifffilestore.model.upscan
 
+import play.api.libs.json.Format
+import uk.gov.hmrc.bindingtarifffilestore.model.upscan
 import uk.gov.hmrc.bindingtarifffilestore.util.EnumJson
 
 object FailureReason extends Enumeration {
@@ -25,5 +27,5 @@ object FailureReason extends Enumeration {
   val REJECTED   = Value("REJECTED")
   val UNKNOWN    = Value("UNKNOWN")
 
-  implicit val format = EnumJson.format(FailureReason)
+  implicit val format: Format[upscan.FailureReason.Value] = EnumJson.format(FailureReason)
 }

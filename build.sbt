@@ -1,53 +1,31 @@
-import play.sbt.PlayImport.PlayKeys._
-import uk.gov.hmrc.DefaultBuildSettings._
+import uk.gov.hmrc.DefaultBuildSettings
 
 val appName = "binding-tariff-filestore"
 
+ThisBuild / scalaVersion := "2.13.13"
+ThisBuild / majorVersion := 0
+
 lazy val microservice = Project(appName, file("."))
-  .enablePlugins(PlayScala, SbtAutoBuildPlugin, SbtDistributablesPlugin)
+  .enablePlugins(PlayScala, SbtDistributablesPlugin)
   .disablePlugins(JUnitXmlReportPlugin) //Required to prevent https://github.com/scalatest/scalatest/issues/1427
-  // To resolve a bug with version 2.x.x of the scoverage plugin - https://github.com/sbt/sbt/issues/6997
-  .settings(libraryDependencySchemes ++= Seq("org.scala-lang.modules" %% "scala-xml" % VersionScheme.Always))
-  .settings(defaultSettings(): _*)
-  .settings(majorVersion := 0)
+  .settings(CodeCoverageSettings.settings)
   .settings(
-    scalaVersion := "2.13.11",
-    playDefaultPort := 9583,
+    Test / unmanagedSourceDirectories += baseDirectory.value / "test/util",
+    Test / resourceDirectory := baseDirectory.value / "test" / "resources"
+  )
+  .settings(
+    PlayKeys.playDefaultPort := 9583,
+    libraryDependencies ++= AppDependencies(),
     scalacOptions ++= Seq(
       "-feature",
       "-Wconf:src=routes/.*:s"
-    ),
-    libraryDependencies ++= AppDependencies(),
-    Test / fork := true,
-    retrieveManaged := true
-  )
-  .settings(inConfig(Test)(Defaults.testSettings): _*)
-  .settings(
-    Test / unmanagedSourceDirectories := Seq(
-      (Test / baseDirectory).value / "test/unit",
-      (Test / baseDirectory).value / "test/util"
-    ),
-    Test / resourceDirectory := baseDirectory.value / "test" / "resources",
-    addTestReportOption(Test, "test-reports")
-  )
-  .configs(IntegrationTest)
-  .settings(inConfig(IntegrationTest)(Defaults.itSettings): _*)
-  .settings(
-    integrationTestSettings(),
-    IntegrationTest / Keys.fork := true,
-    IntegrationTest / unmanagedSourceDirectories := Seq(
-      (IntegrationTest / baseDirectory).value / "test/it",
-      (IntegrationTest / baseDirectory).value / "test/util"
-    ),
-    IntegrationTest / resourceDirectory := baseDirectory.value / "test" / "resources",
-    addTestReportOption(IntegrationTest, "int-test-reports")
-  )
-  .settings(
-    // Coverage configuration
-    coverageMinimumStmtTotal := 99,
-    coverageFailOnMinimum := true,
-    coverageExcludedPackages := "<empty>;com.kenshoo.play.metrics.*;prod.*;testOnlyDoNotUseInAppConf.*;app.*;uk.gov.hmrc.BuildInfo"
+    )
   )
 
-addCommandAlias("scalafmtAll", "all scalafmtSbt scalafmt Test/scalafmt IntegrationTest/scalafmt")
-addCommandAlias("scalastyleAll", "all scalastyle Test/scalastyle IntegrationTest/scalastyle")
+lazy val it = project
+  .enablePlugins(PlayScala)
+  .dependsOn(microservice % "test->test")
+  .settings(DefaultBuildSettings.itSettings())
+
+addCommandAlias("scalafmtAll", "all scalafmtSbt scalafmt Test/scalafmt it/Test/scalafmt")
+addCommandAlias("scalastyleAll", "all scalastyle Test/scalastyle it/Test/scalastyle")
