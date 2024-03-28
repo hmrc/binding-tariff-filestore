@@ -27,7 +27,7 @@ import uk.gov.hmrc.bindingtarifffilestore.model.ScanStatus.{FAILED, READY}
 import uk.gov.hmrc.bindingtarifffilestore.model._
 import uk.gov.hmrc.bindingtarifffilestore.model.upscan.v2.{FileStoreInitiateResponse, UpscanFormTemplate}
 import uk.gov.hmrc.bindingtarifffilestore.repository.FileMetadataMongoRepository
-import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, StringContextOps}
+import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 
 import java.io.File
 import java.net.URI
@@ -431,9 +431,9 @@ class FileStoreSpec extends FileStoreHelpers {
 
       When("It is Published")
 
-      val publishResult: HttpResponse = await(publishUnsafeFile(id1), 10, TimeUnit.SECONDS)
+      val publishResult: HttpResponse = publishUnsafeFile(id1).futureValue
 
-      Then("The response code should be Forbidden")
+      Then("The response code should be ACCEPTED")
 
       publishResult.status shouldBe Status.ACCEPTED
 
@@ -474,18 +474,17 @@ class FileStoreSpec extends FileStoreHelpers {
 
       When("It is Published")
 
-      val publishResponse =
-        publishSafeFile(id1)
+      val publishResponse = publishSafeFile(id1)
 
       Then("The response code should be Not Found")
 
-      intercept[TestFailedException](publishResponse.futureValue).getMessage() should
-        include("Response body: '{\"code\":\"NOT_FOUND\",\"message\":\"File Not Found\"}'")
+      publishResponse.futureValue.status shouldBe Status.NOT_FOUND
 
       And("I can call GET and see the file does not exist")
+
       val getFileResult = getFile(id1)
-      intercept[TestFailedException](getFileResult.futureValue).getMessage() should
-        include("Response body: '{\"code\":\"NOT_FOUND\",\"message\":\"File Not Found\"}'")
+
+      getFileResult.futureValue.status shouldBe Status.NOT_FOUND
     }
   }
 

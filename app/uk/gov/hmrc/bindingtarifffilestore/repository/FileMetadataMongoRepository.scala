@@ -19,6 +19,7 @@ package uk.gov.hmrc.bindingtarifffilestore.repository
 import org.mongodb.scala.bson.conversions.Bson
 import org.mongodb.scala.model.Filters._
 import org.mongodb.scala.model._
+import org.mongodb.scala.result.UpdateResult
 import uk.gov.hmrc.bindingtarifffilestore.model._
 import uk.gov.hmrc.bindingtarifffilestore.util.Logging
 import uk.gov.hmrc.mongo.MongoComponent
@@ -74,9 +75,10 @@ class FileMetadataMongoRepository @Inject() (mongoComponent: MongoComponent)(imp
   }
 
   def update(att: FileMetadata): Future[Option[FileMetadata]] = {
-    val updatedMetadata = collection
-      .replaceOne(byId(att.id), att.copy(lastUpdated = Instant.now()), ReplaceOptions().upsert(false))
-      .toFutureOption()
+    val updatedMetadata: Future[Option[UpdateResult]] =
+      collection
+        .replaceOne(byId(att.id), att.copy(lastUpdated = Instant.now()), ReplaceOptions().upsert(false))
+        .toFutureOption()
 
     updatedMetadata.flatMap(_ => collection.find[FileMetadata](byId(att.id)).first().toFutureOption())
   }

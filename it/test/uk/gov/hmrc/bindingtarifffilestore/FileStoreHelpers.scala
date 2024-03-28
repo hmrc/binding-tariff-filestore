@@ -36,6 +36,8 @@ import scala.concurrent.duration._
 import scala.io.Source
 import scala.jdk.CollectionConverters._
 
+import uk.gov.hmrc.http.HttpReads.Implicits._
+
 trait FileStoreHelpers extends WiremockFeatureTestServer {
 
   private def fromFile(path: String): String = {
