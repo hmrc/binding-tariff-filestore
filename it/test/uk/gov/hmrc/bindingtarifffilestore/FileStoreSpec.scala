@@ -116,7 +116,7 @@ class FileStoreSpec extends FileStoreHelpers {
 
       And("the are no files")
 
-      val getFileResponse = getFiles(Seq("id" -> id1, "id" -> "doc_id_2")).futureValue
+      val getFileResponse = getFiles(Seq("id" -> id1, "id" -> id2)).futureValue
 
       val fileResult = getFileResponse
 
@@ -132,9 +132,6 @@ class FileStoreSpec extends FileStoreHelpers {
       Given("A Client of the FileStore has a file")
 
       When("It is uploaded")
-
-      implicit val hc: HeaderCarrier =
-        HeaderCarrier(extraHeaders = Seq(apiTokenKey -> appConfig.authorization))
 
       val response                   = upload(Some(id1), file1, contentType, publishable = true)
 
@@ -254,7 +251,7 @@ class FileStoreSpec extends FileStoreHelpers {
 
       When("I request the file details")
 
-      val getFilesResult = getFiles(Seq("id" -> id1, "id" -> "doc_id_2")).futureValue
+      val getFilesResult = getFiles(Seq("id" -> id1, "id" -> id2)).futureValue
 
       Then("The response code should be Ok")
 
@@ -301,7 +298,7 @@ class FileStoreSpec extends FileStoreHelpers {
       dbFileStoreSize shouldBe 2
 
       When("I request the file details")
-      val getFilesResult = getFiles(Seq("id" -> id1, "id" -> "doc_id_2")).futureValue
+      val getFilesResult = getFiles(Seq("id" -> id1, "id" -> id2)).futureValue
 
       Then("The response code should be Ok")
       getFilesResult.status shouldBe Status.OK
@@ -315,8 +312,6 @@ class FileStoreSpec extends FileStoreHelpers {
     Scenario("Should return all files for empty search") {
 
       Given("Files have been uploaded")
-
-      val id2 = "doc_id_2"
 
       upload(Some(id1), file1, contentType, publishable = true).futureValue
       upload(Some(id2), file2, contentType, publishable = false).futureValue
