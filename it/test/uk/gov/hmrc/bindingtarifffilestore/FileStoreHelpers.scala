@@ -23,6 +23,7 @@ import play.api.libs.Files.SingletonTemporaryFileCreator
 import uk.gov.hmrc.bindingtarifffilestore.model._
 import uk.gov.hmrc.bindingtarifffilestore.model.upscan._
 import uk.gov.hmrc.bindingtarifffilestore.model.upscan.v2.FileStoreInitiateRequest
+import uk.gov.hmrc.http.HttpReads.Implicits._
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, StringContextOps}
 
 import java.io.File
@@ -35,8 +36,6 @@ import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.io.Source
 import scala.jdk.CollectionConverters._
-
-import uk.gov.hmrc.http.HttpReads.Implicits._
 
 trait FileStoreHelpers extends WiremockFeatureTestServer {
 
@@ -63,7 +62,8 @@ trait FileStoreHelpers extends WiremockFeatureTestServer {
   def deleteFile(id: String)(implicit hc: HeaderCarrier): Future[HttpResponse] = {
     stubS3DeleteOne(id)
 
-    val response: Future[HttpResponse] = httpClient.DELETE(url"$serviceUrl/file/$id")
+    val response: Future[HttpResponse] =
+      httpClient.DELETE[HttpResponse](url"$serviceUrl/file/$id")
     response
   }
 
