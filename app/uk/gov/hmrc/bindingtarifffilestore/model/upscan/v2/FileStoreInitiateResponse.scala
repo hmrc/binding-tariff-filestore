@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 HM Revenue & Customs
+ * Copyright 2024 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,6 +21,7 @@ import play.api.libs.json.{Json, OFormat}
 case class FileStoreInitiateResponse(id: String, upscanReference: String, uploadRequest: UpscanFormTemplate)
 
 object FileStoreInitiateResponse {
+
   implicit val format: OFormat[FileStoreInitiateResponse] = Json.format[FileStoreInitiateResponse]
 
   def fromUpscanResponse(id: String, response: UpscanInitiateResponse): FileStoreInitiateResponse =
