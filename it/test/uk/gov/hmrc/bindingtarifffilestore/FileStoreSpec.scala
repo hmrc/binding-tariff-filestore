@@ -16,13 +16,11 @@
 
 package uk.gov.hmrc.bindingtarifffilestore
 
-import org.scalatest.exceptions.TestFailedException
 import play.api.Application
 import play.api.http.Status
 import play.api.inject.bind
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json._
-import play.api.test.Helpers.await
 import uk.gov.hmrc.bindingtarifffilestore.model.ScanStatus.{FAILED, READY}
 import uk.gov.hmrc.bindingtarifffilestore.model._
 import uk.gov.hmrc.bindingtarifffilestore.model.upscan.v2.{FileStoreInitiateResponse, UpscanFormTemplate}
@@ -31,7 +29,6 @@ import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 
 import java.io.File
 import java.net.URI
-import java.util.concurrent.TimeUnit
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
@@ -45,7 +42,7 @@ class FileStoreSpec extends FileStoreHelpers {
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder()
       .configure(
-        "s3.endpoint"                                -> s"http://localhost:$wirePort",
+        "s3.endpoint" -> s"http://localhost:$wirePort",
         "microservice.services.upscan-initiate.port" -> s"$wirePort"
       )
       .overrides(bind[FileMetadataMongoRepository].to(repository))
@@ -54,8 +51,8 @@ class FileStoreSpec extends FileStoreHelpers {
   val id1 = "doc_id_1"
   val id2 = "doc_id_2"
 
-  val file1       = "some-file-1.txt"
-  val file2       = "some-file-2.txt"
+  val file1 = "some-file-1.txt"
+  val file2 = "some-file-2.txt"
   val contentType = "text/plain"
 
   implicit val hc: HeaderCarrier =
@@ -121,7 +118,7 @@ class FileStoreSpec extends FileStoreHelpers {
       val fileResult = getFileResponse
 
       fileResult.status shouldBe Status.OK
-      fileResult.body   shouldBe "[]"
+      fileResult.body shouldBe "[]"
     }
   }
 
@@ -162,7 +159,7 @@ class FileStoreSpec extends FileStoreHelpers {
       And("The response body contains the file upload template")
       val fileStoreInitiateResponse = result.json.as[FileStoreInitiateResponse]
 
-      fileStoreInitiateResponse.uploadRequest.href   shouldBe "http://localhost:20001/upscan/upload"
+      fileStoreInitiateResponse.uploadRequest.href shouldBe "http://localhost:20001/upscan/upload"
       fileStoreInitiateResponse.uploadRequest.fields shouldBe Map("key" -> "value")
     }
   }
@@ -185,7 +182,7 @@ class FileStoreSpec extends FileStoreHelpers {
 
       val fileStoreInitiateResult = result.json.as[FileStoreInitiateResponse]
 
-      fileStoreInitiateResult.uploadRequest.href   shouldBe "http://localhost:20001/upscan/upload"
+      fileStoreInitiateResult.uploadRequest.href shouldBe "http://localhost:20001/upscan/upload"
       fileStoreInitiateResult.uploadRequest.fields shouldBe Map("key" -> "value")
 
     }
@@ -219,8 +216,8 @@ class FileStoreSpec extends FileStoreHelpers {
       Given("A file has been uploaded")
 
       val uploadResponse = upload(Some(id1), file1, contentType, publishable = true)
-      val uploadResult   = uploadResponse.futureValue
-      val id: String     = uploadResult.json.as[UploadTemplate].id
+      val uploadResult = uploadResponse.futureValue
+      val id: String = uploadResult.json.as[UploadTemplate].id
 
       When("I request the file details")
       val getFileResponse = getFile(id)
@@ -259,8 +256,8 @@ class FileStoreSpec extends FileStoreHelpers {
 
       And("The response body contains the file details")
 
-      (getFilesResult.json \\ "fileName").map(_.as[String]).toSeq     shouldBe Seq(file1, file2)
-      (getFilesResult.json \\ "mimeType").map(_.as[String]).toSeq     shouldBe Seq(contentType, contentType)
+      (getFilesResult.json \\ "fileName").map(_.as[String]).toSeq shouldBe Seq(file1, file2)
+      (getFilesResult.json \\ "mimeType").map(_.as[String]).toSeq shouldBe Seq(contentType, contentType)
       (getFilesResult.json \\ "publishable").map(_.as[Boolean]).toSeq shouldBe Seq(true, false)
     }
 
@@ -305,7 +302,7 @@ class FileStoreSpec extends FileStoreHelpers {
 
       And("The response body contains the file details")
 
-      getFilesResult.json.asInstanceOf[JsArray].value.size        shouldBe 2
+      getFilesResult.json.asInstanceOf[JsArray].value.size shouldBe 2
       (getFilesResult.json \\ "fileName").map(_.as[String]).toSeq shouldBe Seq(file1, file2)
     }
 
@@ -326,7 +323,7 @@ class FileStoreSpec extends FileStoreHelpers {
 
       And("The response body contains the file details")
 
-      getFilesResult.json.asInstanceOf[JsArray].value.size        shouldBe 2
+      getFilesResult.json.asInstanceOf[JsArray].value.size shouldBe 2
       (getFilesResult.json \\ "fileName").map(_.as[String]).toSeq shouldBe Seq(file1, file2)
     }
   }
@@ -381,7 +378,7 @@ class FileStoreSpec extends FileStoreHelpers {
 
       (result.json \\ "fileName").map(_.as[String]).toSeq shouldBe Seq(file1)
       (result.json \\ "mimeType").map(_.as[String]).toSeq shouldBe Seq(contentType)
-      (result.json \\ "url").map(_.as[String]).toSeq      shouldBe Seq()
+      (result.json \\ "url").map(_.as[String]).toSeq shouldBe Seq()
 
       And("The response shows the file is marked as quarantined")
       (result.json \\ "scanStatus").map(_.as[String]).toSeq shouldBe Seq(FAILED.toString)
@@ -407,11 +404,11 @@ class FileStoreSpec extends FileStoreHelpers {
 
       And("The response body contains the file details")
 
-      (result.json \\ "fileName").map(_.as[String]).toSeq     shouldBe Seq(file1)
-      (result.json \\ "mimeType").map(_.as[String]).toSeq     shouldBe Seq(contentType)
-      (result.json \\ "scanStatus").map(_.as[String]).toSeq   shouldBe Seq(READY.toString)
+      (result.json \\ "fileName").map(_.as[String]).toSeq shouldBe Seq(file1)
+      (result.json \\ "mimeType").map(_.as[String]).toSeq shouldBe Seq(contentType)
+      (result.json \\ "scanStatus").map(_.as[String]).toSeq shouldBe Seq(READY.toString)
       (result.json \\ "publishable").map(_.as[Boolean]).toSeq shouldBe Seq(true)
-      (result.json \\ "published").map(_.as[Boolean]).toSeq   shouldBe Seq(true)
+      (result.json \\ "published").map(_.as[Boolean]).toSeq shouldBe Seq(true)
 
       And("The response shows the file published")
 
@@ -439,11 +436,11 @@ class FileStoreSpec extends FileStoreHelpers {
 
       And("The response body contains the file details")
 
-      (publishResult.json \\ "fileName").map(_.as[String]).toSeq     shouldBe Seq(file1)
-      (publishResult.json \\ "mimeType").map(_.as[String]).toSeq     shouldBe Seq(contentType)
-      (publishResult.json \\ "scanStatus").map(_.as[String]).toSeq   shouldBe Seq(FAILED.toString)
+      (publishResult.json \\ "fileName").map(_.as[String]).toSeq shouldBe Seq(file1)
+      (publishResult.json \\ "mimeType").map(_.as[String]).toSeq shouldBe Seq(contentType)
+      (publishResult.json \\ "scanStatus").map(_.as[String]).toSeq shouldBe Seq(FAILED.toString)
       (publishResult.json \\ "publishable").map(_.as[Boolean]).toSeq shouldBe Seq(true)
-      (publishResult.json \\ "published").map(_.as[Boolean]).toSeq   shouldBe Seq(false)
+      (publishResult.json \\ "published").map(_.as[Boolean]).toSeq shouldBe Seq(false)
 
       And("I can call GET and see the file is unpublished")
 
@@ -451,11 +448,11 @@ class FileStoreSpec extends FileStoreHelpers {
 
       getResult.status shouldBe Status.OK
 
-      (getResult.json \\ "fileName").map(_.as[String]).toSeq     shouldBe Seq(file1)
-      (getResult.json \\ "mimeType").map(_.as[String]).toSeq     shouldBe Seq(contentType)
-      (getResult.json \\ "scanStatus").map(_.as[String]).toSeq   shouldBe Seq(FAILED.toString)
+      (getResult.json \\ "fileName").map(_.as[String]).toSeq shouldBe Seq(file1)
+      (getResult.json \\ "mimeType").map(_.as[String]).toSeq shouldBe Seq(contentType)
+      (getResult.json \\ "scanStatus").map(_.as[String]).toSeq shouldBe Seq(FAILED.toString)
       (getResult.json \\ "publishable").map(_.as[Boolean]).toSeq shouldBe Seq(true)
-      (getResult.json \\ "published").map(_.as[Boolean]).toSeq   shouldBe Seq(false)
+      (getResult.json \\ "published").map(_.as[Boolean]).toSeq shouldBe Seq(false)
     }
 
     Scenario("Should remove publishable file which has expired") {
