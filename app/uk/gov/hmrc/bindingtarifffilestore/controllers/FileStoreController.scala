@@ -16,12 +16,9 @@
 
 package uk.gov.hmrc.bindingtarifffilestore.controllers
 
-import java.util.UUID
-
-import javax.inject.{Inject, Singleton}
 import play.api.Logging
 import play.api.libs.Files.TemporaryFile
-import play.api.libs.json.Json
+import play.api.libs.json.{JsValue, Json}
 import play.api.mvc._
 import uk.gov.hmrc.bindingtarifffilestore.config.AppConfig
 import uk.gov.hmrc.bindingtarifffilestore.model.FileMetadataREST._
@@ -32,8 +29,9 @@ import uk.gov.hmrc.bindingtarifffilestore.service.FileStoreService
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
+import java.util.UUID
+import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
-import play.api.libs.json.JsValue
 
 @Singleton
 class FileStoreController @Inject() (
@@ -79,7 +77,7 @@ class FileStoreController @Inject() (
       asJson[FileStoreInitiateRequest] { fileStoreRequest =>
         service
           .initiateV2(fileStoreRequest)
-          .map(response => Accepted(Json.toJson(response)))
+          .map((response: FileStoreInitiateResponse) => Accepted(Json.toJson(response)))
       }
     }
   }
@@ -101,6 +99,7 @@ class FileStoreController @Inject() (
   }
 
   def get(id: String): Action[AnyContent] = Action.async {
+    logger.info(s"[FileStoreController][get] File: $id")
     withFileMetadata(id)(meta => Future.successful(Ok(Json.toJson(meta))))
   }
 
@@ -118,6 +117,7 @@ class FileStoreController @Inject() (
 
   def publish(id: String): Action[AnyContent] = withErrorHandling { implicit request =>
     withFileMetadata(id) { meta =>
+      logger.info(s"[FileStoreController][publish] file id:$id  fileMetaData: $meta")
       service.publish(meta).map {
         case Some(updatedMeta) =>
           Accepted(Json.toJson(updatedMeta))
@@ -155,7 +155,10 @@ class FileStoreController @Inject() (
     }
 
     attachment
-      .map(service.upload(_).map(f => Accepted(Json.toJson(f))))
+      .map { fileWithMetadata =>
+        logger.info(s"[FileStoreController][get] File: $id, ${fileWithMetadata.metadata}")
+        service.upload(fileWithMetadata).map(f => Accepted(Json.toJson(f)))
+      }
       .getOrElse(Future.successful(BadRequest(JsErrorResponse(ErrorCode.INVALID_REQUEST_PAYLOAD, "Invalid File"))))
   }
 }
