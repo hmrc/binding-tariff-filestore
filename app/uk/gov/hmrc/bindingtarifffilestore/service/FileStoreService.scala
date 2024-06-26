@@ -27,6 +27,8 @@ import uk.gov.hmrc.bindingtarifffilestore.model.upscan._
 import uk.gov.hmrc.bindingtarifffilestore.repository.FileMetadataMongoRepository
 import uk.gov.hmrc.bindingtarifffilestore.util.HashUtil
 import uk.gov.hmrc.http.HeaderCarrier
+import java.util.Base64
+import java.nio.charset.StandardCharsets
 
 import java.util.UUID
 import javax.inject.{Inject, Singleton}
@@ -44,13 +46,17 @@ class FileStoreService @Inject() (
 
   private lazy val authToken = HashUtil.hash(appConfig.authorization)
 
+  private def encodeInBase64(text: String): String =
+    Base64.getEncoder.encodeToString(text.getBytes(StandardCharsets.UTF_8))
+
   // Initiates an upload for a POST direct to Upscan
   def initiate(metadata: FileMetadata)(implicit hc: HeaderCarrier): Future[UploadTemplate] = {
     val fileId = metadata.id
     logger.info(s"[FileStoreService][initiate] File: $fileId")
     for {
       _                <- repository.insertFile(metadata)
-      initiateResponse <- upscanInitiate(metadata)
+      initiateResponse: UpscanInitiateResponse <- upscanInitiate(metadata)
+      _ =     logger.info(s"[FileStoreService][initiateV2] ${encodeInBase64(metadata.toString)}")
       template          = initiateResponse.uploadRequest
     } yield UploadTemplate(fileId, template.href, template.fields)
   }
@@ -70,7 +76,7 @@ class FileStoreService @Inject() (
     val fileMetadata: FileMetadata = FileMetadata.fromInitiateRequestV2(fileId, request)
     val upscanRequest              = v2.UpscanInitiateRequest.fromFileStoreRequest(callbackUrl, appConfig, request)
 
-    logger.info(s"[FileStoreService][initiateV2] $fileMetadata")
+    logger.info(s"[FileStoreService][initiateV2] ${encodeInBase64(fileMetadata.toString)}")
     for {
       update           <- repository.insertFile(fileMetadata)
       initiateResponse <- upscanConnector.initiateV2(upscanRequest)
@@ -90,7 +96,7 @@ class FileStoreService @Inject() (
   def upload(fileWithMetadata: FileWithMetadata)(implicit hc: HeaderCarrier): Future[Option[FileMetadata]] = {
     val fileId = fileWithMetadata.metadata.id
 
-    logger.info(s"[FileStoreService][upload]")
+    logger.info(s"[FileStoreService][upload] Uploading file $fileId")
     for {
       update           <- repository.insertFile(fileWithMetadata.metadata)
       initiateResponse <- upscanInitiate(fileWithMetadata.metadata)
@@ -142,7 +148,7 @@ class FileStoreService @Inject() (
         repository.update(updatedAttachment)
       case SuccessfulScanResult(_, _, _, details) =>
         logger.info(
-          s"[FileStoreService][notify] Attachement File: ${attachment.id}, Scan succeeded with details [${details.fileName}, ${details.fileMimeType}, ${details.checksum}, ${details.uploadTimestamp}]"
+          s"[FileStoreService][notify] Attachement File: ${attachment.id}, Scan succeeded with details [fileName: ${encodeInBase64(details.fileName)}, fileMimeType:${details.fileMimeType}, checksum:${encodeInBase64(details.checksum)}, ${details.uploadTimestamp}]"
         )
         if (updatedAttachment.publishable) {
           for {

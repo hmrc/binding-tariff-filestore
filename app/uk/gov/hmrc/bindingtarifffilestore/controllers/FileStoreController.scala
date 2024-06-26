@@ -99,7 +99,6 @@ class FileStoreController @Inject() (
   }
 
   def get(id: String): Action[AnyContent] = Action.async {
-    logger.info(s"[FileStoreController][get] File: $id")
     withFileMetadata(id)(meta => Future.successful(Ok(Json.toJson(meta))))
   }
 
@@ -117,7 +116,6 @@ class FileStoreController @Inject() (
 
   def publish(id: String): Action[AnyContent] = withErrorHandling { implicit request =>
     withFileMetadata(id) { meta =>
-      logger.info(s"[FileStoreController][publish] file id:$id  fileMetaData: $meta")
       service.publish(meta).map {
         case Some(updatedMeta) =>
           Accepted(Json.toJson(updatedMeta))
@@ -156,7 +154,6 @@ class FileStoreController @Inject() (
 
     attachment
       .map { fileWithMetadata =>
-        logger.info(s"[FileStoreController][get] File: $id, ${fileWithMetadata.metadata}")
         service.upload(fileWithMetadata).map(f => Accepted(Json.toJson(f)))
       }
       .getOrElse(Future.successful(BadRequest(JsErrorResponse(ErrorCode.INVALID_REQUEST_PAYLOAD, "Invalid File"))))
