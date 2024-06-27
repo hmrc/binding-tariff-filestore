@@ -52,11 +52,12 @@ class FileMetadataMongoRepository @Inject() (mongoComponent: MongoComponent)(imp
 
     val filters = Seq(optionalIdsFilter, optionalPublishedFilter).flatten
 
-    val query = if (filters.isEmpty) {
-      empty()
-    } else {
-      and(filters: _*)
-    }
+    val query =
+      if (filters.isEmpty) {
+        empty()
+      } else {
+        and(filters: _*)
+      }
 
     collection
       .find(query)
