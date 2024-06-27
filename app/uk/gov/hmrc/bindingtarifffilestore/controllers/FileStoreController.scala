@@ -56,11 +56,11 @@ class FileStoreController @Inject() (
     service.find(id).flatMap {
       case Some(meta) =>
         logger.info(
-          s"[FileStoreController][withFileMetadata] Attachement File: $id, Scan succeeded with details fileMetadata: $meta"
+          s"[FileStoreController][withFileMetadata] Attachement File: $id, Scan succeeded with details fileMetadata: ${encodeInBase64(meta.toString)}"
         )
         f(meta)
       case None       =>
-        logger.info(s"[FileStoreController][withFileMetadata] FileNotFound")
+        logger.warn(s"[FileStoreController][withFileMetadata] FileNotFound")
         Future.successful(FileNotFound)
     }
 
