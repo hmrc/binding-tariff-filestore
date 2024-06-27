@@ -46,7 +46,7 @@ class FileStoreService @Inject() (
 
   private lazy val authToken = HashUtil.hash(appConfig.authorization)
 
-  private def encodeInBase64(text: String): String =
+  def encodeInBase64(text: String): String =
     Base64.getEncoder.encodeToString(text.getBytes(StandardCharsets.UTF_8))
 
   // Initiates an upload for a POST direct to Upscan
@@ -54,10 +54,10 @@ class FileStoreService @Inject() (
     val fileId = metadata.id
     logger.info(s"[FileStoreService][initiate] File: $fileId")
     for {
-      _                <- repository.insertFile(metadata)
+      _                                        <- repository.insertFile(metadata)
       initiateResponse: UpscanInitiateResponse <- upscanInitiate(metadata)
-      _ =     logger.info(s"[FileStoreService][initiateV2] ${encodeInBase64(metadata.toString)}")
-      template          = initiateResponse.uploadRequest
+      _                                         = logger.info(s"[FileStoreService][initiateV2] ${encodeInBase64(metadata.toString)}")
+      template                                  = initiateResponse.uploadRequest
     } yield UploadTemplate(fileId, template.href, template.fields)
   }
 
@@ -148,7 +148,9 @@ class FileStoreService @Inject() (
         repository.update(updatedAttachment)
       case SuccessfulScanResult(_, _, _, details) =>
         logger.info(
-          s"[FileStoreService][notify] Attachement File: ${attachment.id}, Scan succeeded with details [fileName: ${encodeInBase64(details.fileName)}, fileMimeType:${details.fileMimeType}, checksum:${encodeInBase64(details.checksum)}, ${details.uploadTimestamp}]"
+          s"[FileStoreService][notify] Attachement File: ${attachment.id}, Scan succeeded with details [fileName: ${encodeInBase64(
+            details.fileName
+          )}, fileMimeType:${details.fileMimeType}, checksum:${encodeInBase64(details.checksum)}, ${details.uploadTimestamp}]"
         )
         if (updatedAttachment.publishable) {
           for {

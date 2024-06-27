@@ -29,7 +29,8 @@ import uk.gov.hmrc.bindingtarifffilestore.service.FileStoreService
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
-import java.util.UUID
+import java.nio.charset.StandardCharsets
+import java.util.{Base64, UUID}
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -48,11 +49,18 @@ class FileStoreController @Inject() (
   private lazy val FileNotFound =
     NotFound(JsErrorResponse(ErrorCode.NOTFOUND, "File Not Found"))
 
+  def encodeInBase64(text: String): String =
+    Base64.getEncoder.encodeToString(text.getBytes(StandardCharsets.UTF_8))
+
   private def withFileMetadata(id: String)(f: FileMetadata => Future[Result]): Future[Result] =
     service.find(id).flatMap {
       case Some(meta) =>
+        logger.info(
+          s"[FileStoreController][withFileMetadata] Attachement File: $id, Scan succeeded with details fileMetadata: $meta"
+        )
         f(meta)
       case None       =>
+        logger.info(s"[FileStoreController][withFileMetadata] FileNotFound")
         Future.successful(FileNotFound)
     }
 
