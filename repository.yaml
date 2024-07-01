@@ -4,3 +4,4 @@ test-repositories:
   - digital-tariffs-acceptance-tests
   - digital-tariffs-operational-performance-tests
   - digital-tariffs-trader-performance-tests
+  - digital-tariffs-ruling-performance-tests
