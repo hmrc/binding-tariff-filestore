@@ -22,7 +22,6 @@ import org.mockito.BDDMockito.given
 import org.mockito.Mockito._
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.concurrent.Eventually
-import org.scalatestplus.mockito.MockitoSugar
 import play.api.libs.Files.TemporaryFile
 import uk.gov.hmrc.bindingtarifffilestore.audit.AuditService
 import uk.gov.hmrc.bindingtarifffilestore.config.{AppConfig, FileStoreSizeConfiguration}
@@ -38,13 +37,13 @@ import scala.concurrent.ExecutionContext
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future.{failed, successful}
 
-class FileStoreServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfterEach with Eventually {
+class FileStoreServiceSpec extends UnitSpec with BeforeAndAfterEach with Eventually {
 
-  private val config: AppConfig                       = mock[AppConfig]
-  private val s3Connector: AmazonS3Connector          = mock[AmazonS3Connector]
-  private val repository: FileMetadataMongoRepository = mock[FileMetadataMongoRepository]
-  private val upscanConnector: UpscanConnector        = mock[UpscanConnector]
-  private val auditService: AuditService              = mock[AuditService]
+  private val config: AppConfig                       = mock(classOf[AppConfig])
+  private val s3Connector: AmazonS3Connector          = mock(classOf[AmazonS3Connector])
+  private val repository: FileMetadataMongoRepository = mock(classOf[FileMetadataMongoRepository])
+  private val upscanConnector: UpscanConnector        = mock(classOf[UpscanConnector])
+  private val auditService: AuditService              = mock(classOf[AuditService])
 
   private implicit val hc: HeaderCarrier = HeaderCarrier()
 
@@ -109,8 +108,8 @@ class FileStoreServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfte
   "Service 'getAll by id' " should {
 
     "Delegate to Connector" in {
-      val attachment       = mock[FileMetadata]
-      val attachmentSigned = mock[FileMetadata]
+      val attachment       = mock(classOf[FileMetadata], "attachment")
+      val attachmentSigned = mock(classOf[FileMetadata], "attachmentSigned")
 
       given(attachment.published).willReturn(true)
       given(repository.get("id")).willReturn(successful(Some(attachment)))
@@ -120,7 +119,7 @@ class FileStoreServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfte
     }
 
     "Not sign unpublished files" in {
-      val attachment = mock[FileMetadata]
+      val attachment = mock(classOf[FileMetadata])
       given(repository.get("id")).willReturn(successful(Some(attachment)))
 
       await(service.find("id")) shouldBe Some(attachment)
@@ -138,10 +137,10 @@ class FileStoreServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfte
     }
 
     "return all attachment requested already signed" in {
-      val attachment1 = mock[FileMetadata]
-      val attSigned1  = mock[FileMetadata]
+      val attachment1 = mock(classOf[FileMetadata], "attachment")
+      val attSigned1  = mock(classOf[FileMetadata], "attachmentSigned")
 
-      val attachment2 = mock[FileMetadata]
+      val attachment2 = mock(classOf[FileMetadata], "attachment2")
 
       given(attachment1.published).willReturn(true)
       given(s3Connector.sign(attachment1)).willReturn(attSigned1)
@@ -158,7 +157,7 @@ class FileStoreServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfte
 
     "Delegate to Connector" in {
       val fileMetadata        = FileMetadata(id = "id", fileName = Some("file"), mimeType = Some("text/plain"))
-      val fileMetaDataCreated = mock[FileMetadata]
+      val fileMetaDataCreated = mock(classOf[FileMetadata])
       val uploadTemplate      = UpscanTemplate(href = "href", fields = Map("key" -> "value"))
       val initiateResponse    = UpscanInitiateResponse("ref", uploadTemplate)
 
@@ -224,11 +223,11 @@ class FileStoreServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfte
   }
 
   "Service 'upload'" should {
-    val file: TemporaryFile                      = mock[TemporaryFile]
+    val file: TemporaryFile                      = mock(classOf[TemporaryFile])
     val fileMetadata: FileMetadata               = FileMetadata(id = "id", fileName = Some("file"), mimeType = Some("text/plain"))
     val fileWithMetadata: FileWithMetadata       = FileWithMetadata(file, fileMetadata)
-    val fileMetaDataCreated: FileMetadata        = mock[FileMetadata]
-    val uploadTemplate: UpscanTemplate           = mock[UpscanTemplate]
+    val fileMetaDataCreated: FileMetadata        = mock(classOf[FileMetadata])
+    val uploadTemplate: UpscanTemplate           = mock(classOf[UpscanTemplate])
     val initiateResponse: UpscanInitiateResponse = UpscanInitiateResponse("ref", uploadTemplate)
 
     "Delegate to Connector" in {
@@ -238,7 +237,8 @@ class FileStoreServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfte
       given(repository.insertFile(fileMetadata)).willReturn(successful(Some(fileMetaDataCreated)))
 
       given(upscanConnector.initiate(any[UploadSettings])(any[HeaderCarrier])).willReturn(successful(initiateResponse))
-      given(upscanConnector.upload(any[UpscanTemplate], any[FileWithMetadata])).willReturn(successful((): Unit))
+      given(upscanConnector.upload(any[UpscanTemplate], any[FileWithMetadata])(any[HeaderCarrier]))
+        .willReturn(successful((): Unit))
 
       await(service.upload(fileWithMetadata)) shouldBe Some(fileMetaDataCreated)
 
@@ -259,7 +259,7 @@ class FileStoreServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfte
       given(repository.insertFile(fileMetadata)).willReturn(successful(Some(fileMetaDataCreated)))
 
       given(upscanConnector.initiate(any[UploadSettings])(any[HeaderCarrier])).willReturn(successful(initiateResponse))
-      given(upscanConnector.upload(any[UpscanTemplate], any[FileWithMetadata]))
+      given(upscanConnector.upload(any[UpscanTemplate], any[FileWithMetadata])(any[HeaderCarrier]))
         .willReturn(failed(new Exception("Test")))
 
       val result = await(service.upload(fileWithMetadata))
@@ -277,7 +277,7 @@ class FileStoreServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfte
 
     "Update the attachment for Successful Scan and Delegate to Connector" in {
       val attachment         = FileMetadata(id = "id", fileName = Some("file"), mimeType = Some("type"))
-      val attachmentUpdated  = mock[FileMetadata]("updated")
+      val attachmentUpdated  = mock(classOf[FileMetadata], "AttachmentUpdated")
       val uploadDetails      = UploadDetails("file", "type", Instant.now(), "checksum")
       val scanResult         = SuccessfulScanResult(reference = "ref", downloadUrl = "url", uploadDetails = uploadDetails)
       val expectedAttachment = attachment.copy(url = Some("url"), scanStatus = Some(ScanStatus.READY))
@@ -292,15 +292,15 @@ class FileStoreServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfte
     }
 
     "Call publish when notifying published files" in {
-      val attachment                 = mock[FileMetadata]("Attachment")
+      val attachment                 = mock(classOf[FileMetadata], "Attachment")
       val uploadDetails              = UploadDetails("file", "type", Instant.now(), "checksum")
       val scanResult                 = SuccessfulScanResult(reference = "ref", downloadUrl = "url", uploadDetails = uploadDetails)
-      val attachmentUpdating         = mock[FileMetadata]("AttachmentUpdating")
-      val attachmentUpdated          = mock[FileMetadata]("AttachmentUpdated")
-      val attachmentUploaded         = mock[FileMetadata]("AttachmentUploaded")
-      val attachmentUploadedUpdating = mock[FileMetadata]("AttachmentUploadedUpdating")
-      val attachmentUploadedUpdated  = mock[FileMetadata]("AttachmentUploadedAndUpdated")
-      val attachmentSigned           = mock[FileMetadata]("AttachmentSigned")
+      val attachmentUpdating         = mock(classOf[FileMetadata], "AttachmentUpdating")
+      val attachmentUpdated          = mock(classOf[FileMetadata], "AttachmentUpdated")
+      val attachmentUploaded         = mock(classOf[FileMetadata], "AttachmentUploaded")
+      val attachmentUploadedUpdating = mock(classOf[FileMetadata], "AttachmentUploadedUpdating")
+      val attachmentUploadedUpdated  = mock(classOf[FileMetadata], "AttachmentUploadedUpdated")
+      val attachmentSigned           = mock(classOf[FileMetadata], "AttachmentSigned")
 
       given(attachment.withScanResult(scanResult)).willReturn(attachmentUpdating)
       given(attachment.publishable).willReturn(true)
@@ -348,13 +348,13 @@ class FileStoreServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfte
 
     def test(value: Boolean): Unit =
       s"Skip publishing when the file no longer exists and publishable for attachmentUpdating is set to $value" in {
-        val attachment: FileMetadata         = mock[FileMetadata]("Attachment")
+        val attachment: FileMetadata         = mock(classOf[FileMetadata], "Attachment")
         val uploadDetails: UploadDetails     = UploadDetails("file", "type", Instant.now(), "checksum")
         val scanResult: SuccessfulScanResult =
           SuccessfulScanResult(reference = "ref", downloadUrl = "url", uploadDetails = uploadDetails)
         val attachmentUpdating: FileMetadata =
           FileMetadata(id = "id", fileName = Some("file"), mimeType = Some("type"), publishable = value)
-        val attachmentUpdated: FileMetadata  = mock[FileMetadata]("AttachmentUpdated")
+        val attachmentUpdated: FileMetadata  = mock(classOf[FileMetadata], "AttachmentUpdated")
 
         given(attachment.withScanResult(scanResult)).willReturn(attachmentUpdating)
         given(attachment.publishable).willReturn(true)
@@ -382,9 +382,9 @@ class FileStoreServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfte
 
     "Update the attachment for Failed Scan and Delegate to Connector" in {
       val attachment         = FileMetadata(id = "id", fileName = Some("file"), mimeType = Some("type"))
-      val scanResult         = FailedScanResult(reference = "ref", failureDetails = mock[FailureDetails])
+      val scanResult         = FailedScanResult(reference = "ref", failureDetails = mock(classOf[FailureDetails]))
       val expectedAttachment = attachment.copy(scanStatus = Some(ScanStatus.FAILED))
-      val attachmentUpdated  = mock[FileMetadata]("updated")
+      val attachmentUpdated  = mock(classOf[FileMetadata], "AttachmentUpdated")
 
       given(repository.update(expectedAttachment)).willReturn(successful(Some(attachmentUpdated)))
 
@@ -400,11 +400,11 @@ class FileStoreServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfte
   "Service 'publish' " should {
 
     "Delegate to the File Store if Scanned Safe" in {
-      val fileUploading = mock[FileMetadata]("Uploading")
-      val fileUploaded  = mock[FileMetadata]("Uploaded")
-      val fileUpdating  = mock[FileMetadata]("Updating")
-      val fileUpdated   = mock[FileMetadata]("Updated")
-      val fileSigned    = mock[FileMetadata]("Signed")
+      val fileUploading = mock(classOf[FileMetadata], "Uploading")
+      val fileUploaded  = mock(classOf[FileMetadata], "Uploaded")
+      val fileUpdating  = mock(classOf[FileMetadata], "Updating")
+      val fileUpdated   = mock(classOf[FileMetadata], "Updated")
+      val fileSigned    = mock(classOf[FileMetadata], "Signed")
 
       given(fileUploading.scanStatus).willReturn(Some(ScanStatus.READY))
       given(fileUploading.published).willReturn(false)
@@ -427,7 +427,7 @@ class FileStoreServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfte
     }
 
     "Clear up unpublished expired files" in {
-      val fileUploading = mock[FileMetadata]("Uploading")
+      val fileUploading = mock(classOf[FileMetadata], "Uploading")
 
       given(fileUploading.scanStatus).willReturn(Some(ScanStatus.READY))
       given(fileUploading.published).willReturn(false)
@@ -443,7 +443,7 @@ class FileStoreServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfte
     }
 
     "Not delegate to the File Store if pre published" in {
-      val fileUploading = mock[FileMetadata]("Uploading")
+      val fileUploading = mock(classOf[FileMetadata], "Uploading")
 
       given(fileUploading.scanStatus).willReturn(Some(ScanStatus.READY))
       given(fileUploading.published).willReturn(true)
@@ -454,9 +454,9 @@ class FileStoreServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfte
     }
 
     "Not delegate to the File Store if Scanned UnSafe" in {
-      val fileUploading = mock[FileMetadata]("Uploading")
-      val fileUpdating  = mock[FileMetadata]("Updating")
-      val fileUpdated   = mock[FileMetadata]("Updated")
+      val fileUploading = mock(classOf[FileMetadata], "Uploading")
+      val fileUpdating  = mock(classOf[FileMetadata], "Updating")
+      val fileUpdated   = mock(classOf[FileMetadata], "Updated")
 
       given(fileUploading.scanStatus).willReturn(Some(ScanStatus.FAILED))
       given(fileUploading.copy(published = true)).willReturn(fileUpdating)
@@ -469,9 +469,9 @@ class FileStoreServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfte
     }
 
     "Not delegate to the File Store if Unscanned" in {
-      val fileUploading = mock[FileMetadata]("Uploading")
-      val fileUpdating  = mock[FileMetadata]("Updating")
-      val fileUpdated   = mock[FileMetadata]("Updated")
+      val fileUploading = mock(classOf[FileMetadata], "Uploading")
+      val fileUpdating  = mock(classOf[FileMetadata], "Updating")
+      val fileUpdated   = mock(classOf[FileMetadata], "Updated")
 
       given(fileUploading.scanStatus).willReturn(None)
       given(fileUploading.copy(published = true)).willReturn(fileUpdating)

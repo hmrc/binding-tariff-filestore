@@ -21,8 +21,7 @@ import play.api.inject.guice.{GuiceApplicationBuilder, GuiceableModule}
 import play.api.test.Helpers._
 import play.api.{Application, Play}
 
-/**
-  * Use this instead of play.test.WithApplication
+/** Use this instead of play.test.WithApplication
   *
   * WithApplication will bring in specs2 lifecyles and changes the test run behaviour
   */

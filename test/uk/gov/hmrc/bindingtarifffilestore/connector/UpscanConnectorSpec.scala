@@ -17,21 +17,18 @@
 package uk.gov.hmrc.bindingtarifffilestore.connector
 
 import com.github.tomakehurst.wiremock.client.WireMock._
-import org.apache.pekko.actor.ActorSystem
 import org.mockito.BDDMockito.given
+import org.mockito.Mockito.mock
 import org.scalatest.BeforeAndAfterEach
-import org.scalatestplus.mockito.MockitoSugar
 import play.api.http.Status._
 import play.api.libs.Files.SingletonTemporaryFileCreator
-import play.api.libs.ws.WSClient
 import uk.gov.hmrc.bindingtarifffilestore.config.AppConfig
 import uk.gov.hmrc.bindingtarifffilestore.model.upscan.v2.UpscanFormTemplate
 import uk.gov.hmrc.bindingtarifffilestore.model.upscan.{UploadSettings, UpscanInitiateResponse, UpscanTemplate, v2}
 import uk.gov.hmrc.bindingtarifffilestore.model.{FileMetadata, FileWithMetadata}
 import uk.gov.hmrc.bindingtarifffilestore.util._
 import uk.gov.hmrc.http.HeaderCarrier
-import uk.gov.hmrc.play.audit.http.HttpAuditing
-import uk.gov.hmrc.play.bootstrap.http.DefaultHttpClient
+import uk.gov.hmrc.http.client.HttpClientV2
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
@@ -39,20 +36,15 @@ class UpscanConnectorSpec
     extends UnitSpec
     with WithFakeApplication
     with WiremockTestServer
-    with MockitoSugar
     with BeforeAndAfterEach
     with ResourceFiles {
 
-  private val config: AppConfig               = mock[AppConfig]
-  private val actorSystem: ActorSystem        = ActorSystem.create("test")
-  private val wsClient: WSClient              = fakeApplication.injector.instanceOf[WSClient]
-  private val httpAuditing: HttpAuditing      = fakeApplication.injector.instanceOf[HttpAuditing]
-  private val hmrcWsClient: DefaultHttpClient =
-    new DefaultHttpClient(fakeApplication.configuration, httpAuditing, wsClient, actorSystem)
+  private val config: AppConfig = mock(classOf[AppConfig])
+  val httpClient: HttpClientV2  = fakeApplication.injector.instanceOf[HttpClientV2]
 
   private implicit val headers: HeaderCarrier = HeaderCarrier()
 
-  private val connector: UpscanConnector = new UpscanConnector(config, hmrcWsClient)
+  private val connector: UpscanConnector = new UpscanConnector(config, httpClient)
 
   override protected def beforeEach(): Unit = {
     super.beforeEach()

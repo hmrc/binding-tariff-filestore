@@ -121,11 +121,11 @@ class AmazonS3Connector @Inject() (config: AppConfig) extends Logging {
 
 }
 
-class LocalDevelopmentS3CredentialsProviderChain() extends DefaultAWSCredentialsProviderChain {
+class LocalDevelopmentS3CredentialsProviderChain extends DefaultAWSCredentialsProviderChain {
 
-  override def getCredentials(): AWSCredentials =
+  override def getCredentials: AWSCredentials =
     Try {
-      super.getCredentials()
+      super.getCredentials
     }.recover { case _: AmazonClientException =>
       new BasicAWSCredentials("dummy-access-key", "dummy-secret-key")
     }.get
