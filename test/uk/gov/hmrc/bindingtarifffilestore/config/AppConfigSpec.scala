@@ -18,15 +18,14 @@ package uk.gov.hmrc.bindingtarifffilestore.config
 
 import org.mockito.ArgumentMatchers.refEq
 import org.mockito.Mockito
-import org.mockito.Mockito.when
+import org.mockito.Mockito.{mock, when}
 import org.scalatest.BeforeAndAfterEach
-import org.scalatestplus.mockito.MockitoSugar
 import play.api.Configuration
 import uk.gov.hmrc.bindingtarifffilestore.util._
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
-class AppConfigSpec extends UnitSpec with WithFakeApplication with MockitoSugar with BeforeAndAfterEach {
-  val serviceConfig: ServicesConfig = mock[ServicesConfig]
+class AppConfigSpec extends UnitSpec with WithFakeApplication with BeforeAndAfterEach {
+  val serviceConfig: ServicesConfig = mock(classOf[ServicesConfig])
 
   override protected def beforeEach(): Unit = {
     super.beforeEach()

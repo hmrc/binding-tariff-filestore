@@ -25,7 +25,7 @@ import scala.concurrent.{ExecutionContext, Future}
 
 trait ErrorHandling {
   self: BaseController with Logging =>
-  val duplicateErrorCode = 11000
+  private val duplicateErrorCode = 11000
 
   private[controllers] def mongoErrorHandler: PartialFunction[Throwable, Result] = {
     case e: MongoWriteException if e.getCode == duplicateErrorCode =>

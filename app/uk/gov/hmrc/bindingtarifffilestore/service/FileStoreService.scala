@@ -186,19 +186,19 @@ class FileStoreService @Inject() (
           .map(signingPermanentURL)
 
       // File is safe, unpublished but the download URL has expired. Clean Up.
-      case (Some(READY), false)               =>
+      case (Some(READY), false) =>
         logger.info(
           s"[FileStoreService][publish] File: ${att.id}, Removing as it had an expired download URL [${att.url}]"
         )
         repository.delete(att.id).map(_ => None)
 
       // File not safe yet & is unpublished
-      case (_, false)                         =>
+      case (_, false) =>
         logger.info(s"[FileStoreService][publish] File: ${att.id}, Marking as publishable")
         repository.update(att.copy(publishable = true))
 
       // File is already published
-      case (_, true)                          =>
+      case (_, true) =>
         logger.info(
           s"[FileStoreService][publish] File: ${att.id}, Ignoring publish request as it was already published"
         )

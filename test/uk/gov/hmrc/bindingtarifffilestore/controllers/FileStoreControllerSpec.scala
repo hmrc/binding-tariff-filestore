@@ -24,7 +24,6 @@ import org.mockito.Mockito._
 import org.mongodb.scala.bson.BsonDocument
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.matchers.should.Matchers
-import org.scalatestplus.mockito.MockitoSugar
 import play.api.http.Status._
 import play.api.libs.Files.{SingletonTemporaryFileCreator, TemporaryFile}
 import play.api.libs.json.{JsValue, Json, Writes}
@@ -45,17 +44,12 @@ import java.util.Collections
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future.{failed, successful}
 
-class FileStoreControllerSpec
-    extends UnitSpec
-    with Matchers
-    with WithFakeApplication
-    with MockitoSugar
-    with BeforeAndAfterEach {
+class FileStoreControllerSpec extends UnitSpec with Matchers with WithFakeApplication with BeforeAndAfterEach {
 
   private implicit val mat: Materializer = fakeApplication.materializer
 
-  private val appConfig: AppConfig                  = mock[AppConfig]
-  private val service: FileStoreService             = mock[FileStoreService]
+  private val appConfig: AppConfig                  = mock(classOf[AppConfig])
+  private val service: FileStoreService             = mock(classOf[FileStoreService])
   private lazy val playBodyParsers: PlayBodyParsers = fakeApplication.injector.instanceOf[PlayBodyParsers]
   lazy val cc: MessagesControllerComponents         = fakeApplication.injector.instanceOf[MessagesControllerComponents]
   private val controller: FileStoreController       = new FileStoreController(appConfig, service, playBodyParsers, cc)

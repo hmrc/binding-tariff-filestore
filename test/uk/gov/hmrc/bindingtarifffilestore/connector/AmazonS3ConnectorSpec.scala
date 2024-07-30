@@ -20,8 +20,8 @@ import com.amazonaws.services.s3.model.AmazonS3Exception
 import com.github.tomakehurst.wiremock.client.WireMock
 import com.github.tomakehurst.wiremock.client.WireMock._
 import org.mockito.BDDMockito.given
+import org.mockito.Mockito.mock
 import org.scalatest.BeforeAndAfterEach
-import org.scalatestplus.mockito.MockitoSugar
 import play.api.http.Status
 import play.api.libs.Files.SingletonTemporaryFileCreator
 import uk.gov.hmrc.bindingtarifffilestore.config.{AppConfig, S3Configuration}
@@ -31,15 +31,10 @@ import uk.gov.hmrc.bindingtarifffilestore.util._
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
-class AmazonS3ConnectorSpec
-    extends UnitSpec
-    with WiremockTestServer
-    with MockitoSugar
-    with BeforeAndAfterEach
-    with ResourceFiles {
+class AmazonS3ConnectorSpec extends UnitSpec with WiremockTestServer with BeforeAndAfterEach with ResourceFiles {
 
   private val s3Config  = S3Configuration("region", "bucket", Some(s"http://localhost:$wirePort"))
-  private val config    = mock[AppConfig]
+  private val config    = mock(classOf[AppConfig])
   private val date      = LocalDate.now().format(DateTimeFormatter.ofPattern("YYYYMMdd"))
   private val connector = new AmazonS3Connector(config)
 

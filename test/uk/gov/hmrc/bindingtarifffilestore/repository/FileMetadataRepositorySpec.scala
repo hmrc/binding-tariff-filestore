@@ -20,7 +20,6 @@ import org.mongodb.scala.MongoWriteException
 import org.mongodb.scala.model.{Filters, IndexModel, IndexOptions, Indexes}
 import org.scalatest.concurrent.Eventually
 import org.scalatest.{Assertion, BeforeAndAfterAll, BeforeAndAfterEach}
-import org.scalatestplus.mockito.MockitoSugar
 import uk.gov.hmrc.bindingtarifffilestore.model.{FileMetadata, Paged, Pagination, Search}
 import uk.gov.hmrc.bindingtarifffilestore.util.Logging
 import uk.gov.hmrc.mongo.test.MongoSupport
@@ -36,7 +35,6 @@ class FileMetadataRepositorySpec
     with BeforeAndAfterEach
     with MongoSupport
     with Eventually
-    with MockitoSugar
     with Logging {
   self =>
 

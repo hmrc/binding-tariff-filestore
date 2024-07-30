@@ -17,9 +17,8 @@
 package uk.gov.hmrc.bindingtarifffilestore.audit
 
 import org.mockito.ArgumentMatchers.refEq
-import org.mockito.Mockito.{reset, verify}
+import org.mockito.Mockito.{mock, reset, verify}
 import org.scalatest.BeforeAndAfterEach
-import org.scalatestplus.mockito.MockitoSugar
 import uk.gov.hmrc.bindingtarifffilestore.audit.AuditPayloadType._
 import uk.gov.hmrc.bindingtarifffilestore.util._
 import uk.gov.hmrc.http.HeaderCarrier
@@ -27,10 +26,10 @@ import uk.gov.hmrc.play.audit.DefaultAuditConnector
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class AuditServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfterEach {
+class AuditServiceSpec extends UnitSpec with BeforeAndAfterEach {
 
   private implicit val hc: HeaderCarrier = HeaderCarrier()
-  private val connector                  = mock[DefaultAuditConnector]
+  private val connector                  = mock(classOf[DefaultAuditConnector])
 
   private val service = new AuditService(connector)
 
