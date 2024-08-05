@@ -237,7 +237,7 @@ class FileStoreServiceSpec extends UnitSpec with BeforeAndAfterEach with Eventua
       given(repository.insertFile(fileMetadata)).willReturn(successful(Some(fileMetaDataCreated)))
 
       given(upscanConnector.initiate(any[UploadSettings])(any[HeaderCarrier])).willReturn(successful(initiateResponse))
-      given(upscanConnector.upload(any[UpscanTemplate], any[FileWithMetadata])(any[HeaderCarrier]))
+      given(upscanConnector.upload(any[UpscanTemplate], any[FileWithMetadata]))
         .willReturn(successful((): Unit))
 
       await(service.upload(fileWithMetadata)) shouldBe Some(fileMetaDataCreated)
@@ -259,7 +259,7 @@ class FileStoreServiceSpec extends UnitSpec with BeforeAndAfterEach with Eventua
       given(repository.insertFile(fileMetadata)).willReturn(successful(Some(fileMetaDataCreated)))
 
       given(upscanConnector.initiate(any[UploadSettings])(any[HeaderCarrier])).willReturn(successful(initiateResponse))
-      given(upscanConnector.upload(any[UpscanTemplate], any[FileWithMetadata])(any[HeaderCarrier]))
+      given(upscanConnector.upload(any[UpscanTemplate], any[FileWithMetadata]))
         .willReturn(failed(new Exception("Test")))
 
       val result = await(service.upload(fileWithMetadata))
