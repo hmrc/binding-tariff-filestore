@@ -16,21 +16,25 @@
 
 package uk.gov.hmrc.bindingtarifffilestore.connector
 
-import org.apache.pekko.stream.scaladsl.Source
-import org.apache.pekko.util.ByteString
+import org.apache.http.HttpResponse
+import org.apache.http.client.methods.HttpPost
+import org.apache.http.entity.ContentType
+import org.apache.http.entity.mime.MultipartEntityBuilder
+import org.apache.http.entity.mime.content.{FileBody, StringBody}
+import org.apache.http.impl.client.HttpClientBuilder
+import org.apache.http.util.EntityUtils
 import play.api.libs.json.Json
-import play.api.mvc.MultipartFormData
 import uk.gov.hmrc.bindingtarifffilestore.config.AppConfig
 import uk.gov.hmrc.bindingtarifffilestore.model.FileWithMetadata
 import uk.gov.hmrc.bindingtarifffilestore.model.upscan.{UploadSettings, UpscanInitiateResponse, UpscanTemplate, v2}
 import uk.gov.hmrc.bindingtarifffilestore.util.Logging
 import uk.gov.hmrc.http.HttpReads.Implicits._
 import uk.gov.hmrc.http.client.HttpClientV2
-import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, StringContextOps}
+import uk.gov.hmrc.http.{HeaderCarrier, StringContextOps}
 
-import java.nio.file.Files
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.Try
 
 @Singleton
 class UpscanConnector @Inject() (appConfig: AppConfig, httpClient: HttpClientV2)(implicit
@@ -51,38 +55,47 @@ class UpscanConnector @Inject() (appConfig: AppConfig, httpClient: HttpClientV2)
       .withBody(Json.toJson(uploadRequest))
       .execute[v2.UpscanInitiateResponse]
 
-  def upload(template: UpscanTemplate, fileWithMetaData: FileWithMetadata)(implicit hc: HeaderCarrier): Future[Unit] = {
+  def upload(template: UpscanTemplate, fileWithMetaData: FileWithMetadata): Future[Unit] = {
     log.info(s"Uploading file [${fileWithMetaData.metadata.id}] with template [$template]")
 
-    val dataParts: Seq[MultipartFormData.DataPart] =
-      template.fields.map(entry => MultipartFormData.DataPart(entry._1, entry._2)).toSeq
+    val builder: MultipartEntityBuilder = MultipartEntityBuilder.create
 
-    val filePart: Seq[MultipartFormData.FilePart[Source[ByteString, _]]] = Seq(
-      MultipartFormData.FilePart(
-        key = "file",
-        filename = fileWithMetaData.metadata.fileName.getOrElse(fileWithMetaData.file.path.getFileName.toString),
-        contentType =
-          fileWithMetaData.metadata.mimeType.flatMap(typ => Option(typ)).orElse(Option("application/octet-stream")),
-        ref = Source.single(ByteString(Files.readAllBytes(fileWithMetaData.file.path)))
+    template.fields.foreach(entry => builder.addPart(entry._1, new StringBody(entry._2, ContentType.TEXT_PLAIN)))
+
+    builder.addPart(
+      "file",
+      new FileBody(
+        fileWithMetaData.file.path.toFile,
+        fileWithMetaData.metadata.mimeType
+          .flatMap(typ => Option(ContentType.getByMimeType(typ)))
+          .getOrElse(ContentType.DEFAULT_BINARY),
+        fileWithMetaData.metadata.fileName
+          .getOrElse(fileWithMetaData.file.path.getFileName.toString)
       )
     )
 
-    httpClient
-      .post(url"${template.href}")
-      .withBody(Source(dataParts ++ filePart))
-      .execute[HttpResponse]
-      .flatMap { response =>
-        if (response.status >= 200 && response.status < 300) {
-          log.info(s"Uploaded file [${fileWithMetaData.metadata.id}] successfully to Upscan Bucket [${template.href}]")
-          Future.successful(())
-        } else {
-          Future.failed(
-            new RuntimeException(
-              s"Bad AWS response for file [${fileWithMetaData.metadata.id}] with status [${response.status}] body [${response.body}]"
-            )
+    val request: HttpPost = new HttpPost(template.href)
+    request.setEntity(builder.build())
+
+    val client = HttpClientBuilder.create.build
+
+    val attempt = Try(client.execute(request)).map { response: HttpResponse =>
+      val code = response.getStatusLine.getStatusCode
+      if (code >= 200 && code < 300) {
+        log.info(s"Uploaded file [${fileWithMetaData.metadata.id}] successfully to Upscan Bucket [${template.href}]")
+        Future.successful((): Unit)
+      } else {
+        Future.failed(
+          new RuntimeException(
+            s"Bad AWS response for file [${fileWithMetaData.metadata.id}] with status [$code] body [${EntityUtils
+              .toString(response.getEntity)}]"
           )
-        }
+        )
       }
+    }
+
+    client.close()
+    attempt.get
   }
 
 }
