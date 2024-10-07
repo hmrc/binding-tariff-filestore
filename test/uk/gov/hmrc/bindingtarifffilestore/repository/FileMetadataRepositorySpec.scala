@@ -64,7 +64,7 @@ class FileMetadataRepositorySpec
   private def insertFilesWithAssert(files: FileMetadata*): Assertion = {
     val beforeSize = currentCollectionSize
     files.foreach { file =>
-      log.logger.info(s"Insert file in database => $file")
+      log.logger.info(s"[FileMetadataRepositorySpec][insertFilesWithAssert] Insert file in database => $file")
       insertFileWithAssert(file.copy(lastUpdated = file.lastUpdated.truncatedTo(ChronoUnit.MILLIS)))
     }
     val afterSize  = currentCollectionSize
