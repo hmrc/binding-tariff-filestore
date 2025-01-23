@@ -18,12 +18,12 @@ package uk.gov.hmrc.bindingtarifffilestore
 
 import com.google.common.io.BaseEncoding
 import play.api.http.Status._
-import play.api.libs.ws.WSResponse
-import play.api.test.Helpers.await
 import uk.gov.hmrc.bindingtarifffilestore.util.ResourceFiles
+import uk.gov.hmrc.http.HttpReads.Implicits._
+import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, StringContextOps}
 
 import java.security.MessageDigest
-import java.util.concurrent.TimeUnit
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 class AuthSpec extends BaseFeatureSpec with ResourceFiles {
@@ -44,14 +44,12 @@ class AuthSpec extends BaseFeatureSpec with ResourceFiles {
 
       When("I call an endpoint")
 
-      val response: Future[WSResponse] =
-        testClient
-          .url(s"$serviceUrl/file")
-          .withHttpHeaders(apiTokenKey -> appConfig.authorization)
-          .get()
+      val hc: HeaderCarrier = HeaderCarrier(extraHeaders = Seq(apiTokenKey -> appConfig.authorization))
+
+      val response: Future[HttpResponse] = httpClientV2.get(url"$serviceUrl/file")(hc).execute[HttpResponse]
 
       Then("The response code should not be 403")
-      val result = await(response, timeoutDuration, TimeUnit.SECONDS)
+      val result = await(response)
       result.status shouldBe OK
     }
 
@@ -59,15 +57,13 @@ class AuthSpec extends BaseFeatureSpec with ResourceFiles {
 
       When("I call an endpoint")
 
-      val response: Future[WSResponse] =
-        testClient
-          .url(s"$serviceUrl/file")
-          .withHttpHeaders(apiTokenKey -> "WRONG_TOKEN")
-          .get()
+      val hc: HeaderCarrier = HeaderCarrier(extraHeaders = Seq(apiTokenKey -> "WRONG_TOKEN"))
+
+      val response: Future[HttpResponse] = httpClientV2.get(url"$serviceUrl/file")(hc).execute[HttpResponse]
 
       Then("The response code should be 403")
 
-      val result = await(response, timeoutDuration, TimeUnit.SECONDS)
+      val result = await(response)
       result.status shouldBe FORBIDDEN
       result.body   shouldBe "Missing or invalid 'X-Api-Token'"
     }
@@ -76,14 +72,14 @@ class AuthSpec extends BaseFeatureSpec with ResourceFiles {
 
       When("I call an endpoint")
 
-      val response: Future[WSResponse] =
-        testClient
-          .url(s"$serviceUrl/file?X-Api-Token=$hashedTokenValue")
-          .withHttpHeaders(apiTokenKey -> "WRONG_TOKEN")
-          .get()
+      val hc: HeaderCarrier = HeaderCarrier(extraHeaders = Seq(apiTokenKey -> "WRONG_TOKEN"))
+
+      val response: Future[HttpResponse] = httpClientV2
+        .get(url"$serviceUrl/file?X-Api-Token=$hashedTokenValue")(hc)
+        .execute[HttpResponse]
 
       Then("The response code should be 403")
-      val result = await(response, timeoutDuration, TimeUnit.SECONDS)
+      val result = await(response)
       result.status shouldBe FORBIDDEN
       result.body   shouldBe "Missing or invalid 'X-Api-Token'"
     }
@@ -92,15 +88,15 @@ class AuthSpec extends BaseFeatureSpec with ResourceFiles {
 
       When("I call an endpoint")
 
-      val response: Future[WSResponse] =
-        testClient
-          .url(s"$serviceUrl/file?X-Api-Token=WRONG_TOKEN")
-          .withHttpHeaders(apiTokenKey -> "WRONG_TOKEN")
-          .get()
+      val hc: HeaderCarrier = HeaderCarrier(extraHeaders = Seq(apiTokenKey -> "WRONG_TOKEN"))
+
+      val response: Future[HttpResponse] = httpClientV2
+        .get(url"$serviceUrl/file?X-Api-Token=WRONG_TOKEN")(hc)
+        .execute[HttpResponse]
 
       Then("The response code should be 403")
 
-      val result = await(response, timeoutDuration, TimeUnit.SECONDS)
+      val result = await(response)
       result.status shouldBe FORBIDDEN
       result.body   shouldBe "Missing or invalid 'X-Api-Token'"
     }
@@ -109,14 +105,14 @@ class AuthSpec extends BaseFeatureSpec with ResourceFiles {
 
       When("I call an endpoint")
 
-      val response: Future[WSResponse] =
-        testClient
-          .url(s"$serviceUrl/file?X-Api-Token=$hashedTokenValue")
-          .withHttpHeaders(apiTokenKey -> appConfig.authorization)
-          .get()
+      val hc: HeaderCarrier = HeaderCarrier(extraHeaders = Seq(apiTokenKey -> appConfig.authorization))
+
+      val response: Future[HttpResponse] = httpClientV2
+        .get(url"$serviceUrl/file?X-Api-Token=$hashedTokenValue")(hc)
+        .execute[HttpResponse]
 
       Then("The response code should be 200")
-      val result = await(response, timeoutDuration, TimeUnit.SECONDS)
+      val result = await(response)
       result.status shouldBe OK
     }
 
@@ -124,13 +120,12 @@ class AuthSpec extends BaseFeatureSpec with ResourceFiles {
 
       When("I call an endpoint")
 
-      val response: Future[WSResponse] =
-        testClient
-          .url(s"$serviceUrl/file")
-          .get()
+      val hc: HeaderCarrier = HeaderCarrier()
+
+      val response: Future[HttpResponse] = httpClientV2.get(url"$serviceUrl/file")(hc).execute[HttpResponse]
 
       Then("The response code should be 403")
-      val result = await(response, timeoutDuration, TimeUnit.SECONDS)
+      val result = await(response)
       result.status shouldBe FORBIDDEN
       result.body   shouldBe "Missing or invalid 'X-Api-Token'"
     }
@@ -139,14 +134,15 @@ class AuthSpec extends BaseFeatureSpec with ResourceFiles {
 
       When("I call an endpoint")
 
-      val response: Future[WSResponse] =
-        testClient
-          .url(s"$serviceUrl/file?X-Api-Token=$hashedTokenValue")
-          .get()
+      val hc: HeaderCarrier = HeaderCarrier()
+
+      val response: Future[HttpResponse] = httpClientV2
+        .get(url"$serviceUrl/file?X-Api-Token=$hashedTokenValue")(hc)
+        .execute[HttpResponse]
 
       Then("The response code should not be 403")
 
-      val result = await(response, timeoutDuration, TimeUnit.SECONDS)
+      val result = await(response)
       result.status should not be FORBIDDEN
     }
 
@@ -154,26 +150,28 @@ class AuthSpec extends BaseFeatureSpec with ResourceFiles {
 
       When("I call an endpoint")
 
-      val response: Future[WSResponse] =
-        testClient
-          .url(s"$serviceUrl/file?X-Api-Token=WRONG_VALUE")
-          .get()
+      val hc: HeaderCarrier = HeaderCarrier()
+
+      val response: Future[HttpResponse] = httpClientV2
+        .get(url"$serviceUrl/file?X-Api-Token=WRONG_TOKEN")(hc)
+        .execute[HttpResponse]
 
       Then("The response code should be 403")
-      val result = await(response, timeoutDuration, TimeUnit.SECONDS)
+      val result = await(response)
       result.status shouldBe FORBIDDEN
       result.body   shouldBe "Missing or invalid 'X-Api-Token'"
     }
 
     Scenario("Calls to the health endpoint do not require auth token") {
 
-      val response: Future[WSResponse] =
-        testClient
-          .url(s"$serviceUrl/ping/ping")
-          .get()
+      val hc: HeaderCarrier = HeaderCarrier()
+
+      val response: Future[HttpResponse] = httpClientV2
+        .get(url"$serviceUrl/ping/ping")(hc)
+        .execute[HttpResponse]
 
       Then("The response code should be 200")
-      val result = await(response, timeoutDuration, TimeUnit.SECONDS)
+      val result = await(response)
       result.status shouldBe OK
     }
   }

@@ -21,21 +21,21 @@ import org.scalatest._
 import org.scalatest.featurespec.AnyFeatureSpec
 import org.scalatest.matchers.should.Matchers
 import org.scalatestplus.play.guice.GuiceOneServerPerSuite
-import play.api.libs.ws.WSClient
 import uk.gov.hmrc.bindingtarifffilestore.config.AppConfig
 import uk.gov.hmrc.bindingtarifffilestore.model.FileMetadata
 import uk.gov.hmrc.bindingtarifffilestore.repository.FileMetadataMongoRepository
-import uk.gov.hmrc.http.test.HttpClientSupport
+import uk.gov.hmrc.http.test.HttpClientV2Support
 import uk.gov.hmrc.mongo.test.DefaultPlayMongoRepositorySupport
 
 import java.security.MessageDigest
+import scala.concurrent.{Await, Future}
 import scala.concurrent.Await.result
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 
 abstract class BaseFeatureSpec
     extends AnyFeatureSpec
-    with HttpClientSupport
+    with HttpClientV2Support
     with Matchers
     with GivenWhenThen
     with GuiceOneServerPerSuite
@@ -48,7 +48,6 @@ abstract class BaseFeatureSpec
 
   override lazy val repository = new FileMetadataMongoRepository(mongoComponent)
 
-  val testClient: WSClient = mkHttpClient().wsClient
   val timeoutDuration: Int = 5
 
   protected def hash: String => String = { s: String =>
@@ -56,6 +55,8 @@ abstract class BaseFeatureSpec
   }
 
   private val timeout = 2.seconds
+
+  def await[A](future: Future[A]): A = Await.result(future, timeout)
 
   override protected def beforeAll(): Unit = {
     super.beforeAll()
@@ -75,6 +76,6 @@ abstract class BaseFeatureSpec
   }
 
   private def drop(): Unit =
-    result(repository.collection.drop().toFuture(), timeout)
+    await(repository.collection.drop().toFuture())
 
 }
