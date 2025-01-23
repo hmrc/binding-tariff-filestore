@@ -20,6 +20,8 @@ import com.github.tomakehurst.wiremock.client.WireMock._
 import com.github.tomakehurst.wiremock.stubbing.StubMapping
 import play.api.http.Status
 import play.api.libs.Files.SingletonTemporaryFileCreator
+import play.api.libs.json.Json
+import uk.gov.hmrc.bindingtarifffilestore.model.FileMetadataREST.format
 import uk.gov.hmrc.bindingtarifffilestore.model._
 import uk.gov.hmrc.bindingtarifffilestore.model.upscan._
 import uk.gov.hmrc.bindingtarifffilestore.model.upscan.v2.FileStoreInitiateRequest
@@ -30,7 +32,6 @@ import java.io.File
 import java.net.URI
 import java.nio.file.Files
 import java.time.Instant
-import scala.concurrent.Await.result
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.concurrent.duration._
@@ -54,39 +55,40 @@ trait FileStoreHelpers extends WiremockFeatureTestServer {
   val filePath = "it/test/resources/file.txt"
 
   def getFile(id: String)(implicit hc: HeaderCarrier): Future[HttpResponse] =
-    httpClient.GET[HttpResponse](url"$serviceUrl/file/$id")
+    httpClientV2.get(url"$serviceUrl/file/$id").execute[HttpResponse]
 
   def deleteFiles()(implicit hc: HeaderCarrier): Future[HttpResponse] =
-    httpClient.DELETE[HttpResponse](url"$serviceUrl/file")
+    httpClientV2.delete(url"$serviceUrl/file").execute[HttpResponse]
 
   def deleteFile(id: String)(implicit hc: HeaderCarrier): Future[HttpResponse] = {
     stubS3DeleteOne(id)
 
-    val response: Future[HttpResponse] =
-      httpClient.DELETE[HttpResponse](url"$serviceUrl/file/$id")
-    response
+    httpClientV2.delete(url"$serviceUrl/file/$id").execute[HttpResponse]
   }
 
   def getFiles(queryParams: Seq[(String, String)])(implicit hc: HeaderCarrier): Future[HttpResponse] = {
-    val url = s"$serviceUrl/file"
-    httpClient.GET[HttpResponse](url, queryParams = queryParams)
+    val queryParamsFinal =
+      if (queryParams.isEmpty) "" else queryParams.map(pair => s"${pair._1}=${pair._2}").mkString("?", "&", "")
+    val finalUrl         = URI.create(s"$serviceUrl/file$queryParamsFinal").toURL
+
+    httpClientV2.get(url"$finalUrl").execute[HttpResponse]
   }
 
   def publishSafeFile(id: String)(implicit hc: HeaderCarrier): Future[HttpResponse] = {
     stubS3Upload(id)
 
-    httpClient.POST[FileMetadata, HttpResponse](
-      url"$serviceUrl/file/$id/publish",
-      FileMetadata(id, None, None)
-    )
+    httpClientV2
+      .post(url"$serviceUrl/file/$id/publish")
+      .withBody(Json.toJson(FileMetadata(id, None, None)))
+      .execute[HttpResponse]
   }
 
+  // Should NOT call S3 Upload
   def publishUnsafeFile(id: String)(implicit hc: HeaderCarrier): Future[HttpResponse] =
-    // Should NOT call S3 Upload
-    httpClient.POST[FileMetadata, HttpResponse](
-      url = url"$serviceUrl/file/$id/publish",
-      body = FileMetadata(id, None, None)
-    )
+    httpClientV2
+      .post(url"$serviceUrl/file/$id/publish")
+      .withBody(Json.toJson(FileMetadata(id, None, None)))
+      .execute[HttpResponse]
 
   def notifySuccess(
     id: String,
@@ -101,13 +103,19 @@ trait FileStoreHelpers extends WiremockFeatureTestServer {
         uploadDetails = UploadDetails(fileName, "text/plain", Instant.now(), "checksum")
       )
 
-    httpClient.POST[SuccessfulScanResult, HttpResponse](url"$serviceUrl/file/$id/notify", model)
+    httpClientV2
+      .post(url"$serviceUrl/file/$id/notify")
+      .withBody(Json.toJson(model))
+      .execute[HttpResponse]
   }
 
   def notifyFailure(id: String)(implicit hc: HeaderCarrier): Future[HttpResponse] = {
     val model =
       FailedScanResult(reference = "reference", failureDetails = FailureDetails(FailureReason.QUARANTINE, "message"))
-    httpClient.POST[FailedScanResult, HttpResponse](url"$serviceUrl/file/$id/notify", model)
+    httpClientV2
+      .post(url"$serviceUrl/file/$id/notify")
+      .withBody(Json.toJson(model))
+      .execute[HttpResponse]
   }
 
   def upload(id: Option[String], filename: String, contentType: String, publishable: Boolean)(implicit
@@ -119,21 +127,21 @@ trait FileStoreHelpers extends WiremockFeatureTestServer {
     val tempFile = SingletonTemporaryFileCreator.create(filename)
     Files.write(tempFile.path, List("foo").asJava)
 
-    val response: Future[HttpResponse] =
-      httpClient.POST[UploadRequest, HttpResponse](
-        url"$serviceUrl/file",
-        UploadRequest(id = id, fileName = filename, mimeType = contentType, publishable = publishable)
+    httpClientV2
+      .post(url"$serviceUrl/file")
+      .withBody(
+        Json.toJson(UploadRequest(id = id, fileName = filename, mimeType = contentType, publishable = publishable))
       )
-
-    response
+      .execute[HttpResponse]
   }
 
   def initiateV2(id: Option[String] = None, publishable: Boolean)(implicit hc: HeaderCarrier): Future[HttpResponse] = {
     stubUpscanInitiateV2
-    httpClient.POST[FileStoreInitiateRequest, HttpResponse](
-      url"$serviceUrl/file/initiate",
-      FileStoreInitiateRequest(id = id, publishable = publishable)
-    )
+
+    httpClientV2
+      .post(url"$serviceUrl/file/initiate")
+      .withBody(Json.toJson(FileStoreInitiateRequest(id = id, publishable = publishable)))
+      .execute[HttpResponse]
   }
 
   def stubUpscanUpload: StubMapping =
@@ -202,6 +210,6 @@ trait FileStoreHelpers extends WiremockFeatureTestServer {
     )
 
   def dbFileStoreSize: Int =
-    result(repository.collection.countDocuments().toFuture(), timeout).toInt
+    await(repository.collection.countDocuments().toFuture()).toInt
 
 }

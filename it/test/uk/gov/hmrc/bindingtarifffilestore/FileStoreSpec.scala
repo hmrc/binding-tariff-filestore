@@ -36,7 +36,7 @@ class FileStoreSpec extends FileStoreHelpers {
 
   override protected def beforeEach(): Unit = {
     super.beforeEach()
-    repository.deleteAll()
+    await(repository.deleteAll())
   }
 
   override def fakeApplication(): Application =
@@ -66,12 +66,12 @@ class FileStoreSpec extends FileStoreHelpers {
 
       val uploadResponse = upload(Some(id1), file1, contentType, publishable = true)
 
-      uploadResponse.futureValue
+      await(uploadResponse)
 
       dbFileStoreSize shouldBe 1
 
       When("I request the file details")
-      val deleteResult = deleteFile(id1).futureValue
+      val deleteResult = await(deleteFile(id1))
 
       Then("The response code should be Ok")
 
@@ -91,18 +91,17 @@ class FileStoreSpec extends FileStoreHelpers {
 
       Given("There are some documents in the collection")
 
-      upload(Some(id1), file1, contentType, publishable = true).futureValue
-      upload(Some(id2), file2, contentType, publishable = true).futureValue
+      await(upload(Some(id1), file1, contentType, publishable = true))
+      await(upload(Some(id2), file2, contentType, publishable = true))
 
       dbFileStoreSize shouldBe 2
       stubS3ListAll()
       stubS3DeleteAll()
 
       When("I delete all documents")
-      val deleteResponse = deleteFiles()
+      val deleteResult = await(deleteFiles())
 
       Then("The response code should be 204")
-      val deleteResult = deleteResponse.futureValue
       deleteResult.status shouldEqual Status.NO_CONTENT
 
       And("The response body is empty")
@@ -113,9 +112,7 @@ class FileStoreSpec extends FileStoreHelpers {
 
       And("the are no files")
 
-      val getFileResponse = getFiles(Seq("id" -> id1, "id" -> id2)).futureValue
-
-      val fileResult = getFileResponse
+      val fileResult = await(getFiles(Seq("id" -> id1, "id" -> id2)))
 
       fileResult.status shouldBe Status.OK
       fileResult.body   shouldBe "[]"
@@ -133,7 +130,7 @@ class FileStoreSpec extends FileStoreHelpers {
       val response = upload(Some(id1), file1, contentType, publishable = true)
 
       Then("The response code should be Accepted")
-      val result = response.futureValue
+      val result = await(response)
       result.status shouldBe Status.ACCEPTED
     }
   }
@@ -144,7 +141,7 @@ class FileStoreSpec extends FileStoreHelpers {
 
       Given("A Client of the FileStore has a file")
 
-      upload(Some(id1), file1, contentType, publishable = true).futureValue
+      await(upload(Some(id1), file1, contentType, publishable = true))
 
       dbFileStoreSize shouldBe 1
 
@@ -153,7 +150,7 @@ class FileStoreSpec extends FileStoreHelpers {
       val initiateResponse = initiateV2(Some("fake_file_id"), publishable = true)
 
       Then("The response code should be Accepted")
-      val result = initiateResponse.futureValue
+      val result = await(initiateResponse)
       result.status shouldBe Status.ACCEPTED
 
       And("The response body contains the file upload template")
@@ -175,7 +172,7 @@ class FileStoreSpec extends FileStoreHelpers {
       val response: Future[HttpResponse] = initiateV2(publishable = true)
 
       Then("The response code should be Accepted")
-      val result = response.futureValue
+      val result = await(response)
       result.status shouldBe Status.ACCEPTED
 
       And("The response body contains the file upload template")
@@ -198,7 +195,7 @@ class FileStoreSpec extends FileStoreHelpers {
 
     Then("The response code should be Accepted")
 
-    val result = response.futureValue
+    val result = await(response)
     result.status shouldBe Status.ACCEPTED
 
     And("The response body contains the file upload template")
@@ -216,14 +213,14 @@ class FileStoreSpec extends FileStoreHelpers {
       Given("A file has been uploaded")
 
       val uploadResponse = upload(Some(id1), file1, contentType, publishable = true)
-      val uploadResult   = uploadResponse.futureValue
+      val uploadResult   = await(uploadResponse)
       val id: String     = uploadResult.json.as[UploadTemplate].id
 
       When("I request the file details")
       val getFileResponse = getFile(id)
 
       Then("The response code should be Ok")
-      val getFileResult = getFileResponse.futureValue
+      val getFileResult = await(getFileResponse)
       getFileResult.status shouldBe Status.OK
 
       And("The response body contains the file details")
@@ -239,8 +236,8 @@ class FileStoreSpec extends FileStoreHelpers {
 
       Given("Files have been uploaded")
 
-      upload(Some(id1), file1, contentType, publishable = true).futureValue
-      upload(Some(id2), file2, contentType, publishable = false).futureValue
+      await(upload(Some(id1), file1, contentType, publishable = true))
+      await(upload(Some(id2), file2, contentType, publishable = false))
 
       dbFileStoreSize shouldBe 2
       stubS3ListAll()
@@ -248,7 +245,7 @@ class FileStoreSpec extends FileStoreHelpers {
 
       When("I request the file details")
 
-      val getFilesResult = getFiles(Seq("id" -> id1, "id" -> id2)).futureValue
+      val getFilesResult = await(getFiles(Seq("id" -> id1, "id" -> id2)))
 
       Then("The response code should be Ok")
 
@@ -265,14 +262,14 @@ class FileStoreSpec extends FileStoreHelpers {
 
       Given("Files have been uploaded")
 
-      upload(Some(id1), file1, contentType, publishable = true).futureValue
-      upload(Some(id2), file2, contentType, publishable = false).futureValue
+      await(upload(Some(id1), file1, contentType, publishable = true))
+      await(upload(Some(id2), file2, contentType, publishable = false))
 
       dbFileStoreSize shouldBe 2
 
       When("I request the file details")
 
-      val getFilesResult = getFiles(Seq()).futureValue
+      val getFilesResult = await(getFiles(Seq()))
 
       Then("The response code should be Ok")
       getFilesResult.status shouldBe Status.OK
@@ -289,13 +286,13 @@ class FileStoreSpec extends FileStoreHelpers {
 
       Given("Files have been uploaded")
 
-      upload(Some(id1), file1, contentType, publishable = true).futureValue
-      upload(Some(id2), file2, contentType, publishable = false).futureValue
+      await(upload(Some(id1), file1, contentType, publishable = true))
+      await(upload(Some(id2), file2, contentType, publishable = false))
 
       dbFileStoreSize shouldBe 2
 
       When("I request the file details")
-      val getFilesResult = getFiles(Seq("id" -> id1, "id" -> id2)).futureValue
+      val getFilesResult = await(getFiles(Seq("id" -> id1, "id" -> id2)))
 
       Then("The response code should be Ok")
       getFilesResult.status shouldBe Status.OK
@@ -310,13 +307,13 @@ class FileStoreSpec extends FileStoreHelpers {
 
       Given("Files have been uploaded")
 
-      upload(Some(id1), file1, contentType, publishable = true).futureValue
-      upload(Some(id2), file2, contentType, publishable = false).futureValue
+      await(upload(Some(id1), file1, contentType, publishable = true))
+      await(upload(Some(id2), file2, contentType, publishable = false))
 
       dbFileStoreSize shouldBe 2
 
       When("I request the file details")
-      val getFilesResult = getFiles(Seq()).futureValue
+      val getFilesResult = await(getFiles(Seq()))
 
       Then("The response code should be Ok")
       getFilesResult.status shouldBe Status.OK
@@ -335,7 +332,7 @@ class FileStoreSpec extends FileStoreHelpers {
       Given("A File has been uploaded")
 
       stubS3Upload(id1)
-      upload(Some(id1), file1, contentType, publishable = true).futureValue
+      await(upload(Some(id1), file1, contentType, publishable = true))
 
       dbFileStoreSize shouldBe 1
       stubS3ListAll()
@@ -346,7 +343,7 @@ class FileStoreSpec extends FileStoreHelpers {
       val uri = new File(filePath).toURI
 
       val result =
-        notifySuccess(id1, file1, uri).futureValue
+        await(notifySuccess(id1, file1, uri))
 
       Then("The response code should be Created")
       result.status shouldBe Status.CREATED
@@ -364,11 +361,11 @@ class FileStoreSpec extends FileStoreHelpers {
 
       Given("A File has been uploaded")
 
-      upload(Some(id1), file1, contentType, publishable = true).futureValue
+      await(upload(Some(id1), file1, contentType, publishable = true))
 
       When("Notify is Called")
 
-      val result = notifyFailure(id1).futureValue
+      val result = await(notifyFailure(id1))
 
       Then("The response code should be Created")
 
@@ -391,13 +388,13 @@ class FileStoreSpec extends FileStoreHelpers {
 
       Given("A File has been uploaded and marked as safe")
 
-      upload(Some(id1), file1, contentType, publishable = true).futureValue
+      await(upload(Some(id1), file1, contentType, publishable = true))
 
       notifySuccess(id1, file1)
 
       When("It is Published")
 
-      val result = publishSafeFile(id1).futureValue
+      val result = await(publishSafeFile(id1))
 
       Then("The response code should be Accepted")
       result.status shouldBe Status.ACCEPTED
@@ -422,13 +419,13 @@ class FileStoreSpec extends FileStoreHelpers {
 
       Given("A File has been uploaded and marked as quarantined")
 
-      upload(Some(id1), file1, contentType, publishable = true).futureValue
+      await(upload(Some(id1), file1, contentType, publishable = true))
 
-      notifyFailure(id1).futureValue
+      await(notifyFailure(id1))
 
       When("It is Published")
 
-      val publishResult: HttpResponse = publishUnsafeFile(id1).futureValue
+      val publishResult: HttpResponse = await(publishUnsafeFile(id1))
 
       Then("The response code should be ACCEPTED")
 
@@ -444,7 +441,7 @@ class FileStoreSpec extends FileStoreHelpers {
 
       And("I can call GET and see the file is unpublished")
 
-      val getResult = getFile(id1).futureValue
+      val getResult = await(getFile(id1))
 
       getResult.status shouldBe Status.OK
 
@@ -459,15 +456,17 @@ class FileStoreSpec extends FileStoreHelpers {
 
       Given("A File has been uploaded and marked as safe")
 
-      upload(Some(id1), file1, contentType, publishable = true).futureValue
+      await(upload(Some(id1), file1, contentType, publishable = true))
 
       val uri = new File(filePath).toURI
 
-      notifySuccess(
-        id1,
-        file1,
-        uri = new URI(uri.toString + "?X-Amz-Date=19700101T000000Z&X-Amz-Expires=0")
-      ).futureValue
+      await(
+        notifySuccess(
+          id1,
+          file1,
+          uri = new URI(uri.toString + "?X-Amz-Date=19700101T000000Z&X-Amz-Expires=0")
+        )
+      )
 
       When("It is Published")
 
@@ -475,13 +474,13 @@ class FileStoreSpec extends FileStoreHelpers {
 
       Then("The response code should be Not Found")
 
-      publishResponse.futureValue.status shouldBe Status.NOT_FOUND
+      await(publishResponse).status shouldBe Status.NOT_FOUND
 
       And("I can call GET and see the file does not exist")
 
       val getFileResult = getFile(id1)
 
-      getFileResult.futureValue.status shouldBe Status.NOT_FOUND
+      await(getFileResult).status shouldBe Status.NOT_FOUND
     }
   }
 
