@@ -20,8 +20,7 @@ import play.api.libs.json._
 import uk.gov.hmrc.bindingtarifffilestore.model
 import uk.gov.hmrc.bindingtarifffilestore.model.ScanStatus.{FAILED, READY, ScanStatus}
 import uk.gov.hmrc.bindingtarifffilestore.model.upscan.FailureReason.FailureReason
-import uk.gov.hmrc.play.json.Union
-
+import uk.gov.hmrc.bindingtarifffilestore.util.Union
 import java.time.Instant
 
 case class SuccessfulScanResult(
