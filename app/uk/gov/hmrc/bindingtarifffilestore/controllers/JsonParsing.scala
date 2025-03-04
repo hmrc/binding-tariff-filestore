@@ -28,7 +28,7 @@ import scala.util.{Failure, Success, Try}
 
 trait JsonParsing {
   self: BackendBaseController =>
-  override protected def withJsonBody[T](
+  protected def withJsonBodyFromJsonParsing[T](
     f: T => Future[Result]
   )(implicit
     request: Request[JsValue],
