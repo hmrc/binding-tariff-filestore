@@ -112,7 +112,7 @@ class FileStoreController @Inject() (
 
   def notification(id: String): Action[JsValue] = withErrorHandling {
     Action(parse.json).async { implicit req =>
-      withJsonBody[ScanResult] { scanResult =>
+      withJsonBodyFromJsonParsing[ScanResult] { scanResult =>
         withFileMetadata(id) { meta =>
           service
             .notify(meta, scanResult)
