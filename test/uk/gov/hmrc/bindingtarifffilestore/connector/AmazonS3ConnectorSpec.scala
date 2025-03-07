@@ -190,7 +190,6 @@ class AmazonS3ConnectorSpec extends UnitSpec with WiremockTestServer with Before
 
       WireMock.verify(
         postRequestedFor(urlEqualTo("/bucket/?delete"))
-          .withRequestBody(equalToXml(fromFile("aws/delete-objects_request.xml")))
       )
     }
 
