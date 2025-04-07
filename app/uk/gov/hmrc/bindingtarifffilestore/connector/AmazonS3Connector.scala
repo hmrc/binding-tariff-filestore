@@ -16,23 +16,28 @@
 
 package uk.gov.hmrc.bindingtarifffilestore.connector
 
-import com.amazonaws.auth.{AWSCredentials, BasicAWSCredentials, DefaultAWSCredentialsProviderChain}
-
-import java.io.BufferedInputStream
-import java.net.URL
+import java.net.{URI, URL}
 import java.util
-import com.amazonaws.{AmazonClientException, HttpMethod}
-import com.amazonaws.client.builder.AwsClientBuilder.EndpointConfiguration
-import com.amazonaws.services.s3.model.DeleteObjectsRequest.KeyVersion
-import com.amazonaws.services.s3.model._
-import com.amazonaws.services.s3.{AmazonS3, AmazonS3ClientBuilder}
 import com.google.inject.Inject
+
+import java.nio.file.Path
+import play.twirl.api.TwirlHelperImports.twirlJavaCollectionToScala
+import software.amazon.awssdk.auth.credentials.{AwsBasicCredentials, AwsCredentials, AwsCredentialsProvider, DefaultCredentialsProvider}
+import software.amazon.awssdk.awscore.exception.AwsErrorDetails
+import software.amazon.awssdk.core.exception.SdkException
+import software.amazon.awssdk.regions.Region
 
 import javax.inject.Singleton
 import uk.gov.hmrc.bindingtarifffilestore.config.AppConfig
 import uk.gov.hmrc.bindingtarifffilestore.model.FileMetadata
 import uk.gov.hmrc.bindingtarifffilestore.util.Logging
+import software.amazon.awssdk.services.s3.S3Client
+import software.amazon.awssdk.services.s3.model.{ChecksumAlgorithm, Delete, DeleteObjectRequest, DeleteObjectsRequest, GetObjectRequest, ListObjectsV2Request, ObjectCannedACL, ObjectIdentifier, PutObjectRequest, S3Exception}
+import software.amazon.awssdk.services.s3.presigner.S3Presigner
+import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest
 
+import java.io.UncheckedIOException
+import java.time.Duration
 import scala.jdk.CollectionConverters._
 import scala.util.{Failure, Success, Try}
 
@@ -41,62 +46,100 @@ class AmazonS3Connector @Inject() (config: AppConfig) extends Logging {
 
   private lazy val s3Config = config.s3Configuration
 
-  private lazy val s3client: AmazonS3 = {
+  private lazy val s3client: S3Client = {
     log.info(s"${s3Config.bucket}:${s3Config.region}")
-    val builder = AmazonS3ClientBuilder
-      .standard()
-      .withPathStyleAccessEnabled(true)
-      .withCredentials(new LocalDevelopmentS3CredentialsProviderChain())
+    val builder = S3Client
+      .builder()
+      .region(Region.of(s3Config.region))
+      .forcePathStyle(true)
+      .credentialsProvider(new LocalDevelopmentS3CredentialsProvider)
 
     s3Config.endpoint match {
-      case Some(endpoint) => builder.withEndpointConfiguration(new EndpointConfiguration(endpoint, s3Config.region))
-      case _              => builder.withRegion(s3Config.region)
+      case Some(endpoint) => builder.endpointOverride(new URI(endpoint)).build()
+      case _              => builder.build()
     }
-
-    builder.build()
   }
 
-  def getAll: Seq[String] =
+  private lazy val preSigner: S3Presigner = S3Presigner
+    .builder()
+    .region(Region.of(s3Config.region))
+    .credentialsProvider(new LocalDevelopmentS3CredentialsProvider)
+    .build()
+
+  def getAll: Seq[String] = {
+    val request = ListObjectsV2Request.builder().bucket(s3Config.bucket).build()
+
     sequenceOf(
-      s3client.listObjects(s3Config.bucket).getObjectSummaries
-    ).map(_.getKey)
+      s3client.listObjectsV2(request).contents()
+    ).map(_.key())
+  }
 
   def upload(fileMetaData: FileMetadata): FileMetadata = {
     val url: URL = new URL(fileMetaData.url.getOrElse(throw new IllegalArgumentException("Missing URL")))
 
-    val metadata = new ObjectMetadata
-    // This .get is scary but our file must have received a positive scan
-    // result and received metadata from Upscan if it is being published
-    metadata.setContentType(fileMetaData.mimeType.get)
-    metadata.setContentLength(contentLengthOf(url))
+    val metadata = new util.HashMap[String, String]()
+    metadata.put("content-type", fileMetaData.mimeType.getOrElse(""))
+    metadata.put("content-length", contentLengthOf(url).toString)
 
-    val request = new PutObjectRequest(
-      s3Config.bucket,
-      fileMetaData.id,
-      new BufferedInputStream(url.openStream()),
-      metadata
-    ).withCannedAcl(CannedAccessControlList.Private)
+    val request = PutObjectRequest
+      .builder()
+      .bucket(s3Config.bucket)
+      .key(fileMetaData.id)
+      .metadata(metadata)
+      .checksumAlgorithm(ChecksumAlgorithm.CRC32)
+      .acl(ObjectCannedACL.PRIVATE)
+      .build()
 
-    Try(s3client.putObject(request)) match {
-      case Success(_)            =>
-        fileMetaData.copy(url = Some(s"${s3Config.baseUrl}/${s3Config.bucket}/${fileMetaData.id}"))
-      case Failure(e: Throwable) =>
-        log.error("Failed to upload to the S3 bucket.", e)
+    val fileUrl = s"${s3Config.baseUrl}/${s3Config.bucket}/${fileMetaData.id}"
+
+    Try(s3client.putObject(request, Path.of(url.toURI))) match {
+      case Success(_)                       =>
+        fileMetaData.copy(url = Some(fileUrl))
+      case Failure(e: UncheckedIOException) =>
+        throw S3Exception
+          .builder()
+          .message("Failed to read the file: " + e.getMessage)
+          .cause(e)
+          .awsErrorDetails(
+            AwsErrorDetails
+              .builder()
+              .errorCode("ClientSideException:FailedToReadFile")
+              .errorMessage(e.getMessage)
+              .build()
+          )
+          .build()
+      case Failure(e: S3Exception)          =>
+        log.error(s"Failed to put object: {${e.getMessage}", e)
         throw e
     }
   }
 
-  def delete(id: String): Unit =
-    s3client.deleteObject(s3Config.bucket, id)
+  def delete(id: String): Unit = {
+    val request = DeleteObjectRequest
+      .builder()
+      .bucket(s3Config.bucket)
+      .key(id)
+      .build()
+
+    s3client.deleteObject(request)
+  }
 
   def deleteAll(): Unit = {
-    val keys: Seq[KeyVersion] = getAll.map(new KeyVersion(_))
+    val keys = getAll.map(ObjectIdentifier.builder().key(_).build()).toList.asJava
     if (keys.nonEmpty) {
-      log.info(s"Removing [${keys.length}] files from S3")
+      log.info(s"Removing [${keys.size()}] files from S3")
       log.info(s"bucket is: ${s3Config.bucket}")
-      val request = new DeleteObjectsRequest(s3Config.bucket)
-        .withKeys(keys.toList.asJava)
-        .withQuiet(false)
+      val del = Delete
+        .builder()
+        .objects(keys)
+        .build()
+
+      val request = DeleteObjectsRequest
+        .builder()
+        .bucket(s3Config.bucket)
+        .delete(del)
+        .build()
+
       s3client.deleteObjects(request)
     } else {
       log.info(s"No files to remove from S3")
@@ -105,10 +148,18 @@ class AmazonS3Connector @Inject() (config: AppConfig) extends Logging {
 
   def sign(fileMetaData: FileMetadata): FileMetadata =
     if (fileMetaData.url.isDefined) {
-      val authenticatedURLRequest = new GeneratePresignedUrlRequest(config.s3Configuration.bucket, fileMetaData.id)
-        .withMethod(HttpMethod.GET)
-      val authenticatedURL: URL   = s3client.generatePresignedUrl(authenticatedURLRequest)
-      fileMetaData.copy(url = Some(authenticatedURL.toString))
+      val objectRequest  = GetObjectRequest.builder().bucket(s3Config.bucket).key(fileMetaData.id).build()
+      val preSignRequest = GetObjectPresignRequest
+        .builder()
+        .signatureDuration(Duration.ofMinutes(15)) //v1 default value used to be 15 minutes
+        .getObjectRequest(objectRequest)
+        .build()
+
+      val preSignedRequestUrl = preSigner.presignGetObject(preSignRequest).url().toString
+
+      preSigner.close()
+
+      fileMetaData.copy(url = Option(preSignedRequestUrl))
     } else {
       fileMetaData
     }
@@ -118,15 +169,16 @@ class AmazonS3Connector @Inject() (config: AppConfig) extends Logging {
 
   private def sequenceOf[T](list: util.List[T]): Seq[T] =
     list.iterator.asScala.toSeq
-
 }
 
-class LocalDevelopmentS3CredentialsProviderChain() extends DefaultAWSCredentialsProviderChain {
+class LocalDevelopmentS3CredentialsProvider extends AwsCredentialsProvider with Logging {
 
-  override def getCredentials(): AWSCredentials =
+  override def resolveCredentials(): AwsCredentials =
     Try {
-      super.getCredentials()
-    }.recover { case _: AmazonClientException =>
-      new BasicAWSCredentials("dummy-access-key", "dummy-secret-key")
+      DefaultCredentialsProvider.builder().build().resolveCredentials()
+    }.recover { case _: SdkException =>
+      log.warn(s"Failed to load credentials, using dummy ones now")
+
+      AwsBasicCredentials.create("dummy-access-key", "dummy-secret-key")
     }.get
 }
