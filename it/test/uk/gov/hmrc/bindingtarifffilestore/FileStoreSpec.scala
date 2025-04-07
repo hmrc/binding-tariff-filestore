@@ -30,7 +30,8 @@ import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 import java.io.File
 import java.net.URI
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.duration.DurationInt
+import scala.concurrent.{Await, Future}
 
 class FileStoreSpec extends FileStoreHelpers {
 
@@ -39,10 +40,18 @@ class FileStoreSpec extends FileStoreHelpers {
     await(repository.deleteAll())
   }
 
+  override protected def beforeAll(): Unit = {
+    super.beforeAll()
+    createBucket()
+    await(deleteFiles())
+  }
+
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder()
       .configure(
-        "s3.endpoint"                                -> s"http://localhost:$wirePort",
+        "s3.endpoint"                                -> "http://localhost:4572",
+        "s3.bucket"                                  -> "digital-tariffs-local-test",
+        "s3.region"                                  -> "eu-west-2",
         "microservice.services.upscan-initiate.port" -> s"$wirePort"
       )
       .overrides(bind[FileMetadataMongoRepository].to(repository))
@@ -64,17 +73,14 @@ class FileStoreSpec extends FileStoreHelpers {
 
       Given("A file has been uploaded")
 
-      val uploadResponse = upload(Some(id1), file1, contentType, publishable = true)
-
-      await(uploadResponse)
+      await(upload(Some(id1), file1, contentType, publishable = true))
 
       dbFileStoreSize shouldBe 1
 
       When("I request the file details")
-      val deleteResult = await(deleteFile(id1))
+      val deleteResult = Await.result(deleteFile(id1), 10.seconds)
 
       Then("The response code should be Ok")
-
       deleteResult.status shouldBe Status.NO_CONTENT
 
       And("The response body is empty")
@@ -95,11 +101,9 @@ class FileStoreSpec extends FileStoreHelpers {
       await(upload(Some(id2), file2, contentType, publishable = true))
 
       dbFileStoreSize shouldBe 2
-      stubS3ListAll()
-      stubS3DeleteAll()
 
       When("I delete all documents")
-      val deleteResult = await(deleteFiles())
+      val deleteResult = Await.result(deleteFiles(), 10.seconds)
 
       Then("The response code should be 204")
       deleteResult.status shouldEqual Status.NO_CONTENT
@@ -183,27 +187,27 @@ class FileStoreSpec extends FileStoreHelpers {
       fileStoreInitiateResult.uploadRequest.fields shouldBe Map("key" -> "value")
 
     }
-  }
 
-  Scenario("Should accept initiate requests with client generated ID") {
+    Scenario("Should accept initiate requests with client generated ID") {
 
-    Given("A Client of the FileStore needs an upload form")
+      Given("A Client of the FileStore needs an upload form")
 
-    When("It is requested")
+      When("It is requested")
 
-    val response = initiateV2(Some("slurm"), publishable = true)
+      val response = initiateV2(Some("slurm"), publishable = true)
 
-    Then("The response code should be Accepted")
+      Then("The response code should be Accepted")
 
-    val result = await(response)
-    result.status shouldBe Status.ACCEPTED
+      val result = await(response)
+      result.status shouldBe Status.ACCEPTED
 
-    And("The response body contains the file upload template")
+      And("The response body contains the file upload template")
 
-    result.json.as[FileStoreInitiateResponse].id shouldBe "slurm"
+      result.json.as[FileStoreInitiateResponse].id shouldBe "slurm"
 
-    result.json.as[FileStoreInitiateResponse].uploadRequest shouldBe
-      UpscanFormTemplate("http://localhost:20001/upscan/upload", Map("key" -> "value"))
+      result.json.as[FileStoreInitiateResponse].uploadRequest shouldBe
+        UpscanFormTemplate("http://localhost:20001/upscan/upload", Map("key" -> "value"))
+    }
   }
 
   Feature("Get") {
@@ -240,8 +244,6 @@ class FileStoreSpec extends FileStoreHelpers {
       await(upload(Some(id2), file2, contentType, publishable = false))
 
       dbFileStoreSize shouldBe 2
-      stubS3ListAll()
-      stubS3DeleteAll()
 
       When("I request the file details")
 
@@ -327,16 +329,13 @@ class FileStoreSpec extends FileStoreHelpers {
 
   Feature("Notify") {
 
-    Scenario("Successful scan should update the status") {
+    Scenario("Successful scan should update the status") { //todo fix
 
       Given("A File has been uploaded")
 
-      stubS3Upload(id1)
       await(upload(Some(id1), file1, contentType, publishable = true))
 
       dbFileStoreSize shouldBe 1
-      stubS3ListAll()
-      stubS3DeleteAll()
 
       When("Notify is Called")
 
@@ -346,7 +345,7 @@ class FileStoreSpec extends FileStoreHelpers {
         await(notifySuccess(id1, file1, uri))
 
       Then("The response code should be Created")
-      result.status shouldBe Status.CREATED
+      result.status shouldBe Status.CREATED // 500 was not equal to 201
 
       And("The response body contains the file details")
 
@@ -394,7 +393,7 @@ class FileStoreSpec extends FileStoreHelpers {
 
       When("It is Published")
 
-      val result = await(publishSafeFile(id1))
+      val result = Await.result(publishSafeFile(id1), 10.seconds)
 
       Then("The response code should be Accepted")
       result.status shouldBe Status.ACCEPTED

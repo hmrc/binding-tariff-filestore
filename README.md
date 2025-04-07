@@ -18,7 +18,7 @@ The easiest way to run MongoDB and Localstack for local development is to use [D
 ##### To run Localstack and create the S3 bucket
 
 ```
-> docker run -d --restart unless-stopped --name localstack -e SERVICES=s3 -p4572:4566 -p8080:8080 localstack/localstack
+> docker run -d --restart unless-stopped --name localstack -e SERVICES=s3 -p 4572:4566 -p 4566:4566 localstack/localstack
 > docker exec -it localstack bash
 > awslocal s3 mb s3://digital-tariffs-local
 > exit
@@ -40,6 +40,8 @@ This application runs on port 9583.
 Run `./run_all_tests.sh`. This also runs scalafmt and does coverage testing.
 
 or `sbt test it/test` to run the tests only.
+
+Integration tests for s3 connection run directly with local stack, so its necessary to have it running.
 
 ### License
 

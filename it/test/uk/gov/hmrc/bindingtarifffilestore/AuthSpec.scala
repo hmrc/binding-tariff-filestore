@@ -17,7 +17,11 @@
 package uk.gov.hmrc.bindingtarifffilestore
 
 import com.google.common.io.BaseEncoding
+import play.api.Application
 import play.api.http.Status._
+import play.api.inject.bind
+import play.api.inject.guice.GuiceApplicationBuilder
+import uk.gov.hmrc.bindingtarifffilestore.repository.FileMetadataMongoRepository
 import uk.gov.hmrc.bindingtarifffilestore.util.ResourceFiles
 import uk.gov.hmrc.http.HttpReads.Implicits._
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, StringContextOps}
@@ -37,6 +41,16 @@ class AuthSpec extends BaseFeatureSpec with ResourceFiles {
         .getInstance("SHA-256")
         .digest(appConfig.authorization.getBytes("UTF-8"))
     )
+
+  override def fakeApplication(): Application =
+    new GuiceApplicationBuilder()
+      .configure(
+        "s3.endpoint" -> "http://localhost:4572",
+        "s3.bucket"   -> "digital-tariffs-local-test",
+        "s3.region"   -> "eu-west-2"
+      )
+      .overrides(bind[FileMetadataMongoRepository].to(repository))
+      .build()
 
   Feature("Authentication to incoming requests") {
 
