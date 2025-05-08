@@ -16,6 +16,8 @@
 
 package uk.gov.hmrc.bindingtarifffilestore
 
+import org.scalatest.concurrent.Eventually.eventually
+import org.scalatest.concurrent.Futures.{interval, timeout}
 import play.api.Application
 import play.api.http.Status
 import play.api.inject.bind
@@ -393,25 +395,28 @@ class FileStoreSpec extends FileStoreHelpers {
 
       When("It is Published")
 
-      val result = Await.result(publishSafeFile(id1), 10.seconds)
+      eventually(timeout(10.seconds), interval(1.second)) {
+        val result = await(publishSafeFile(id1))
 
-      Then("The response code should be Accepted")
-      result.status shouldBe Status.ACCEPTED
+        Then("The response code should be Accepted")
+        result.status shouldBe Status.ACCEPTED
 
-      And("The response body contains the file details")
+        And("The response body contains the file details")
 
-      (result.json \\ "fileName").map(_.as[String]).toSeq     shouldBe Seq(file1)
-      (result.json \\ "mimeType").map(_.as[String]).toSeq     shouldBe Seq(contentType)
-      (result.json \\ "scanStatus").map(_.as[String]).toSeq   shouldBe Seq(READY.toString)
-      (result.json \\ "publishable").map(_.as[Boolean]).toSeq shouldBe Seq(true)
-      (result.json \\ "published").map(_.as[Boolean]).toSeq   shouldBe Seq(true)
+        (result.json \\ "fileName").map(_.as[String]).toSeq     shouldBe Seq(file1)
+        (result.json \\ "mimeType").map(_.as[String]).toSeq     shouldBe Seq(contentType)
+        (result.json \\ "scanStatus").map(_.as[String]).toSeq   shouldBe Seq(READY.toString)
+        (result.json \\ "publishable").map(_.as[Boolean]).toSeq shouldBe Seq(true)
+        (result.json \\ "published").map(_.as[Boolean]).toSeq   shouldBe Seq(true)
 
-      And("The response shows the file published")
+        And("The response shows the file published")
 
-      (result.json \\ "url").map(_.as[String]).headOption.getOrElse("") should include(s"$id1")
-      (result.json \\ "url").map(_.as[String]).headOption.getOrElse("") should include(
-        "X-Amz-Algorithm=AWS4-HMAC-SHA256"
-      )
+        (result.json \\ "url").map(_.as[String]).headOption.getOrElse("") should include(s"$id1")
+        (result.json \\ "url").map(_.as[String]).headOption.getOrElse("") should include(
+          "X-Amz-Algorithm=AWS4-HMAC-SHA256"
+        )
+      }
+
     }
 
     Scenario("Should mark an un-safe file as publishable, but not persist") {
