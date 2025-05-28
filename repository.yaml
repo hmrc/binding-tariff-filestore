@@ -1,7 +1,10 @@
-digital-service: Digital Tariffs
+digital-service: ATaR / Advance Tariff Rulings
+description: The backend filestore service which manages attachment metadata and S3 bucket access for the Advance Tariff Rulings services.
 repoVisibility: public_0C3F0CE3E6E6448FAD341E7BFA50FCD333E06A20CFF05FCACE61154DDBBADF71
+type: Service
+service-type: Backend
 test-repositories:
   - digital-tariffs-acceptance-tests
   - digital-tariffs-operational-performance-tests
-  - digital-tariffs-trader-performance-tests
   - digital-tariffs-ruling-performance-tests
+  - digital-tariffs-trader-performance-tests
