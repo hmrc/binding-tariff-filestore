@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.bindingtarifffilestore.connector
 
+import com.amazonaws.services.s3.model.AmazonS3Exception
 import com.github.tomakehurst.wiremock.client.WireMock
 import com.github.tomakehurst.wiremock.client.WireMock._
 import org.mockito.BDDMockito.given
@@ -23,7 +24,6 @@ import org.mockito.Mockito.mock
 import org.scalatest.BeforeAndAfterEach
 import play.api.http.Status
 import play.api.libs.Files.SingletonTemporaryFileCreator
-import software.amazon.awssdk.services.s3.model.S3Exception
 import uk.gov.hmrc.bindingtarifffilestore.config.{AppConfig, S3Configuration}
 import uk.gov.hmrc.bindingtarifffilestore.model.FileMetadata
 import uk.gov.hmrc.bindingtarifffilestore.util._
@@ -46,8 +46,9 @@ class AmazonS3ConnectorSpec extends UnitSpec with WiremockTestServer with Before
   "Get All" should {
 
     "Delegate to S3" in {
+      // Given
       stubFor(
-        get("/bucket?list-type=2")
+        get("/bucket/?encoding-type=url")
           .withHeader(
             "Authorization",
             matching(s"AWS4-HMAC-SHA256 Credential=(.*)/$date/${s3Config.region}/s3/aws4_request, .*")
@@ -59,23 +60,27 @@ class AmazonS3ConnectorSpec extends UnitSpec with WiremockTestServer with Before
           )
       )
 
+      // When
       val all: Seq[String] = connector.getAll
 
+      // Then
       all        should have size 1
       all.head shouldBe "image.jpg"
     }
+
   }
 
   "Upload" should {
 
     "Delegate to S3" in {
+      // Given
       stubFor(
         put("/bucket/id")
           .withHeader(
             "Authorization",
             matching(s"AWS4-HMAC-SHA256 Credential=(.*)/$date/${s3Config.region}/s3/aws4_request, .*")
           )
-          .withHeader("Content-Type", equalTo("application/octet-stream"))
+          .withHeader("Content-Type", equalTo("text/plain"))
           .willReturn(
             aResponse()
               .withStatus(Status.OK)
@@ -85,8 +90,8 @@ class AmazonS3ConnectorSpec extends UnitSpec with WiremockTestServer with Before
       val url           = SingletonTemporaryFileCreator.create("example.txt").path.toUri.toURL.toString
       val fileUploading = FileMetadata("id", Some("file.txt"), Some("text/plain"), Some(url))
 
+      // Then
       val result = connector.upload(fileUploading)
-
       result.id       shouldBe "id"
       result.fileName shouldBe Some("file.txt")
       result.mimeType shouldBe Some("text/plain")
@@ -94,8 +99,10 @@ class AmazonS3ConnectorSpec extends UnitSpec with WiremockTestServer with Before
     }
 
     "Throw Exception on missing URL" in {
+      // Given
       val fileUploading = FileMetadata("id", Some("file.txt"), Some("text/plain"))
 
+      // Then
       val exception = intercept[IllegalArgumentException] {
         connector.upload(fileUploading)
       }
@@ -103,6 +110,7 @@ class AmazonS3ConnectorSpec extends UnitSpec with WiremockTestServer with Before
     }
 
     "Throw Exception on upload failure" in {
+      // Given
       stubFor(
         put("/bucket/id")
           .withHeader(
@@ -115,53 +123,38 @@ class AmazonS3ConnectorSpec extends UnitSpec with WiremockTestServer with Before
               .withStatus(Status.BAD_GATEWAY)
           )
       )
-      val url = SingletonTemporaryFileCreator.create("example.txt").path.toUri.toURL.toString
-
+      val url           = SingletonTemporaryFileCreator.create("example.txt").path.toUri.toURL.toString
       val fileUploading = FileMetadata("id", Some("file.txt"), Some("text/plain"), Some(url))
 
-      val exception = intercept[S3Exception] {
+      // Then
+      val exception = intercept[AmazonS3Exception] {
         connector.upload(fileUploading)
       }
-
-      exception.getMessage shouldBe s"(Service: S3, Status Code: 404, Request ID: null) (SDK Attempt Count: 2)"
-    }
-
-    "Throw UncheckedIOException and transform into S3Exception" in {
-      stubFor(
-        put("/bucket/id")
-          .withHeader(
-            "Authorization",
-            matching(s"AWS4-HMAC-SHA256 Credential=(.*)/$date/${s3Config.region}/s3/aws4_request, .*")
-          )
-          .withHeader("Content-Type", equalTo("text/plain"))
-          .willReturn(
-            aResponse()
-              .withStatus(Status.BAD_GATEWAY)
-          )
-      )
-      val url       = SingletonTemporaryFileCreator.create("example.txt").path.toUri.toURL.toString
-      val wrongFile = s"$url/asd"
-
-      val fileUploading = FileMetadata("id", Some("file.txt"), Some("text/plain"), Some(wrongFile))
-
-      val exception = intercept[S3Exception] {
-        connector.upload(fileUploading)
-      }
-
-      exception.getMessage shouldBe s"Failed to read the file: java.nio.file.FileSystemException: ${wrongFile.replace("file:", "")}: Not a directory (Service: null, Status Code: 0, Request ID: null)"
+      exception.getMessage shouldBe
+        """Bad Gateway (Service: Amazon S3;
+          | Status Code: 502;
+          | Error Code: 502 Bad Gateway;
+          | Request ID: null;
+          | S3 Extended Request ID: null;
+          | Proxy: null)""".stripMargin.replaceAll("\n", "")
     }
   }
 
   "Sign" should {
     "append token to URL" in {
+      // Given
       val file = FileMetadata("id", Some("file.txt"), Some("text/plain"), Some("url"))
 
+      // When
+      connector.sign(file).url.get should startWith(s"$wireMockUrl/bucket/id?")
       connector.sign(file).url.get should include("X-Amz-Algorithm=AWS4-HMAC-SHA256")
     }
 
     "not append token to empty URL" in {
+      // Given
       val file = FileMetadata("id", Some("file.txt"), Some("text/plain"), None)
 
+      // When
       connector.sign(file).url shouldBe None
     }
   }
@@ -169,7 +162,7 @@ class AmazonS3ConnectorSpec extends UnitSpec with WiremockTestServer with Before
   "Delete All" should {
     "Delegate to S3" in {
       stubFor(
-        get("/bucket?list-type=2")
+        get("/bucket/?encoding-type=url")
           .withHeader(
             "Authorization",
             matching(s"AWS4-HMAC-SHA256 Credential=(.*)/$date/${s3Config.region}/s3/aws4_request, .*")
@@ -181,7 +174,7 @@ class AmazonS3ConnectorSpec extends UnitSpec with WiremockTestServer with Before
           )
       )
       stubFor(
-        post("/bucket?delete")
+        post("/bucket/?delete")
           .withHeader(
             "Authorization",
             matching(s"AWS4-HMAC-SHA256 Credential=(.*)/$date/${s3Config.region}/s3/aws4_request, .*")
@@ -196,13 +189,13 @@ class AmazonS3ConnectorSpec extends UnitSpec with WiremockTestServer with Before
       connector.deleteAll()
 
       WireMock.verify(
-        postRequestedFor(urlEqualTo("/bucket?delete"))
+        postRequestedFor(urlEqualTo("/bucket/?delete"))
       )
     }
 
     "Do nothing for no files" in {
       stubFor(
-        get("/bucket?list-type=2")
+        get("/bucket/?encoding-type=url")
           .withHeader(
             "Authorization",
             matching(s"AWS4-HMAC-SHA256 Credential=(.*)/$date/${s3Config.region}/s3/aws4_request, .*")
@@ -239,4 +232,5 @@ class AmazonS3ConnectorSpec extends UnitSpec with WiremockTestServer with Before
       WireMock.verify(deleteRequestedFor(urlEqualTo("/bucket/id")))
     }
   }
+
 }

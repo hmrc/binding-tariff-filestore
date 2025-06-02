@@ -16,16 +16,11 @@
 
 package uk.gov.hmrc.bindingtarifffilestore
 
-import com.github.tomakehurst.wiremock.client.WireMock.{aResponse, post, stubFor}
+import com.github.tomakehurst.wiremock.client.WireMock._
 import com.github.tomakehurst.wiremock.stubbing.StubMapping
 import play.api.http.Status
 import play.api.libs.Files.SingletonTemporaryFileCreator
 import play.api.libs.json.Json
-import software.amazon.awssdk.regions.Region
-import software.amazon.awssdk.services.s3.S3Client
-import software.amazon.awssdk.services.s3.model.{CreateBucketRequest, HeadBucketRequest, NoSuchBucketException}
-import uk.gov.hmrc.bindingtarifffilestore.config.AppConfig
-import uk.gov.hmrc.bindingtarifffilestore.connector.LocalDevelopmentS3CredentialsProvider
 import uk.gov.hmrc.bindingtarifffilestore.model.FileMetadataREST.format
 import uk.gov.hmrc.bindingtarifffilestore.model._
 import uk.gov.hmrc.bindingtarifffilestore.model.upscan._
@@ -59,39 +54,17 @@ trait FileStoreHelpers extends WiremockFeatureTestServer {
 
   val filePath = "it/test/resources/file.txt"
 
-  val conf: AppConfig = app.injector.instanceOf[AppConfig]
-
-  private lazy val s3Client: S3Client =
-    S3Client
-      .builder()
-      .region(Region.of(conf.s3Configuration.region))
-      .forcePathStyle(true)
-      .credentialsProvider(new LocalDevelopmentS3CredentialsProvider)
-      .endpointOverride(new URI(conf.s3Configuration.endpoint.getOrElse("")))
-      .build()
-
   def getFile(id: String)(implicit hc: HeaderCarrier): Future[HttpResponse] =
     httpClientV2.get(url"$serviceUrl/file/$id").execute[HttpResponse]
 
   def deleteFiles()(implicit hc: HeaderCarrier): Future[HttpResponse] =
     httpClientV2.delete(url"$serviceUrl/file").execute[HttpResponse]
 
-  private def doesBucketExistV2: Boolean =
-    try {
-      s3Client.headBucket(HeadBucketRequest.builder().bucket(conf.s3Configuration.bucket).build)
-      true
-    } catch {
-      case _: NoSuchBucketException =>
-        false
-    }
+  def deleteFile(id: String)(implicit hc: HeaderCarrier): Future[HttpResponse] = {
+    stubS3DeleteOne(id)
 
-  def createBucket(): Unit =
-    if (!doesBucketExistV2) {
-      s3Client.createBucket(CreateBucketRequest.builder().bucket(conf.s3Configuration.bucket).build())
-    }
-
-  def deleteFile(id: String)(implicit hc: HeaderCarrier): Future[HttpResponse] =
     httpClientV2.delete(url"$serviceUrl/file/$id").execute[HttpResponse]
+  }
 
   def getFiles(queryParams: Seq[(String, String)])(implicit hc: HeaderCarrier): Future[HttpResponse] = {
     val queryParamsFinal =
@@ -101,11 +74,14 @@ trait FileStoreHelpers extends WiremockFeatureTestServer {
     httpClientV2.get(url"$finalUrl").execute[HttpResponse]
   }
 
-  def publishSafeFile(id: String)(implicit hc: HeaderCarrier): Future[HttpResponse] =
+  def publishSafeFile(id: String)(implicit hc: HeaderCarrier): Future[HttpResponse] = {
+    stubS3Upload(id)
+
     httpClientV2
       .post(url"$serviceUrl/file/$id/publish")
       .withBody(Json.toJson(FileMetadata(id, None, None)))
       .execute[HttpResponse]
+  }
 
   // Should NOT call S3 Upload
   def publishUnsafeFile(id: String)(implicit hc: HeaderCarrier): Future[HttpResponse] =
@@ -192,6 +168,44 @@ trait FileStoreHelpers extends WiremockFeatureTestServer {
         .willReturn(
           aResponse()
             .withBody(fromFile("upscan/initiate_wiremock-response.json"))
+        )
+    )
+
+  def stubS3Upload(id: String): StubMapping =
+    stubFor(
+      put(s"/digital-tariffs-local/$id")
+        .willReturn(
+          aResponse()
+            .withStatus(Status.OK)
+        )
+    )
+
+  def stubS3ListAll(): StubMapping =
+    stubFor(
+      get("/digital-tariffs-local/?encoding-type=url")
+        .willReturn(
+          aResponse()
+            .withStatus(Status.OK)
+            .withBody(fromFile("aws/list-objects_response.xml"))
+        )
+    )
+
+  def stubS3DeleteAll(): StubMapping =
+    stubFor(
+      post(s"/digital-tariffs-local/?delete")
+        .willReturn(
+          aResponse()
+            .withStatus(Status.OK)
+            .withBody(fromFile("aws/delete-objects_response.xml"))
+        )
+    )
+
+  def stubS3DeleteOne(id: String): StubMapping =
+    stubFor(
+      delete(s"/digital-tariffs-local/$id")
+        .willReturn(
+          aResponse()
+            .withStatus(Status.OK)
         )
     )
 

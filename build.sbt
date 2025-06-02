@@ -19,9 +19,6 @@ lazy val microservice = Project(appName, file("."))
     scalacOptions ++= Seq(
       "-feature",
       "-Wconf:src=routes/.*:s"
-    ),
-    javaOptions ++= Seq(
-      "-Daws.region=eu-west-2" // Explicitly setting the AWS region as a JVM option
     )
   )
 
