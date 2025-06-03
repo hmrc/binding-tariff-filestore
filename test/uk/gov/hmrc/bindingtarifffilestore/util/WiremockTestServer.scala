@@ -17,8 +17,7 @@
 package uk.gov.hmrc.bindingtarifffilestore.util
 
 import com.github.tomakehurst.wiremock.WireMockServer
-import com.github.tomakehurst.wiremock.client.{MappingBuilder, WireMock}
-import com.github.tomakehurst.wiremock.stubbing.StubMapping
+import com.github.tomakehurst.wiremock.client.WireMock
 import org.scalatest.BeforeAndAfterEach
 
 trait WiremockTestServer extends UnitSpec with BeforeAndAfterEach {
@@ -28,9 +27,6 @@ trait WiremockTestServer extends UnitSpec with BeforeAndAfterEach {
   private val wireMockServer = new WireMockServer(wirePort)
 
   lazy val wireMockUrl: String = s"http://$wireHost:$wirePort"
-
-  protected def stubFor(mappingBuilder: MappingBuilder): StubMapping =
-    wireMockServer.stubFor(mappingBuilder)
 
   override protected def beforeEach(): Unit = {
     super.beforeEach()
