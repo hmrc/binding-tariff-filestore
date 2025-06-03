@@ -6,7 +6,7 @@ object AppDependencies {
   private lazy val hmrcMongoVersion     = "2.6.0"
 
   val compile: Seq[ModuleID] = Seq(
-    "com.amazonaws"                 % "aws-java-sdk-s3"           % "1.12.782",
+    "software.amazon.awssdk"        % "s3"                        % "2.31.16",
     "uk.gov.hmrc"                  %% "bootstrap-backend-play-30" % bootstrapPlayVersion,
     "uk.gov.hmrc.mongo"            %% "hmrc-mongo-play-30"        % hmrcMongoVersion,
     "com.fasterxml.jackson.module" %% "jackson-module-scala"      % "2.19.0",
