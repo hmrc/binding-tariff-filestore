@@ -19,6 +19,7 @@ package uk.gov.hmrc.bindingtarifffilestore.connector
 import com.amazonaws.services.s3.model.AmazonS3Exception
 import com.github.tomakehurst.wiremock.client.WireMock
 import com.github.tomakehurst.wiremock.client.WireMock._
+import org.apache.pekko.stream.Materializer
 import org.mockito.BDDMockito.given
 import org.mockito.Mockito.mock
 import org.scalatest.BeforeAndAfterEach
@@ -27,16 +28,21 @@ import play.api.libs.Files.SingletonTemporaryFileCreator
 import uk.gov.hmrc.bindingtarifffilestore.config.{AppConfig, S3Configuration}
 import uk.gov.hmrc.bindingtarifffilestore.model.FileMetadata
 import uk.gov.hmrc.bindingtarifffilestore.util._
+import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.objectstore.client.play.PlayObjectStoreClient
 
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+import scala.concurrent.ExecutionContext.Implicits.global
 
-class AmazonS3ConnectorSpec extends UnitSpec with WiremockTestServer with BeforeAndAfterEach with ResourceFiles {
+class ObjectStoreConnectorSpec extends UnitSpec with WiremockTestServer with BeforeAndAfterEach with ResourceFiles {
 
+  private implicit val hc: HeaderCarrier = HeaderCarrier()
   private val s3Config  = S3Configuration("region", "bucket", Some(s"http://localhost:$wirePort"))
   private val config    = mock(classOf[AppConfig])
+  private val mockObjectStoreClient = mock(classOf[PlayObjectStoreClient])
   private val date      = LocalDate.now().format(DateTimeFormatter.ofPattern("YYYYMMdd"))
-  private val connector = new AmazonS3Connector(config)
+  private val connector = new ObjectStoreConnector(mockObjectStoreClient, config)
 
   override protected def beforeEach(): Unit = {
     super.beforeEach()

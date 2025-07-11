@@ -19,7 +19,7 @@ package uk.gov.hmrc.bindingtarifffilestore.service
 import play.api.Logging
 import uk.gov.hmrc.bindingtarifffilestore.audit.AuditService
 import uk.gov.hmrc.bindingtarifffilestore.config.AppConfig
-import uk.gov.hmrc.bindingtarifffilestore.connector.{AmazonS3Connector, UpscanConnector}
+import uk.gov.hmrc.bindingtarifffilestore.connector.{ ObjectStoreConnector, UpscanConnector}
 import uk.gov.hmrc.bindingtarifffilestore.controllers.routes
 import uk.gov.hmrc.bindingtarifffilestore.model.ScanStatus.READY
 import uk.gov.hmrc.bindingtarifffilestore.model._
@@ -27,9 +27,9 @@ import uk.gov.hmrc.bindingtarifffilestore.model.upscan._
 import uk.gov.hmrc.bindingtarifffilestore.repository.FileMetadataMongoRepository
 import uk.gov.hmrc.bindingtarifffilestore.util.HashUtil
 import uk.gov.hmrc.http.HeaderCarrier
+
 import java.util.Base64
 import java.nio.charset.StandardCharsets
-
 import java.util.UUID
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
@@ -37,7 +37,7 @@ import scala.concurrent.{ExecutionContext, Future}
 @Singleton()
 class FileStoreService @Inject() (
   appConfig: AppConfig,
-  fileStoreConnector: AmazonS3Connector,
+  fileStoreConnector: ObjectStoreConnector,
   repository: FileMetadataMongoRepository,
   upscanConnector: UpscanConnector,
   auditService: AuditService
@@ -120,11 +120,11 @@ class FileStoreService @Inject() (
     } yield update
   }
 
-  def find(id: String): Future[Option[FileMetadata]] =
+  def find(id: String)(implicit hc: HeaderCarrier): Future[Option[FileMetadata]] =
     repository.get(id) map signingPermanentURL
 
-  def find(search: Search, pagination: Pagination): Future[Paged[FileMetadata]] =
-    repository.get(search, pagination: Pagination) map (signingPermanentURLs(_))
+  def find(search: Search, pagination: Pagination)(implicit hc: HeaderCarrier): Future[Paged[FileMetadata]] =
+    repository.get(search, pagination: Pagination) map signingPermanentURLs
 
   // when UpScan comes back to us with the scan result
   def notify(attachment: FileMetadata, scanResult: ScanResult)(implicit
@@ -132,7 +132,7 @@ class FileStoreService @Inject() (
   ): Future[Option[FileMetadata]] = {
 
     logger.info(
-      s"[FileStoreService][notify] Attachement File: ${attachment.id}, Scan completed with status [${scanResult.fileStatus}] and Upscan reference [${scanResult.reference}]"
+      s"[FileStoreService][notify] Attachment File: ${attachment.id}, Scan completed with status [${scanResult.fileStatus}] and Upscan reference [${scanResult.reference}]"
     )
 
     auditService
@@ -143,12 +143,12 @@ class FileStoreService @Inject() (
     scanResult match {
       case FailedScanResult(_, _, details)        =>
         logger.info(
-          s"[FileStoreService][notify] Attachement File: ${attachment.id}, Scan failed because it was [${details.failureReason}] with message [${details.message}]"
+          s"[FileStoreService][notify] Attachment File: ${attachment.id}, Scan failed because it was [${details.failureReason}] with message [${details.message}]"
         )
         repository.update(updatedAttachment)
       case SuccessfulScanResult(_, _, _, details) =>
         logger.info(
-          s"[FileStoreService][notify] Attachement File: ${attachment.id}, Scan succeeded with details [fileName: ${encodeInBase64(
+          s"[FileStoreService][notify] Attachment File: ${attachment.id}, Scan succeeded with details [fileName: ${encodeInBase64(
             details.fileName
           )}, fileMimeType:${details.fileMimeType}, checksum:${encodeInBase64(details.checksum)}, ${details.uploadTimestamp}]"
         )
@@ -160,7 +160,7 @@ class FileStoreService @Inject() (
                                                    publish(metadata)
                                                  case _              =>
                                                    logger.info(
-                                                     s"[FileStoreService][notify] Attachement File: ${attachment.id}, Scan completed as READY but it couldn't be published as it no longer exists"
+                                                     s"[FileStoreService][notify] Attachment File: ${attachment.id}, Scan completed as READY but it couldn't be published as it no longer exists"
                                                    )
                                                    Future.successful(None)
                                                }
@@ -178,7 +178,7 @@ class FileStoreService @Inject() (
       // File is Safe, unpublished and the download URL is still live
       case (Some(READY), false) if att.isLive =>
         logger.info(s"[FileStoreService][publish] File: ${att.id}, Publishing file to Permanent Storage")
-        val metadata: FileMetadata = fileStoreConnector.upload(att)
+        val metadata: FileMetadata = fileStoreConnector.upload(att.fileName)
         auditService.auditFilePublished(att.id, att.fileName.get)
         logger.info(s"[FileStoreService][publish] File: ${att.id}, Published file to Permanent Storage")
         repository
@@ -206,10 +206,10 @@ class FileStoreService @Inject() (
     }
   }
 
-  def deleteAll(): Future[Unit] =
+  def deleteAll()(implicit hc: HeaderCarrier): Future[Unit] =
     repository.deleteAll() map (_ => fileStoreConnector.deleteAll())
 
-  def delete(id: String): Future[Unit] = {
+  def delete(id: String)(implicit hc: HeaderCarrier): Future[Unit] = {
     logger.info(s"[FileStoreService][delete] Deleting file: $id")
     repository.delete(id) map (_ => fileStoreConnector.delete(id))
   }
@@ -232,11 +232,11 @@ class FileStoreService @Inject() (
     } yield initiateResponse
   }
 
-  private def signingPermanentURL: Option[FileMetadata] => Option[FileMetadata] = _ map signingIfPublished
+  private def signingPermanentURL(implicit hc: HeaderCarrier): Option[FileMetadata] => Option[FileMetadata] = _ map signingIfPublished
 
-  private def signingPermanentURLs: Paged[FileMetadata] => Paged[FileMetadata] = _ map signingIfPublished
+  private def signingPermanentURLs(implicit hc: HeaderCarrier): Paged[FileMetadata] => Paged[FileMetadata] = _ map signingIfPublished
 
-  private def signingIfPublished: FileMetadata => FileMetadata = {
+  private def signingIfPublished(implicit hc: HeaderCarrier): FileMetadata => FileMetadata = {
     case file if file.published => fileStoreConnector.sign(file)
     case other                  => other
   }
