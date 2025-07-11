@@ -42,7 +42,7 @@ class FileStoreController @Inject() (
   service: FileStoreService,
   parse: PlayBodyParsers,
   mcc: MessagesControllerComponents
-)(implicit ec: ExecutionContext)
+)(implicit ec: ExecutionContext, hc: HeaderCarrier)
     extends BackendController(mcc)
     with ErrorHandling
     with JsonParsing

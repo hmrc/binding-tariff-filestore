@@ -30,7 +30,6 @@ import uk.gov.hmrc.bindingtarifffilestore.model.upscan.*
 import uk.gov.hmrc.bindingtarifffilestore.repository.FileMetadataMongoRepository
 import uk.gov.hmrc.bindingtarifffilestore.util.HashUtil
 import uk.gov.hmrc.http.HeaderCarrier
-
 import java.util.Base64
 import java.nio.charset.StandardCharsets
 import java.util.UUID
