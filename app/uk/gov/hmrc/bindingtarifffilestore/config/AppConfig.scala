@@ -26,13 +26,9 @@ class AppConfig @Inject() (
   servicesConfig: ServicesConfig
 ) {
 
-  lazy val authorization: String = config.get[String]("auth.api-token")
+  lazy val authorization: String = config.get[String]("internal-auth.token")
 
-  lazy val s3Configuration: S3Configuration = S3Configuration(
-    config.get[String]("s3.region"),
-    config.get[String]("s3.bucket"),
-    Option(config.get[String]("s3.endpoint")).filter(_.nonEmpty)
-  )
+  lazy val appName: String = config.get[String]("appName")
 
   lazy val upscanInitiateUrl: String                              = servicesConfig.baseUrl("upscan-initiate")
   lazy val fileStoreSizeConfiguration: FileStoreSizeConfiguration = FileStoreSizeConfiguration(
@@ -44,15 +40,6 @@ class AppConfig @Inject() (
   lazy val filestoreSSL: Boolean = config.get[Boolean]("filestore.ssl")
 
   lazy val isTestMode: Boolean = config.getOptional[Boolean]("testMode").getOrElse(false)
-}
-
-case class S3Configuration(
-  region: String,
-  bucket: String,
-  endpoint: Option[String]
-) {
-
-  def baseUrl: String = endpoint.getOrElse(s"https://s3-$region.amazonaws.com")
 }
 
 case class FileStoreSizeConfiguration(

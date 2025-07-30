@@ -16,62 +16,68 @@
 
 package uk.gov.hmrc.bindingtarifffilestore.connector
 
-
 import uk.gov.hmrc.objectstore.client.play.PlayObjectStoreClient
 import com.google.inject.Inject
-import org.apache.pekko.stream.Materializer
-import play.mvc.Action
 
 import javax.inject.Singleton
 import uk.gov.hmrc.bindingtarifffilestore.config.AppConfig
 import uk.gov.hmrc.bindingtarifffilestore.model.FileMetadata
 import uk.gov.hmrc.bindingtarifffilestore.util.Logging
 import uk.gov.hmrc.http.HeaderCarrier
-import uk.gov.hmrc.objectstore.client.{ObjectSummary, ObjectSummaryWithMd5, Path}
+import uk.gov.hmrc.objectstore.client.{ObjectSummary, Path}
 
+import java.net.URI
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.{Failure, Success, Try}
 
 @Singleton
-class ObjectStoreConnector @Inject() (client: PlayObjectStoreClient, config: AppConfig)(implicit ec: ExecutionContext, mat: Materializer) extends Logging {
+class ObjectStoreConnector @Inject() (client: PlayObjectStoreClient, config: AppConfig)(implicit
+  val ec: ExecutionContext
+) extends Logging {
 
   private val directory: Path.Directory =
     Path.Directory("digital-tariffs-local")
 
-  def getAll()(implicit hc: HeaderCarrier): Future[List[ObjectSummary]] = {
-    client.listObjects(directory).map(_.objectSummaries.map(o => ObjectSummary(o.location, o.contentLength, o.lastModified)))
-  }
+  def getAll()(implicit hc: HeaderCarrier): Future[List[ObjectSummary]] =
+    client
+      .listObjects(directory)
+      .map(_.objectSummaries.map(o => ObjectSummary(o.location, o.contentLength, o.lastModified)))
 
-  def upload(fileMetadata: FileMetadata): Future[ObjectSummaryWithMd5] = {
-
-   client.putObject(
-      path = directory.file(fileMetadata.id),
-      content = fileMetadata,
-      contentType = fileMetadata.mimeType
-    )
-  }
+  def upload(fileMetaData: FileMetadata)(implicit hc: HeaderCarrier): FileMetadata =
+    Try(
+      client
+        .uploadFromUrl(
+          from = new URI(fileMetaData.url.getOrElse(throw new IllegalArgumentException("Missing URL"))).toURL,
+          to = directory.file(fileMetaData.id),
+          contentType = fileMetaData.mimeType,
+          owner = config.appName
+        )
+    ) match {
+      case Success(_)            =>
+        fileMetaData.copy(url = Some(s"${config.filestoreUrl}/${fileMetaData.id}"))
+      case Failure(e: Throwable) =>
+        log.error("Failed to upload to the object store.", e)
+        throw e
+    }
 
   def delete(id: String)(implicit hc: HeaderCarrier): Unit =
     client.deleteObject(
       path = directory.file(id)
     )
 
-
-  def deleteAll()(implicit  hc: HeaderCarrier): Unit = {
-    getAll().map(
-      files =>
-       if(files.nonEmpty){
-        log.info(s"Removing [${files.length}] files from S3")
+  def deleteAll()(implicit hc: HeaderCarrier): Unit =
+    getAll().map(files =>
+      if (files.nonEmpty) {
+        log.info(s"Removing [${files.length}] files from object store")
         Future.traverse(files)(filename =>
           client.deleteObject(
             path = directory.file(filename.location.fileName)
           )
         )
       } else {
-        log.info(s"No files to remove from S3")
+        log.info(s"No files to remove from object store")
       }
     )
-
-  }
 
   def sign(fileMetaData: FileMetadata)(implicit hc: HeaderCarrier): FileMetadata =
     if (fileMetaData.url.isDefined) {
@@ -85,5 +91,3 @@ class ObjectStoreConnector @Inject() (client: PlayObjectStoreClient, config: App
     }
 
 }
-
-

@@ -19,7 +19,7 @@ package uk.gov.hmrc.bindingtarifffilestore.service
 import play.api.Logging
 import uk.gov.hmrc.bindingtarifffilestore.audit.AuditService
 import uk.gov.hmrc.bindingtarifffilestore.config.AppConfig
-import uk.gov.hmrc.bindingtarifffilestore.connector.{ ObjectStoreConnector, UpscanConnector}
+import uk.gov.hmrc.bindingtarifffilestore.connector.{ObjectStoreConnector, UpscanConnector}
 import uk.gov.hmrc.bindingtarifffilestore.controllers.routes
 import uk.gov.hmrc.bindingtarifffilestore.model.ScanStatus.READY
 import uk.gov.hmrc.bindingtarifffilestore.model._
@@ -178,7 +178,7 @@ class FileStoreService @Inject() (
       // File is Safe, unpublished and the download URL is still live
       case (Some(READY), false) if att.isLive =>
         logger.info(s"[FileStoreService][publish] File: ${att.id}, Publishing file to Permanent Storage")
-        val metadata: FileMetadata = fileStoreConnector.upload(att.fileName)
+        val metadata: FileMetadata = fileStoreConnector.upload(att)
         auditService.auditFilePublished(att.id, att.fileName.get)
         logger.info(s"[FileStoreService][publish] File: ${att.id}, Published file to Permanent Storage")
         repository
@@ -232,9 +232,11 @@ class FileStoreService @Inject() (
     } yield initiateResponse
   }
 
-  private def signingPermanentURL(implicit hc: HeaderCarrier): Option[FileMetadata] => Option[FileMetadata] = _ map signingIfPublished
+  private def signingPermanentURL(implicit hc: HeaderCarrier): Option[FileMetadata] => Option[FileMetadata] =
+    _ map signingIfPublished
 
-  private def signingPermanentURLs(implicit hc: HeaderCarrier): Paged[FileMetadata] => Paged[FileMetadata] = _ map signingIfPublished
+  private def signingPermanentURLs(implicit hc: HeaderCarrier): Paged[FileMetadata] => Paged[FileMetadata] =
+    _ map signingIfPublished
 
   private def signingIfPublished(implicit hc: HeaderCarrier): FileMetadata => FileMetadata = {
     case file if file.published => fileStoreConnector.sign(file)
