@@ -27,6 +27,7 @@ import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.objectstore.client.{ObjectSummary, Path}
 
 import java.net.URI
+import scala.Console.println
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success, Try}
 
@@ -48,7 +49,7 @@ class ObjectStoreConnector @Inject() (client: PlayObjectStoreClient, config: App
       client
         .uploadFromUrl(
           from = new URI(fileMetaData.url.getOrElse(throw new IllegalArgumentException("Missing URL"))).toURL,
-          to = directory.file(fileMetaData.id),
+          to = directory.file(fileMetaData.fileName.getOrElse("")),
           contentType = fileMetaData.mimeType,
           owner = config.appName
         )
@@ -82,9 +83,10 @@ class ObjectStoreConnector @Inject() (client: PlayObjectStoreClient, config: App
   def sign(fileMetaData: FileMetadata)(implicit hc: HeaderCarrier): FileMetadata =
     if (fileMetaData.url.isDefined) {
       val authenticatedUrl = client.presignedDownloadUrl(
-        path = directory.file(fileMetaData.fileName.getOrElse("")),
-        owner = "digital-tariffs-local"
+        path = directory.file(fileMetaData.id),
+        owner = "digital-tariffs"
       )
+      println(fileMetaData.copy(url = Some(authenticatedUrl.toString)).toString)
       fileMetaData.copy(url = Some(authenticatedUrl.toString))
     } else {
       fileMetaData

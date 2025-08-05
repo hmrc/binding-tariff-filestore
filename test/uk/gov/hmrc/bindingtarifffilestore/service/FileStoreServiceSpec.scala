@@ -17,7 +17,7 @@
 package uk.gov.hmrc.bindingtarifffilestore.service
 
 import org.mockito.ArgumentCaptor
-import org.mockito.ArgumentMatchers.any
+import org.mockito.ArgumentMatchers._
 import org.mockito.BDDMockito.given
 import org.mockito.Mockito._
 import org.scalatest.BeforeAndAfterEach
@@ -25,7 +25,7 @@ import org.scalatest.concurrent.Eventually
 import play.api.libs.Files.TemporaryFile
 import uk.gov.hmrc.bindingtarifffilestore.audit.AuditService
 import uk.gov.hmrc.bindingtarifffilestore.config.{AppConfig, FileStoreSizeConfiguration}
-import uk.gov.hmrc.bindingtarifffilestore.connector.{AmazonS3Connector, UpscanConnector}
+import uk.gov.hmrc.bindingtarifffilestore.connector.{ObjectStoreConnector, UpscanConnector}
 import uk.gov.hmrc.bindingtarifffilestore.model._
 import uk.gov.hmrc.bindingtarifffilestore.model.upscan._
 import uk.gov.hmrc.bindingtarifffilestore.repository.FileMetadataMongoRepository
@@ -40,12 +40,11 @@ import scala.concurrent.Future.{failed, successful}
 class FileStoreServiceSpec extends UnitSpec with BeforeAndAfterEach with Eventually {
 
   private val config: AppConfig                       = mock(classOf[AppConfig])
-  private val s3Connector: AmazonS3Connector          = mock(classOf[AmazonS3Connector])
+  private val s3Connector: ObjectStoreConnector       = mock(classOf[ObjectStoreConnector])
   private val repository: FileMetadataMongoRepository = mock(classOf[FileMetadataMongoRepository])
   private val upscanConnector: UpscanConnector        = mock(classOf[UpscanConnector])
   private val auditService: AuditService              = mock(classOf[AuditService])
-
-  private implicit val hc: HeaderCarrier = HeaderCarrier()
+  private implicit val hc: HeaderCarrier              = HeaderCarrier()
 
   private val service: FileStoreService =
     new FileStoreService(config, s3Connector, repository, upscanConnector, auditService)
@@ -124,7 +123,7 @@ class FileStoreServiceSpec extends UnitSpec with BeforeAndAfterEach with Eventua
 
       await(service.find("id")) shouldBe Some(attachment)
 
-      verify(s3Connector, never).sign(any[FileMetadata])
+      verify(s3Connector, never()).sign(any[FileMetadata])(any[HeaderCarrier])
     }
   }
 
@@ -370,8 +369,8 @@ class FileStoreServiceSpec extends UnitSpec with BeforeAndAfterEach with Eventua
 
         await(service.notify(attachment, scanResult)) shouldBe None
 
-        verify(s3Connector, never).upload(any[FileMetadata])
-        verify(s3Connector, never).sign(any[FileMetadata])
+        verify(s3Connector, never()).upload(any[FileMetadata]())(any[HeaderCarrier]())
+        verify(s3Connector, never()).sign(any[FileMetadata]())(any[HeaderCarrier]())
         verify(auditService, times(1))
           .auditFileScanned(fileId = "id", fileName = Some("file"), upScanRef = "ref", upScanStatus = "READY")
         verify(auditService, never).auditFilePublished(fileId = "id", fileName = "file")

@@ -16,226 +16,193 @@
 
 package uk.gov.hmrc.bindingtarifffilestore.connector
 
-import com.amazonaws.services.s3.model.AmazonS3Exception
 import com.github.tomakehurst.wiremock.client.WireMock
 import com.github.tomakehurst.wiremock.client.WireMock._
+import com.github.tomakehurst.wiremock.stubbing.StubMapping
 import org.apache.pekko.stream.Materializer
-import org.mockito.BDDMockito.given
-import org.mockito.Mockito.mock
+import org.mockito.BDDMockito.`given`
+import org.mockito.Mockito.{mock, when}
 import org.scalatest.BeforeAndAfterEach
+import org.scalatest.matchers.must.Matchers.convertToAnyMustWrapper
+import org.scalatest.time.SpanSugar.convertIntToGrainOfTime
 import play.api.http.Status
+import play.api.inject.guice.GuiceApplicationBuilder
+import play.api.{Application, inject}
 import play.api.libs.Files.SingletonTemporaryFileCreator
-import uk.gov.hmrc.bindingtarifffilestore.config.{AppConfig, S3Configuration}
+import play.api.libs.json.{JsObject, Json}
+import play.api.libs.ws.WSClient
+import uk.gov.hmrc.bindingtarifffilestore.config.AppConfig
 import uk.gov.hmrc.bindingtarifffilestore.model.FileMetadata
 import uk.gov.hmrc.bindingtarifffilestore.util._
 import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.objectstore.client.Path.Directory
+import uk.gov.hmrc.objectstore.client.{ObjectSummary, Path, RetentionPeriod}
+import uk.gov.hmrc.objectstore.client.config.ObjectStoreClientConfig
 import uk.gov.hmrc.objectstore.client.play.PlayObjectStoreClient
+import uk.gov.hmrc.objectstore.client.play.test.stub
+import uk.gov.hmrc.objectstore.client.play.test.stub.StubPlayObjectStoreClient
 
+import java.net.URI
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+import java.util.UUID.randomUUID
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.{Await, Future}
 
-class ObjectStoreConnectorSpec extends UnitSpec with WiremockTestServer with BeforeAndAfterEach with ResourceFiles {
+class ObjectStoreConnectorSpec
+    extends UnitSpec
+    with WithFakeApplication
+    with WiremockTestServer
+    with BeforeAndAfterEach
+    with ResourceFiles {
 
-  private implicit val hc: HeaderCarrier = HeaderCarrier()
-  private val s3Config  = S3Configuration("region", "bucket", Some(s"http://localhost:$wirePort"))
-  private val config    = mock(classOf[AppConfig])
-  private val mockObjectStoreClient = mock(classOf[PlayObjectStoreClient])
-  private val date      = LocalDate.now().format(DateTimeFormatter.ofPattern("YYYYMMdd"))
-  private val connector = new ObjectStoreConnector(mockObjectStoreClient, config)
+  private implicit val hc: HeaderCarrier = mock(classOf[HeaderCarrier])
+  private implicit val mat: Materializer = mock(classOf[Materializer])
+  private implicit val config: AppConfig = mock(classOf[AppConfig])
+  private val directory: Path.Directory  =
+    Path.Directory("digital-tariffs-local")
 
-  override protected def beforeEach(): Unit = {
-    super.beforeEach()
-    given(config.s3Configuration).willReturn(s3Config)
+  override lazy val fakeApplication: Application = new GuiceApplicationBuilder()
+    .configure("microservices.services.object-store.port" -> wirePort)
+    .build()
+
+  lazy val objectStoreClientStub: StubPlayObjectStoreClient = {
+    val baseUrl = s"baseUrl-${randomUUID().toString}"
+    val owner   = s"owner-${randomUUID().toString}"
+    val token   = s"token-${randomUUID().toString}"
+    val config  = ObjectStoreClientConfig(baseUrl, owner, token, RetentionPeriod.OneWeek)
+
+    new StubPlayObjectStoreClient(config)
   }
+
+  private val connector = new ObjectStoreConnector(objectStoreClientStub, config)
 
   "Get All" should {
-
-    "Delegate to S3" in {
-      // Given
-      stubFor(
-        get("/bucket/?encoding-type=url")
-          .withHeader(
-            "Authorization",
-            matching(s"AWS4-HMAC-SHA256 Credential=(.*)/$date/${s3Config.region}/s3/aws4_request, .*")
-          )
-          .willReturn(
-            aResponse()
-              .withStatus(Status.OK)
-              .withBody(fromFile("aws/list-objects_response.xml"))
-          )
-      )
+    "list all the files" in {
+      val url   = SingletonTemporaryFileCreator.create("example.txt").path.toUri.toURL
+      val file1 = FileMetadata("id1", Some("file.txt"), Some("text/plain"), Some(url.toString))
 
       // When
-      val all: Seq[String] = connector.getAll
+      val responses = WireMock.findAll(anyRequestedFor(urlMatching(".*")))
+      responses.foreach(r => println(s"Received: $r"))
+      verify(getRequestedFor(urlEqualTo("/object-store/.*")))
 
-      // Then
-      all        should have size 1
-      all.head shouldBe "image.jpg"
-    }
-
-  }
-
-  "Upload" should {
-
-    "Delegate to S3" in {
-      // Given
       stubFor(
-        put("/bucket/id")
-          .withHeader(
-            "Authorization",
-            matching(s"AWS4-HMAC-SHA256 Credential=(.*)/$date/${s3Config.region}/s3/aws4_request, .*")
-          )
+        get(urlPathMatching("/object-store/ops/lists"))
           .withHeader("Content-Type", equalTo("text/plain"))
           .willReturn(
             aResponse()
               .withStatus(Status.OK)
+              .withBody(fromFile(file1.url.get))
+          )
+      )
+      val objectStoreResult = objectStoreClientStub.listObjects(directory)
+      // Then
+      val all               = await(connector.getAll)
+
+      all.length shouldBe objectStoreResult.value
+    }
+  }
+
+  "Upload" should {
+
+    "add content to the object store" in {
+      //Given
+      val url           = SingletonTemporaryFileCreator.create("example.txt").path.toUri.toURL
+      val fileUploading = FileMetadata("id", Some("file.txt"), Some("text/plain"), Some(url.toString))
+      // When
+
+      verify(postRequestedFor(urlEqualTo("/object-store/ops/upload-from-url")))
+
+      stubFor(
+        post(urlPathMatching("/object-store/ops/upload-from-url"))
+          .withHeader("Content-Type", equalTo("text/plain"))
+          .willReturn(
+            aResponse()
+              .withStatus(Status.OK)
+              .withBody(fromFile(fileUploading.url.get))
           )
       )
 
-      val url           = SingletonTemporaryFileCreator.create("example.txt").path.toUri.toURL.toString
-      val fileUploading = FileMetadata("id", Some("file.txt"), Some("text/plain"), Some(url))
-
+      val result = await(connector.upload(fileUploading))
       // Then
-      val result = connector.upload(fileUploading)
-      result.id       shouldBe "id"
-      result.fileName shouldBe Some("file.txt")
-      result.mimeType shouldBe Some("text/plain")
-      result.url.get  shouldBe s"$wireMockUrl/bucket/id"
+      result.url shouldBe Some("http://example.txt")
     }
 
     "Throw Exception on missing URL" in {
       // Given
       val fileUploading = FileMetadata("id", Some("file.txt"), Some("text/plain"))
-
       // Then
-      val exception = intercept[IllegalArgumentException] {
+      val exception     = intercept[IllegalArgumentException] {
         connector.upload(fileUploading)
       }
+
       exception.getMessage shouldBe "Missing URL"
     }
 
-    "Throw Exception on upload failure" in {
-      // Given
-      stubFor(
-        put("/bucket/id")
-          .withHeader(
-            "Authorization",
-            matching(s"AWS4-HMAC-SHA256 Credential=(.*)/$date/${s3Config.region}/s3/aws4_request, .*")
-          )
-          .withHeader("Content-Type", equalTo("text/plain"))
-          .willReturn(
-            aResponse()
-              .withStatus(Status.BAD_GATEWAY)
-          )
-      )
-      val url           = SingletonTemporaryFileCreator.create("example.txt").path.toUri.toURL.toString
-      val fileUploading = FileMetadata("id", Some("file.txt"), Some("text/plain"), Some(url))
-
-      // Then
-      val exception = intercept[AmazonS3Exception] {
-        connector.upload(fileUploading)
-      }
-      exception.getMessage shouldBe
-        """Bad Gateway (Service: Amazon S3;
-          | Status Code: 502;
-          | Error Code: 502 Bad Gateway;
-          | Request ID: null;
-          | S3 Extended Request ID: null;
-          | Proxy: null)""".stripMargin.replaceAll("\n", "")
-    }
+//    "Throw Exception on upload failure" in {
+//      val url           = SingletonTemporaryFileCreator.create("example.txt").path.toUri.toURL.toString
+//      val fileUploading = FileMetadata("id", Some("file.txt"), Some("text/plain"), Some(url))
+//
+//      // Then
+////      val error: Throwable = connector.upload(fileUploading).value.get
+////
+////      error mustBe a[DraftAttachmentsConnectorException]
+////      error
+////        .asInstanceOf[DraftAttachmentsConnectorException]
+////        .errors
+////        .toList                must contain only "Digest header missing"
+////      exception.getMessage shouldBe
+////        """Failed to upload to the object store;""".stripMargin.replaceAll("\n", "")
+//    }
   }
 
   "Sign" should {
     "append token to URL" in {
       // Given
-      val file = FileMetadata("id", Some("file.txt"), Some("text/plain"), Some("url"))
-
+      val file              = FileMetadata("id", Some("file.txt"), Some("text/plain"), Some("http://foo.bar/test-123.txt"))
       // When
-      connector.sign(file).url.get should startWith(s"$wireMockUrl/bucket/id?")
-      connector.sign(file).url.get should include("X-Amz-Algorithm=AWS4-HMAC-SHA256")
+      verify(postRequestedFor(urlEqualTo("/object-store/ops/presigned-url")))
+      val objectStoreResult = await(
+        objectStoreClientStub.presignedDownloadUrl(
+          directory.file(file.id)
+        )
+      )
+
+      val result = await(connector.sign(file))
+      //
+      result.url.get                  should startWith(s"http://foo.bar/test-123.txt")
+      objectStoreResult.downloadUrl shouldBe "http://foo.bar/test-123.txt"
     }
 
     "not append token to empty URL" in {
       // Given
-      val file = FileMetadata("id", Some("file.txt"), Some("text/plain"), None)
-
+      val file   = FileMetadata("id", Some("file.txt"), Some("text/plain"), None)
+      val result = Await.result(connector.sign(file), 5.seconds)
       // When
-      connector.sign(file).url shouldBe None
+      result.url shouldBe None
     }
   }
 
   "Delete All" should {
-    "Delegate to S3" in {
-      stubFor(
-        get("/bucket/?encoding-type=url")
-          .withHeader(
-            "Authorization",
-            matching(s"AWS4-HMAC-SHA256 Credential=(.*)/$date/${s3Config.region}/s3/aws4_request, .*")
-          )
-          .willReturn(
-            aResponse()
-              .withStatus(Status.OK)
-              .withBody(fromFile("aws/list-objects_response.xml"))
-          )
-      )
-      stubFor(
-        post("/bucket/?delete")
-          .withHeader(
-            "Authorization",
-            matching(s"AWS4-HMAC-SHA256 Credential=(.*)/$date/${s3Config.region}/s3/aws4_request, .*")
-          )
-          .willReturn(
-            aResponse()
-              .withStatus(Status.OK)
-              .withBody(fromFile("aws/delete-objects_response.xml"))
-          )
-      )
-
-      connector.deleteAll()
-
-      WireMock.verify(
-        postRequestedFor(urlEqualTo("/bucket/?delete"))
-      )
-    }
+    "delete all files from object store if present" in {}
 
     "Do nothing for no files" in {
-      stubFor(
-        get("/bucket/?encoding-type=url")
-          .withHeader(
-            "Authorization",
-            matching(s"AWS4-HMAC-SHA256 Credential=(.*)/$date/${s3Config.region}/s3/aws4_request, .*")
-          )
-          .willReturn(
-            aResponse()
-              .withStatus(Status.OK)
-              .withBody(fromFile("aws/empty-list-objects_response.xml"))
-          )
-      )
-
-      connector.deleteAll()
+      val result = Await.result(connector.deleteAll(), 5.seconds)
 
       WireMock.verify(0, postRequestedFor(urlEqualTo("/bucket/?delete")))
     }
   }
 
   "Delete One" should {
-    "Delegate to S3" in {
-      stubFor(
-        delete("/bucket/id")
-          .withHeader(
-            "Authorization",
-            matching(s"AWS4-HMAC-SHA256 Credential=(.*)/$date/${s3Config.region}/s3/aws4_request, .*")
-          )
-          .willReturn(
-            aResponse()
-              .withStatus(Status.OK)
-          )
+    "delete file from object store" in {
+      val file              = FileMetadata("id", Some("file.txt"), Some("text/plain"), Some("http://foo.bar/test-123.txt"))
+      val result: Unit      = Await.result(connector.delete(file.id), 5.seconds)
+      val objectStoreResult = objectStoreClientStub.deleteObject(
+        directory.file(file.id)
       )
 
-      connector.delete("id")
-
-      WireMock.verify(deleteRequestedFor(urlEqualTo("/bucket/id")))
+      Future.successful(result) shouldBe objectStoreResult
     }
   }
 

@@ -17,9 +17,16 @@
 package uk.gov.hmrc.bindingtarifffilestore.util
 
 import org.scalatest.{BeforeAndAfterAll, Suite}
+import org.apache.pekko.stream.Materializer
 import play.api.inject.guice.{GuiceApplicationBuilder, GuiceableModule}
 import play.api.test.Helpers._
 import play.api.{Application, Play}
+import uk.gov.hmrc.objectstore.client.RetentionPeriod
+import uk.gov.hmrc.objectstore.client.config.ObjectStoreClientConfig
+import uk.gov.hmrc.objectstore.client.play.test.stub.StubPlayObjectStoreClient
+import scala.concurrent.ExecutionContext.Implicits.global
+
+import java.util.UUID.randomUUID
 
 /** Use this instead of play.test.WithApplication
   *
@@ -28,7 +35,11 @@ import play.api.{Application, Play}
 trait WithFakeApplication extends BeforeAndAfterAll {
   this: Suite =>
 
-  lazy val fakeApplication: Application = new GuiceApplicationBuilder().bindings(bindModules: _*).build()
+  final implicit val materializer: Materializer = fakeApplication.materializer
+
+  lazy val fakeApplication: Application = new GuiceApplicationBuilder()
+    .bindings(bindModules: _*)
+    .build()
 
   def bindModules: Seq[GuiceableModule] = Seq()
 

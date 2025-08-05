@@ -27,6 +27,7 @@ import uk.gov.hmrc.bindingtarifffilestore.model.upscan.ScanResult
 import uk.gov.hmrc.bindingtarifffilestore.model.upscan.v2._
 import uk.gov.hmrc.bindingtarifffilestore.service.FileStoreService
 import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.objectstore.client.Path
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import java.nio.charset.StandardCharsets
@@ -40,7 +41,7 @@ class FileStoreController @Inject() (
   service: FileStoreService,
   parse: PlayBodyParsers,
   mcc: MessagesControllerComponents
-)(implicit ec: ExecutionContext, hc: HeaderCarrier)
+)(implicit ec: ExecutionContext)
     extends BackendController(mcc)
     with ErrorHandling
     with JsonParsing
@@ -52,7 +53,8 @@ class FileStoreController @Inject() (
   def encodeInBase64(text: String): String =
     Base64.getEncoder.encodeToString(text.getBytes(StandardCharsets.UTF_8))
 
-  private def withFileMetadata(id: String)(f: FileMetadata => Future[Result]): Future[Result] =
+  private def withFileMetadata(id: String)(f: FileMetadata => Future[Result]): Future[Result] = {
+    implicit val hc: HeaderCarrier = HeaderCarrier()
     service.find(id).flatMap {
       case Some(meta) =>
         logger.info(
@@ -63,10 +65,13 @@ class FileStoreController @Inject() (
         logger.warn(s"[FileStoreController][withFileMetadata] FileNotFound")
         Future.successful(FileNotFound)
     }
+  }
 
   lazy private val testModeFilter = TestMode.actionFilter(appConfig, parse.default)
 
   def deleteAll(): Action[AnyContent] = withErrorHandling {
+    implicit val hc: HeaderCarrier = HeaderCarrier()
+
     testModeFilter.async {
       service
         .deleteAll()
@@ -75,6 +80,8 @@ class FileStoreController @Inject() (
   }
 
   def delete(id: String): Action[AnyContent] = withErrorHandling { _ =>
+    implicit val hc: HeaderCarrier = HeaderCarrier()
+
     service
       .delete(id)
       .map(_ => NoContent)
@@ -134,6 +141,8 @@ class FileStoreController @Inject() (
   }
 
   def getAll(search: Search, pagination: Option[Pagination]): Action[AnyContent] = withErrorHandling { _ =>
+    implicit val hc: HeaderCarrier = HeaderCarrier()
+
     service.find(search, pagination.getOrElse(Pagination.max)).map { pagedResults =>
       if (pagination.isDefined) {
         Ok(Json.toJson(pagedResults))

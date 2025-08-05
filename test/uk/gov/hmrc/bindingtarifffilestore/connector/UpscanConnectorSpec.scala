@@ -17,6 +17,7 @@
 package uk.gov.hmrc.bindingtarifffilestore.connector
 
 import com.github.tomakehurst.wiremock.client.WireMock._
+import org.apache.pekko.stream.Materializer
 import org.mockito.BDDMockito.given
 import org.mockito.Mockito.mock
 import org.scalatest.BeforeAndAfterEach
@@ -42,7 +43,7 @@ class UpscanConnectorSpec
   private val config: AppConfig = mock(classOf[AppConfig])
   val httpClient: HttpClientV2  = fakeApplication.injector.instanceOf[HttpClientV2]
 
-  private implicit val headers: HeaderCarrier = HeaderCarrier()
+  implicit lazy val headers: HeaderCarrier = HeaderCarrier()
 
   private val connector: UpscanConnector = new UpscanConnector(config, httpClient)
 
