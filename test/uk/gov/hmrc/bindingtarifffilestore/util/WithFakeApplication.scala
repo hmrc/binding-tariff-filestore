@@ -28,7 +28,7 @@ import play.api.{Application, Play}
 trait WithFakeApplication extends BeforeAndAfterAll {
   this: Suite =>
 
-  lazy val fakeApplication: Application = new GuiceApplicationBuilder().bindings(bindModules: _*).build()
+  lazy val fakeApplication: Application = new GuiceApplicationBuilder().bindings(bindModules*).build()
 
   def bindModules: Seq[GuiceableModule] = Seq()
 

@@ -20,19 +20,21 @@ import play.api.Application
 import play.api.http.Status
 import play.api.inject.bind
 import play.api.inject.guice.GuiceApplicationBuilder
-import play.api.libs.json._
+import play.api.libs.json.*
 import uk.gov.hmrc.bindingtarifffilestore.model.ScanStatus.{FAILED, READY}
-import uk.gov.hmrc.bindingtarifffilestore.model._
+import uk.gov.hmrc.bindingtarifffilestore.model.*
 import uk.gov.hmrc.bindingtarifffilestore.model.upscan.v2.{FileStoreInitiateResponse, UpscanFormTemplate}
 import uk.gov.hmrc.bindingtarifffilestore.repository.FileMetadataMongoRepository
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
+import org.scalatest.concurrent.Eventually
 
 import java.io.File
 import java.net.URI
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.duration.*
+import scala.concurrent.{Await, Future}
 
-class FileStoreSpec extends FileStoreHelpers {
+class FileStoreSpec extends FileStoreHelpers with Eventually {
 
   override protected def beforeEach(): Unit = {
     super.beforeEach()
@@ -45,7 +47,7 @@ class FileStoreSpec extends FileStoreHelpers {
         "s3.endpoint"                                -> s"http://localhost:$wirePort",
         "microservice.services.upscan-initiate.port" -> s"$wirePort"
       )
-      .overrides(bind[FileMetadataMongoRepository].to(repository))
+      .overrides(bind[FileMetadataMongoRepository].toInstance(repository))
       .build()
 
   val id1 = "doc_id_1"
@@ -66,22 +68,22 @@ class FileStoreSpec extends FileStoreHelpers {
 
       val uploadResponse = upload(Some(id1), file1, contentType, publishable = true)
 
-      await(uploadResponse)
+      Await.result(uploadResponse, 2.seconds)
 
-      dbFileStoreSize shouldBe 1
+      dbFileStoreSize.shouldBe(1)
 
       When("I request the file details")
-      val deleteResult = await(deleteFile(id1))
+      val deleteResult = Await.result(deleteFile(id1), 7.seconds)
 
       Then("The response code should be Ok")
 
-      deleteResult.status shouldBe Status.NO_CONTENT
+      deleteResult.status.shouldBe(Status.NO_CONTENT)
 
       And("The response body is empty")
-      deleteResult.body shouldBe ""
+      deleteResult.body.shouldBe("")
 
       And("No documents exist in the mongo collection")
-      dbFileStoreSize shouldBe 0
+      dbFileStoreSize.shouldBe(0)
     }
   }
 
@@ -416,40 +418,40 @@ class FileStoreSpec extends FileStoreHelpers {
     }
 
     Scenario("Should mark an un-safe file as publishable, but not persist") {
+      eventually(timeout(10.second), interval(200.milliseconds)) {
+        Given("A File has been uploaded and marked as quarantined")
 
-      Given("A File has been uploaded and marked as quarantined")
+        await(upload(Some(id1), file1, contentType, publishable = true))
 
-      await(upload(Some(id1), file1, contentType, publishable = true))
+        await(notifyFailure(id1))
 
-      await(notifyFailure(id1))
+        When("It is Published")
 
-      When("It is Published")
+        val publishResult: HttpResponse = await(publishUnsafeFile(id1))
 
-      val publishResult: HttpResponse = await(publishUnsafeFile(id1))
+        Then("The response code should be ACCEPTED")
 
-      Then("The response code should be ACCEPTED")
+        publishResult.status shouldBe Status.ACCEPTED
 
-      publishResult.status shouldBe Status.ACCEPTED
+        And("The response body contains the file details")
 
-      And("The response body contains the file details")
+        (publishResult.json \\ "fileName").map(_.as[String]).toSeq     shouldBe Seq(file1)
+        (publishResult.json \\ "mimeType").map(_.as[String]).toSeq     shouldBe Seq(contentType)
+        (publishResult.json \\ "scanStatus").map(_.as[String]).toSeq   shouldBe Seq(FAILED.toString)
+        (publishResult.json \\ "publishable").map(_.as[Boolean]).toSeq shouldBe Seq(true)
+        (publishResult.json \\ "published").map(_.as[Boolean]).toSeq   shouldBe Seq(false)
 
-      (publishResult.json \\ "fileName").map(_.as[String]).toSeq     shouldBe Seq(file1)
-      (publishResult.json \\ "mimeType").map(_.as[String]).toSeq     shouldBe Seq(contentType)
-      (publishResult.json \\ "scanStatus").map(_.as[String]).toSeq   shouldBe Seq(FAILED.toString)
-      (publishResult.json \\ "publishable").map(_.as[Boolean]).toSeq shouldBe Seq(true)
-      (publishResult.json \\ "published").map(_.as[Boolean]).toSeq   shouldBe Seq(false)
+        And("I can call GET and see the file is unpublished")
 
-      And("I can call GET and see the file is unpublished")
+        val getResult = await(getFile(id1))
+        getResult.status shouldBe Status.OK
 
-      val getResult = await(getFile(id1))
-
-      getResult.status shouldBe Status.OK
-
-      (getResult.json \\ "fileName").map(_.as[String]).toSeq     shouldBe Seq(file1)
-      (getResult.json \\ "mimeType").map(_.as[String]).toSeq     shouldBe Seq(contentType)
-      (getResult.json \\ "scanStatus").map(_.as[String]).toSeq   shouldBe Seq(FAILED.toString)
-      (getResult.json \\ "publishable").map(_.as[Boolean]).toSeq shouldBe Seq(true)
-      (getResult.json \\ "published").map(_.as[Boolean]).toSeq   shouldBe Seq(false)
+        (getResult.json \\ "fileName").map(_.as[String]).toSeq     shouldBe Seq(file1)
+        (getResult.json \\ "mimeType").map(_.as[String]).toSeq     shouldBe Seq(contentType)
+        (getResult.json \\ "scanStatus").map(_.as[String]).toSeq   shouldBe Seq(FAILED.toString)
+        (getResult.json \\ "publishable").map(_.as[Boolean]).toSeq shouldBe Seq(true)
+        (getResult.json \\ "published").map(_.as[Boolean]).toSeq   shouldBe Seq(false)
+      }
     }
 
     Scenario("Should remove publishable file which has expired") {

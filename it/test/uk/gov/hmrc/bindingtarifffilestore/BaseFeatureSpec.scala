@@ -27,6 +27,8 @@ import uk.gov.hmrc.bindingtarifffilestore.repository.FileMetadataMongoRepository
 import uk.gov.hmrc.http.test.HttpClientV2Support
 import uk.gov.hmrc.mongo.test.DefaultPlayMongoRepositorySupport
 
+import org.mongodb.scala.SingleObservableFuture
+
 import java.security.MessageDigest
 import scala.concurrent.{Await, Future}
 import scala.concurrent.Await.result
@@ -46,13 +48,12 @@ abstract class BaseFeatureSpec
   protected lazy val apiTokenKey          = "X-Api-Token"
   protected lazy val appConfig: AppConfig = app.injector.instanceOf[AppConfig]
 
-  override lazy val repository = new FileMetadataMongoRepository(mongoComponent)
+  override val repository: FileMetadataMongoRepository = new FileMetadataMongoRepository(mongoComponent)
 
   val timeoutDuration: Int = 5
 
-  protected def hash: String => String = { s: String =>
+  protected def hash: String => String = (s: String) =>
     BaseEncoding.base64Url().encode(MessageDigest.getInstance("SHA-256").digest(s.getBytes("UTF-8")))
-  }
 
   private val timeout = 2.seconds
 

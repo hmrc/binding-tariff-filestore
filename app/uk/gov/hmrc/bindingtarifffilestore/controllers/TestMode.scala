@@ -25,7 +25,7 @@ import scala.concurrent.{ExecutionContext, Future}
 object TestMode {
   def actionFilter(appConfig: AppConfig, bodyParser: BodyParser[AnyContent])(implicit
     ec: ExecutionContext
-  ): ActionBuilder[Request, AnyContent] with ActionFilter[Request] = new ActionBuilder[Request, AnyContent]
+  ): ActionBuilder[Request, AnyContent] & ActionFilter[Request] = new ActionBuilder[Request, AnyContent]
     with ActionFilter[Request] {
 
     override protected def filter[A](request: Request[A]): Future[Option[Result]] = Future.successful {

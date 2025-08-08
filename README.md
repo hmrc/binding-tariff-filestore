@@ -9,7 +9,7 @@ The backend filestore service which manages attachment metadata and S3 bucket ac
 
 1) [Service Manager 2](https://github.com/hmrc/sm2) installed
 2) [SBT](https://www.scala-sbt.org) Version `>=1.x` installed
-3) [MongoDB](https://www.mongodb.com/) version `>=6.0` installed and running on port 27017
+3) [MongoDB](https://www.mongodb.com/) version `>=7.0` installed and running on port 27017
 4) [Localstack](https://github.com/localstack/localstack) installed and running on port 4572
 5) Create an S3 bucket in localstack by using `awslocal s3 mb s3://digital-tariffs-local` within the localstack container
 

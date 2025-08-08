@@ -22,8 +22,8 @@ import uk.gov.hmrc.bindingtarifffilestore.config.AppConfig
 import uk.gov.hmrc.bindingtarifffilestore.connector.{AmazonS3Connector, UpscanConnector}
 import uk.gov.hmrc.bindingtarifffilestore.controllers.routes
 import uk.gov.hmrc.bindingtarifffilestore.model.ScanStatus.READY
-import uk.gov.hmrc.bindingtarifffilestore.model._
-import uk.gov.hmrc.bindingtarifffilestore.model.upscan._
+import uk.gov.hmrc.bindingtarifffilestore.model.*
+import uk.gov.hmrc.bindingtarifffilestore.model.upscan.*
 import uk.gov.hmrc.bindingtarifffilestore.repository.FileMetadataMongoRepository
 import uk.gov.hmrc.bindingtarifffilestore.util.HashUtil
 import uk.gov.hmrc.http.HeaderCarrier
@@ -149,8 +149,8 @@ class FileStoreService @Inject() (
       case SuccessfulScanResult(_, _, _, details) =>
         logger.info(
           s"[FileStoreService][notify] Attachement File: ${attachment.id}, Scan succeeded with details [fileName: ${encodeInBase64(
-            details.fileName
-          )}, fileMimeType:${details.fileMimeType}, checksum:${encodeInBase64(details.checksum)}, ${details.uploadTimestamp}]"
+              details.fileName
+            )}, fileMimeType:${details.fileMimeType}, checksum:${encodeInBase64(details.checksum)}, ${details.uploadTimestamp}]"
         )
         if (updatedAttachment.publishable) {
           for {
@@ -232,9 +232,9 @@ class FileStoreService @Inject() (
     } yield initiateResponse
   }
 
-  private def signingPermanentURL: Option[FileMetadata] => Option[FileMetadata] = _ map signingIfPublished
+  private def signingPermanentURL: Option[FileMetadata] => Option[FileMetadata] = _.map(signingIfPublished)
 
-  private def signingPermanentURLs: Paged[FileMetadata] => Paged[FileMetadata] = _ map signingIfPublished
+  private def signingPermanentURLs: Paged[FileMetadata] => Paged[FileMetadata] = _.map(signingIfPublished)
 
   private def signingIfPublished: FileMetadata => FileMetadata = {
     case file if file.published => fileStoreConnector.sign(file)

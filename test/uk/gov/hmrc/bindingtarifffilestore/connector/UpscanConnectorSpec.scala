@@ -17,8 +17,7 @@
 package uk.gov.hmrc.bindingtarifffilestore.connector
 
 import com.github.tomakehurst.wiremock.client.WireMock._
-import org.mockito.BDDMockito.given
-import org.mockito.Mockito.mock
+import org.mockito.Mockito.{mock, when}
 import org.scalatest.BeforeAndAfterEach
 import play.api.http.Status._
 import play.api.libs.Files.SingletonTemporaryFileCreator
@@ -48,7 +47,7 @@ class UpscanConnectorSpec
 
   override protected def beforeEach(): Unit = {
     super.beforeEach()
-    given(config.upscanInitiateUrl).willReturn(wireMockUrl)
+    when(config.upscanInitiateUrl).thenReturn(wireMockUrl)
   }
 
   "UpscanConnector" should {

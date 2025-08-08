@@ -18,7 +18,6 @@ package uk.gov.hmrc.bindingtarifffilestore.service
 
 import org.mockito.ArgumentCaptor
 import org.mockito.ArgumentMatchers.any
-import org.mockito.BDDMockito.given
 import org.mockito.Mockito._
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.concurrent.Eventually
@@ -111,16 +110,16 @@ class FileStoreServiceSpec extends UnitSpec with BeforeAndAfterEach with Eventua
       val attachment       = mock(classOf[FileMetadata], "attachment")
       val attachmentSigned = mock(classOf[FileMetadata], "attachmentSigned")
 
-      given(attachment.published).willReturn(true)
-      given(repository.get("id")).willReturn(successful(Some(attachment)))
-      given(s3Connector.sign(attachment)).willReturn(attachmentSigned)
+      when(attachment.published).thenReturn(true)
+      when(repository.get("id")).thenReturn(successful(Some(attachment)))
+      when(s3Connector.sign(attachment)).thenReturn(attachmentSigned)
 
       await(service.find("id")) shouldBe Some(attachmentSigned)
     }
 
     "Not sign unpublished files" in {
       val attachment = mock(classOf[FileMetadata])
-      given(repository.get("id")).willReturn(successful(Some(attachment)))
+      when(repository.get("id")).thenReturn(successful(Some(attachment)))
 
       await(service.find("id")) shouldBe Some(attachment)
 
@@ -131,7 +130,7 @@ class FileStoreServiceSpec extends UnitSpec with BeforeAndAfterEach with Eventua
   "Service 'getAll by search' " should {
 
     "delegate to repository" in {
-      given(repository.get(Search(), Pagination())).willReturn(successful(Paged.empty[FileMetadata]))
+      when(repository.get(Search(), Pagination())).thenReturn(successful(Paged.empty[FileMetadata]))
 
       await(service.find(Search(), Pagination())) shouldBe Paged.empty[FileMetadata]
     }
@@ -142,12 +141,12 @@ class FileStoreServiceSpec extends UnitSpec with BeforeAndAfterEach with Eventua
 
       val attachment2 = mock(classOf[FileMetadata], "attachment2")
 
-      given(attachment1.published).willReturn(true)
-      given(s3Connector.sign(attachment1)).willReturn(attSigned1)
+      when(attachment1.published).thenReturn(true)
+      when(s3Connector.sign(attachment1)).thenReturn(attSigned1)
 
-      given(attachment2.published).willReturn(false)
+      when(attachment2.published).thenReturn(false)
 
-      given(repository.get(Search(), Pagination())).willReturn(successful(Paged(Seq(attachment1, attachment2))))
+      when(repository.get(Search(), Pagination())).thenReturn(successful(Paged(Seq(attachment1, attachment2))))
 
       await(service.find(Search(), Pagination())) shouldBe Paged(Seq(attSigned1, attachment2))
     }
@@ -161,11 +160,11 @@ class FileStoreServiceSpec extends UnitSpec with BeforeAndAfterEach with Eventua
       val uploadTemplate      = UpscanTemplate(href = "href", fields = Map("key" -> "value"))
       val initiateResponse    = UpscanInitiateResponse("ref", uploadTemplate)
 
-      given(config.filestoreUrl).willReturn("host")
-      given(config.fileStoreSizeConfiguration).willReturn(FileStoreSizeConfiguration(minimumFileSize, maximumFileSize))
-      given(config.authorization).willReturn("auth-token")
-      given(repository.insertFile(fileMetadata)).willReturn(successful(Some(fileMetaDataCreated)))
-      given(upscanConnector.initiate(any[UploadSettings])(any[HeaderCarrier])).willReturn(successful(initiateResponse))
+      when(config.filestoreUrl).thenReturn("host")
+      when(config.fileStoreSizeConfiguration).thenReturn(FileStoreSizeConfiguration(minimumFileSize, maximumFileSize))
+      when(config.authorization).thenReturn("auth-token")
+      when(repository.insertFile(fileMetadata)).thenReturn(successful(Some(fileMetaDataCreated)))
+      when(upscanConnector.initiate(any[UploadSettings])(any[HeaderCarrier])).thenReturn(successful(initiateResponse))
 
       await(service.initiate(fileMetadata)) shouldBe UploadTemplate(
         id = "id",
@@ -191,13 +190,13 @@ class FileStoreServiceSpec extends UnitSpec with BeforeAndAfterEach with Eventua
       val uploadTemplate   = v2.UpscanFormTemplate(href = "href", fields = Map("key" -> "value"))
       val initiateResponse = v2.UpscanInitiateResponse("ref", uploadTemplate)
 
-      given(config.filestoreSSL).willReturn(false)
-      given(config.filestoreUrl).willReturn("host")
-      given(config.fileStoreSizeConfiguration).willReturn(FileStoreSizeConfiguration(minimumFileSize, maximumFileSize))
-      given(config.authorization).willReturn("auth-token")
-      given(repository.insertFile(any[FileMetadata])).willReturn(successful(Some(fileMetadata)))
-      given(upscanConnector.initiateV2(any[v2.UpscanInitiateRequest])(any[HeaderCarrier]))
-        .willReturn(successful(initiateResponse))
+      when(config.filestoreSSL).thenReturn(false)
+      when(config.filestoreUrl).thenReturn("host")
+      when(config.fileStoreSizeConfiguration).thenReturn(FileStoreSizeConfiguration(minimumFileSize, maximumFileSize))
+      when(config.authorization).thenReturn("auth-token")
+      when(repository.insertFile(any[FileMetadata])).thenReturn(successful(Some(fileMetadata)))
+      when(upscanConnector.initiateV2(any[v2.UpscanInitiateRequest])(any[HeaderCarrier]))
+        .thenReturn(successful(initiateResponse))
 
       await(service.initiateV2(initiateRequest)) shouldBe v2
         .FileStoreInitiateResponse("id", "ref", initiateResponse.uploadRequest)
@@ -231,14 +230,14 @@ class FileStoreServiceSpec extends UnitSpec with BeforeAndAfterEach with Eventua
     val initiateResponse: UpscanInitiateResponse = UpscanInitiateResponse("ref", uploadTemplate)
 
     "Delegate to Connector" in {
-      given(config.filestoreUrl).willReturn("host")
-      given(config.fileStoreSizeConfiguration).willReturn(FileStoreSizeConfiguration(minimumFileSize, maximumFileSize))
-      given(config.authorization).willReturn("auth-token")
-      given(repository.insertFile(fileMetadata)).willReturn(successful(Some(fileMetaDataCreated)))
+      when(config.filestoreUrl).thenReturn("host")
+      when(config.fileStoreSizeConfiguration).thenReturn(FileStoreSizeConfiguration(minimumFileSize, maximumFileSize))
+      when(config.authorization).thenReturn("auth-token")
+      when(repository.insertFile(fileMetadata)).thenReturn(successful(Some(fileMetaDataCreated)))
 
-      given(upscanConnector.initiate(any[UploadSettings])(any[HeaderCarrier])).willReturn(successful(initiateResponse))
-      given(upscanConnector.upload(any[UpscanTemplate], any[FileWithMetadata]))
-        .willReturn(successful((): Unit))
+      when(upscanConnector.initiate(any[UploadSettings])(any[HeaderCarrier])).thenReturn(successful(initiateResponse))
+      when(upscanConnector.upload(any[UpscanTemplate], any[FileWithMetadata]))
+        .thenReturn(successful((): Unit))
 
       await(service.upload(fileWithMetadata)) shouldBe Some(fileMetaDataCreated)
 
@@ -253,14 +252,14 @@ class FileStoreServiceSpec extends UnitSpec with BeforeAndAfterEach with Eventua
     }
 
     "return an exception" in {
-      given(config.filestoreUrl).willReturn("host")
-      given(config.fileStoreSizeConfiguration).willReturn(FileStoreSizeConfiguration(minimumFileSize, maximumFileSize))
-      given(config.authorization).willReturn("auth-token")
-      given(repository.insertFile(fileMetadata)).willReturn(successful(Some(fileMetaDataCreated)))
+      when(config.filestoreUrl).thenReturn("host")
+      when(config.fileStoreSizeConfiguration).thenReturn(FileStoreSizeConfiguration(minimumFileSize, maximumFileSize))
+      when(config.authorization).thenReturn("auth-token")
+      when(repository.insertFile(fileMetadata)).thenReturn(successful(Some(fileMetaDataCreated)))
 
-      given(upscanConnector.initiate(any[UploadSettings])(any[HeaderCarrier])).willReturn(successful(initiateResponse))
-      given(upscanConnector.upload(any[UpscanTemplate], any[FileWithMetadata]))
-        .willReturn(failed(new Exception("Test")))
+      when(upscanConnector.initiate(any[UploadSettings])(any[HeaderCarrier])).thenReturn(successful(initiateResponse))
+      when(upscanConnector.upload(any[UpscanTemplate], any[FileWithMetadata]))
+        .thenReturn(failed(new Exception("Test")))
 
       val result = await(service.upload(fileWithMetadata))
       result.failed.map(_ shouldBe an[Exception])
@@ -282,7 +281,7 @@ class FileStoreServiceSpec extends UnitSpec with BeforeAndAfterEach with Eventua
       val scanResult         = SuccessfulScanResult(reference = "ref", downloadUrl = "url", uploadDetails = uploadDetails)
       val expectedAttachment = attachment.copy(url = Some("url"), scanStatus = Some(ScanStatus.READY))
 
-      given(repository.update(expectedAttachment)).willReturn(successful(Some(attachmentUpdated)))
+      when(repository.update(expectedAttachment)).thenReturn(successful(Some(attachmentUpdated)))
 
       await(service.notify(attachment, scanResult)) shouldBe Some(attachmentUpdated)
 
@@ -302,40 +301,40 @@ class FileStoreServiceSpec extends UnitSpec with BeforeAndAfterEach with Eventua
       val attachmentUploadedUpdated  = mock(classOf[FileMetadata], "AttachmentUploadedUpdated")
       val attachmentSigned           = mock(classOf[FileMetadata], "AttachmentSigned")
 
-      given(attachment.withScanResult(scanResult)).willReturn(attachmentUpdating)
-      given(attachment.publishable).willReturn(true)
-      given(attachment.published).willReturn(false)
-      given(attachment.isLive).willReturn(true)
-      given(attachment.id).willReturn("id")
-      given(attachment.fileName).willReturn(Some("file"))
+      when(attachment.withScanResult(scanResult)).thenReturn(attachmentUpdating)
+      when(attachment.publishable).thenReturn(true)
+      when(attachment.published).thenReturn(false)
+      when(attachment.isLive).thenReturn(true)
+      when(attachment.id).thenReturn("id")
+      when(attachment.fileName).thenReturn(Some("file"))
 
-      given(attachmentUpdating.publishable).willReturn(true)
-      given(attachmentUpdating.published).willReturn(false)
-      given(attachmentUpdating.isLive).willReturn(true)
+      when(attachmentUpdating.publishable).thenReturn(true)
+      when(attachmentUpdating.published).thenReturn(false)
+      when(attachmentUpdating.isLive).thenReturn(true)
 
-      given(attachmentUpdated.publishable).willReturn(true)
-      given(attachmentUpdated.published).willReturn(false)
-      given(attachmentUpdated.isLive).willReturn(true)
-      given(attachmentUpdated.scanStatus).willReturn(Some(ScanStatus.READY))
-      given(attachmentUpdated.id).willReturn("id")
-      given(attachmentUpdated.fileName).willReturn(Some("file"))
+      when(attachmentUpdated.publishable).thenReturn(true)
+      when(attachmentUpdated.published).thenReturn(false)
+      when(attachmentUpdated.isLive).thenReturn(true)
+      when(attachmentUpdated.scanStatus).thenReturn(Some(ScanStatus.READY))
+      when(attachmentUpdated.id).thenReturn("id")
+      when(attachmentUpdated.fileName).thenReturn(Some("file"))
 
-      given(attachmentUploaded.published).willReturn(true)
-      given(attachmentUploaded.publishable).willReturn(true)
-      given(attachmentUploaded.isLive).willReturn(true)
-      given(attachmentUploaded.fileName).willReturn(Some("file"))
-      given(attachmentUploaded.mimeType).willReturn(Some("mimetype"))
-      given(attachmentUploaded.url).willReturn(Some("url"))
-      given(attachmentUploaded.scanStatus).willReturn(Some(ScanStatus.READY))
-      given(attachmentUploaded.copy(published = true, publishable = true)).willReturn(attachmentUploadedUpdating)
+      when(attachmentUploaded.published).thenReturn(true)
+      when(attachmentUploaded.publishable).thenReturn(true)
+      when(attachmentUploaded.isLive).thenReturn(true)
+      when(attachmentUploaded.fileName).thenReturn(Some("file"))
+      when(attachmentUploaded.mimeType).thenReturn(Some("mimetype"))
+      when(attachmentUploaded.url).thenReturn(Some("url"))
+      when(attachmentUploaded.scanStatus).thenReturn(Some(ScanStatus.READY))
+      when(attachmentUploaded.copy(published = true, publishable = true)).thenReturn(attachmentUploadedUpdating)
 
-      given(attachmentUploadedUpdated.published).willReturn(true)
-      given(attachmentUploadedUpdated.isLive).willReturn(true)
+      when(attachmentUploadedUpdated.published).thenReturn(true)
+      when(attachmentUploadedUpdated.isLive).thenReturn(true)
 
-      given(repository.update(attachmentUpdating)).willReturn(successful(Some(attachmentUpdated)))
-      given(s3Connector.upload(attachmentUpdated)).willReturn(attachmentUploaded)
-      given(repository.update(attachmentUploadedUpdating)).willReturn(successful(Some(attachmentUploadedUpdated)))
-      given(s3Connector.sign(attachmentUploadedUpdated)).willReturn(attachmentSigned)
+      when(repository.update(attachmentUpdating)).thenReturn(successful(Some(attachmentUpdated)))
+      when(s3Connector.upload(attachmentUpdated)).thenReturn(attachmentUploaded)
+      when(repository.update(attachmentUploadedUpdating)).thenReturn(successful(Some(attachmentUploadedUpdated)))
+      when(s3Connector.sign(attachmentUploadedUpdated)).thenReturn(attachmentSigned)
 
       val test = await(service.notify(attachment, scanResult))
       test shouldBe Some(attachmentSigned)
@@ -356,17 +355,17 @@ class FileStoreServiceSpec extends UnitSpec with BeforeAndAfterEach with Eventua
           FileMetadata(id = "id", fileName = Some("file"), mimeType = Some("type"), publishable = value)
         val attachmentUpdated: FileMetadata  = mock(classOf[FileMetadata], "AttachmentUpdated")
 
-        given(attachment.withScanResult(scanResult)).willReturn(attachmentUpdating)
-        given(attachment.publishable).willReturn(true)
-        given(attachment.id).willReturn("id")
-        given(attachment.fileName).willReturn(Some("file"))
+        when(attachment.withScanResult(scanResult)).thenReturn(attachmentUpdating)
+        when(attachment.publishable).thenReturn(true)
+        when(attachment.id).thenReturn("id")
+        when(attachment.fileName).thenReturn(Some("file"))
 
-        given(attachmentUpdated.published).willReturn(true)
-        given(attachmentUpdated.scanStatus).willReturn(Some(ScanStatus.READY))
-        given(attachmentUpdated.id).willReturn("id")
-        given(attachmentUpdated.fileName).willReturn(Some("file"))
+        when(attachmentUpdated.published).thenReturn(true)
+        when(attachmentUpdated.scanStatus).thenReturn(Some(ScanStatus.READY))
+        when(attachmentUpdated.id).thenReturn("id")
+        when(attachmentUpdated.fileName).thenReturn(Some("file"))
 
-        given(repository.update(attachmentUpdating)).willReturn(successful(None))
+        when(repository.update(attachmentUpdating)).thenReturn(successful(None))
 
         await(service.notify(attachment, scanResult)) shouldBe None
 
@@ -386,7 +385,7 @@ class FileStoreServiceSpec extends UnitSpec with BeforeAndAfterEach with Eventua
       val expectedAttachment = attachment.copy(scanStatus = Some(ScanStatus.FAILED))
       val attachmentUpdated  = mock(classOf[FileMetadata], "AttachmentUpdated")
 
-      given(repository.update(expectedAttachment)).willReturn(successful(Some(attachmentUpdated)))
+      when(repository.update(expectedAttachment)).thenReturn(successful(Some(attachmentUpdated)))
 
       await(service.notify(attachment, scanResult)) shouldBe Some(attachmentUpdated)
 
@@ -406,19 +405,19 @@ class FileStoreServiceSpec extends UnitSpec with BeforeAndAfterEach with Eventua
       val fileUpdated   = mock(classOf[FileMetadata], "Updated")
       val fileSigned    = mock(classOf[FileMetadata], "Signed")
 
-      given(fileUploading.scanStatus).willReturn(Some(ScanStatus.READY))
-      given(fileUploading.published).willReturn(false)
-      given(fileUploading.isLive).willReturn(true)
-      given(fileUploading.id).willReturn("id")
-      given(fileUploading.fileName).willReturn(Some("file"))
+      when(fileUploading.scanStatus).thenReturn(Some(ScanStatus.READY))
+      when(fileUploading.published).thenReturn(false)
+      when(fileUploading.isLive).thenReturn(true)
+      when(fileUploading.id).thenReturn("id")
+      when(fileUploading.fileName).thenReturn(Some("file"))
 
-      given(fileUploaded.copy(published = true)).willReturn(fileUpdating)
+      when(fileUploaded.copy(published = true)).thenReturn(fileUpdating)
 
-      given(fileUpdated.published).willReturn(true)
+      when(fileUpdated.published).thenReturn(true)
 
-      given(s3Connector.upload(fileUploading)).willReturn(fileUploaded)
-      given(repository.update(any[FileMetadata])).willReturn(successful(Some(fileUpdated)))
-      given(s3Connector.sign(fileUpdated)).willReturn(fileSigned)
+      when(s3Connector.upload(fileUploading)).thenReturn(fileUploaded)
+      when(repository.update(any[FileMetadata])).thenReturn(successful(Some(fileUpdated)))
+      when(s3Connector.sign(fileUpdated)).thenReturn(fileSigned)
 
       await(service.publish(fileUploading)) shouldBe Some(fileSigned)
 
@@ -429,12 +428,12 @@ class FileStoreServiceSpec extends UnitSpec with BeforeAndAfterEach with Eventua
     "Clear up unpublished expired files" in {
       val fileUploading = mock(classOf[FileMetadata], "Uploading")
 
-      given(fileUploading.scanStatus).willReturn(Some(ScanStatus.READY))
-      given(fileUploading.published).willReturn(false)
-      given(fileUploading.isLive).willReturn(false)
-      given(fileUploading.id).willReturn("id")
+      when(fileUploading.scanStatus).thenReturn(Some(ScanStatus.READY))
+      when(fileUploading.published).thenReturn(false)
+      when(fileUploading.isLive).thenReturn(false)
+      when(fileUploading.id).thenReturn("id")
 
-      given(repository.delete(any[String])(any[ExecutionContext])).willReturn(successful(()))
+      when(repository.delete(any[String])(any[ExecutionContext])).thenReturn(successful(()))
 
       await(service.publish(fileUploading)) shouldBe None
 
@@ -445,8 +444,8 @@ class FileStoreServiceSpec extends UnitSpec with BeforeAndAfterEach with Eventua
     "Not delegate to the File Store if pre published" in {
       val fileUploading = mock(classOf[FileMetadata], "Uploading")
 
-      given(fileUploading.scanStatus).willReturn(Some(ScanStatus.READY))
-      given(fileUploading.published).willReturn(true)
+      when(fileUploading.scanStatus).thenReturn(Some(ScanStatus.READY))
+      when(fileUploading.published).thenReturn(true)
 
       await(service.publish(fileUploading)) shouldBe Some(fileUploading)
 
@@ -458,10 +457,10 @@ class FileStoreServiceSpec extends UnitSpec with BeforeAndAfterEach with Eventua
       val fileUpdating  = mock(classOf[FileMetadata], "Updating")
       val fileUpdated   = mock(classOf[FileMetadata], "Updated")
 
-      given(fileUploading.scanStatus).willReturn(Some(ScanStatus.FAILED))
-      given(fileUploading.copy(published = true)).willReturn(fileUpdating)
+      when(fileUploading.scanStatus).thenReturn(Some(ScanStatus.FAILED))
+      when(fileUploading.copy(published = true)).thenReturn(fileUpdating)
 
-      given(repository.update(any[FileMetadata])).willReturn(successful(Some(fileUpdated)))
+      when(repository.update(any[FileMetadata])).thenReturn(successful(Some(fileUpdated)))
 
       await(service.publish(fileUploading)) shouldBe Some(fileUpdated)
 
@@ -473,10 +472,10 @@ class FileStoreServiceSpec extends UnitSpec with BeforeAndAfterEach with Eventua
       val fileUpdating  = mock(classOf[FileMetadata], "Updating")
       val fileUpdated   = mock(classOf[FileMetadata], "Updated")
 
-      given(fileUploading.scanStatus).willReturn(None)
-      given(fileUploading.copy(published = true)).willReturn(fileUpdating)
+      when(fileUploading.scanStatus).thenReturn(None)
+      when(fileUploading.copy(published = true)).thenReturn(fileUpdating)
 
-      given(repository.update(any[FileMetadata])).willReturn(successful(Some(fileUpdated)))
+      when(repository.update(any[FileMetadata])).thenReturn(successful(Some(fileUpdated)))
 
       await(service.publish(fileUploading)) shouldBe Some(fileUpdated)
 
