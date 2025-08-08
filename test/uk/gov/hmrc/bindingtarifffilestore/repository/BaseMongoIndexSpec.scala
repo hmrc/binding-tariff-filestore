@@ -20,13 +20,15 @@ import org.mongodb.scala.MongoCollection
 import org.mongodb.scala.model.{IndexModel, IndexOptions, Indexes}
 import uk.gov.hmrc.bindingtarifffilestore.model.FileMetadata
 import uk.gov.hmrc.bindingtarifffilestore.util.UnitSpec
+import org.mongodb.scala.ObservableFuture
+import org.mongodb.scala.documentToUntypedDocument
 
 import scala.jdk.CollectionConverters._
 import scala.concurrent.ExecutionContext.Implicits.global
 
 trait BaseMongoIndexSpec extends UnitSpec {
 
-  protected implicit val ordering: Ordering[IndexModel] = Ordering.by { i: IndexModel => i.toString }
+  protected implicit val ordering: Ordering[IndexModel] = Ordering.by((i: IndexModel) => i.toString)
 
   protected def getIndexes(collection: MongoCollection[FileMetadata]): Seq[IndexModel] =
     await(
@@ -37,7 +39,7 @@ trait BaseMongoIndexSpec extends UnitSpec {
           val indexFields = document.get("key").map(_.asDocument().keySet().asScala).getOrElse(Set.empty[String]).toSeq
           val name        = document.getString("name")
           val isUnique    = document.getBoolean("unique", false)
-          IndexModel(Indexes.ascending(indexFields: _*), IndexOptions().name(name).unique(isUnique))
+          IndexModel(Indexes.ascending(indexFields*), IndexOptions().name(name).unique(isUnique))
         })
     )
 
@@ -55,10 +57,10 @@ trait BaseMongoIndexSpec extends UnitSpec {
   }
 
   private def assertIndex(expectedIndex: IndexModel, actualIndex: IndexModel): Unit = {
-    actualIndex.getKeys.toBsonDocument.keySet().asScala shouldBe expectedIndex.getKeys.toBsonDocument.keySet().asScala
-    actualIndex.getKeys.toBsonDocument.toString         shouldBe expectedIndex.getKeys.toBsonDocument.toString
+    actualIndex.getKeys.toBsonDocument.keySet().asScala.shouldBe(expectedIndex.getKeys.toBsonDocument.keySet().asScala)
+    actualIndex.getKeys.toBsonDocument.toString.shouldBe(expectedIndex.getKeys.toBsonDocument.toString)
 
-    actualIndex.getOptions.toString shouldBe expectedIndex.getOptions.toString
+    actualIndex.getOptions.toString.shouldBe(expectedIndex.getOptions.toString)
   }
 
 }

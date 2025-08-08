@@ -60,6 +60,10 @@ class AppConfigSpec extends UnitSpec with WithFakeApplication with BeforeAndAfte
       configWith("filestore.ssl" -> "true").filestoreSSL shouldBe true
     }
 
+    "return is application test mode" in {
+      configWith("testMode" -> "true").isTestMode shouldBe true
+    }
+
     "return upscan-initiate URL" in {
       upscanConfigWith("host", "123").upscanInitiateUrl shouldBe "http://host:123"
     }

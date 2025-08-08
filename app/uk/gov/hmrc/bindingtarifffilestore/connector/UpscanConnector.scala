@@ -32,6 +32,8 @@ import uk.gov.hmrc.http.HttpReads.Implicits._
 import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.http.{HeaderCarrier, StringContextOps}
 
+import play.api.libs.ws.JsonBodyWritables.writeableOf_JsValue
+
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
@@ -79,7 +81,7 @@ class UpscanConnector @Inject() (appConfig: AppConfig, httpClient: HttpClientV2)
 
     val client = HttpClientBuilder.create.build
 
-    val attempt = Try(client.execute(request)).map { response: HttpResponse =>
+    val attempt = Try(client.execute(request)).map { (response: HttpResponse) =>
       val code = response.getStatusLine.getStatusCode
       if (code >= 200 && code < 300) {
         log.info(s"Uploaded file [${fileWithMetaData.metadata.id}] successfully to Upscan Bucket [${template.href}]")
@@ -88,7 +90,7 @@ class UpscanConnector @Inject() (appConfig: AppConfig, httpClient: HttpClientV2)
         Future.failed(
           new RuntimeException(
             s"Bad AWS response for file [${fileWithMetaData.metadata.id}] with status [$code] body [${EntityUtils
-              .toString(response.getEntity)}]"
+                .toString(response.getEntity)}]"
           )
         )
       }

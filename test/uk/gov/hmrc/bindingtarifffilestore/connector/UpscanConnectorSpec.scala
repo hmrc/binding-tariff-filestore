@@ -43,7 +43,7 @@ class UpscanConnectorSpec
   private val config: AppConfig = mock(classOf[AppConfig])
   val httpClient: HttpClientV2  = fakeApplication.injector.instanceOf[HttpClientV2]
 
-  implicit lazy val headers: HeaderCarrier = HeaderCarrier()
+  private implicit val headers: HeaderCarrier = HeaderCarrier()
 
   private val connector: UpscanConnector = new UpscanConnector(config, httpClient)
 

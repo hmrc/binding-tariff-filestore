@@ -61,7 +61,7 @@ class AuditService @Inject() (auditConnector: DefaultAuditConnector)(implicit ec
 
   private def sendExplicitAuditEvent(auditEventType: String, auditPayload: Map[String, String])(implicit
     hc: HeaderCarrier
-  ): Unit                                                                                                   =
+  ): Unit =
     auditConnector.sendExplicitAudit(auditType = auditEventType, detail = auditPayload)
 
 }

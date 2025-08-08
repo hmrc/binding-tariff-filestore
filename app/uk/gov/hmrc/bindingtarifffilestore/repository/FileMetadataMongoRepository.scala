@@ -24,6 +24,8 @@ import uk.gov.hmrc.bindingtarifffilestore.model._
 import uk.gov.hmrc.bindingtarifffilestore.util.Logging
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
+import org.mongodb.scala.SingleObservableFuture
+import org.mongodb.scala.ObservableFuture
 
 import java.time.Instant
 import javax.inject.{Inject, Singleton}
@@ -47,7 +49,7 @@ class FileMetadataMongoRepository @Inject() (mongoComponent: MongoComponent)(imp
     collection.find[FileMetadata](byId(id)).first().toFutureOption()
 
   def get(search: Search, pagination: Pagination): Future[Paged[FileMetadata]] = {
-    val optionalIdsFilter       = search.ids.map(p => in("id", p.toSeq: _*))
+    val optionalIdsFilter       = search.ids.map(p => in("id", p.toSeq*))
     val optionalPublishedFilter = search.published.map(p => equal("published", p))
 
     val filters = Seq(optionalIdsFilter, optionalPublishedFilter).flatten
@@ -56,7 +58,7 @@ class FileMetadataMongoRepository @Inject() (mongoComponent: MongoComponent)(imp
       if (filters.isEmpty) {
         empty()
       } else {
-        and(filters: _*)
+        and(filters*)
       }
 
     collection
@@ -90,7 +92,7 @@ class FileMetadataMongoRepository @Inject() (mongoComponent: MongoComponent)(imp
   def deleteAll()(implicit ec: ExecutionContext): Future[Unit] =
     collection.deleteMany(empty()).toFuture().map(_ -> Future.unit)
 
-  private def byId(id: String): Bson                           =
+  private def byId(id: String): Bson =
     equal("id", id)
 
 }

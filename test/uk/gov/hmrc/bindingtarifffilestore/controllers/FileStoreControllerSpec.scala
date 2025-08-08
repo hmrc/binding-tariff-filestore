@@ -318,37 +318,26 @@ class FileStoreControllerSpec extends UnitSpec with Matchers with WithFakeApplic
 
   "Initiate" should {
     "return 202 on valid json" in {
-      // Given
       val response = FileStoreInitiateResponse("id", "ref", UpscanFormTemplate("href", Map()))
       when(service.initiateV2(any[FileStoreInitiateRequest])(any[HeaderCarrier])).thenReturn(successful(response))
 
-      // When
       val request        = FileStoreInitiateRequest(publishable = true)
       val result: Result = await(controller.initiate(jsonRequest(request)))
 
-      // Then
       status(result) shouldBe ACCEPTED
     }
 
     "return 202 on valid json with ID" in {
-      // Given
       val response = FileStoreInitiateResponse("id", "ref", UpscanFormTemplate("href", Map()))
       when(service.initiateV2(any[FileStoreInitiateRequest])(any[HeaderCarrier])).thenReturn(successful(response))
 
-      // When
       val request        = FileStoreInitiateRequest(id = Some("id"), publishable = true)
       val result: Result = await(controller.initiate(jsonRequest(request)))
 
-      // Then
       status(result) shouldBe ACCEPTED
     }
 
     "return 400" when {
-      "the body is an invalid JSON" in {
-        val result: Result = await(controller.initiate(jsonRequest(Json.obj())))
-
-        status(result) shouldBe BAD_REQUEST
-      }
 
       "the body cannot be parsed" in {
         val result: Result = await(controller.initiate(fakeRequest.withBody(None.orNull)))

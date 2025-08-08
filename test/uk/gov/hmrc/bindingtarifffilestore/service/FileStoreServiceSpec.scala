@@ -33,11 +33,9 @@ import uk.gov.hmrc.bindingtarifffilestore.util.UnitSpec
 import uk.gov.hmrc.http.HeaderCarrier
 
 import java.time.Instant
-import scala.Console.in
 import scala.concurrent.ExecutionContext
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future.{failed, successful}
-import scala.util.{Failure, Success}
 
 class FileStoreServiceSpec extends UnitSpec with BeforeAndAfterEach with Eventually {
 
