@@ -17,6 +17,7 @@
 package uk.gov.hmrc.bindingtarifffilestore.controllers
 
 import play.api.Logging
+import play.api.i18n.Lang.jsonTagWrites
 import play.api.libs.Files.TemporaryFile
 import play.api.libs.json.Format.GenericFormat
 import play.api.libs.json.OFormat.oFormatFromReadsAndOWrites
@@ -148,7 +149,9 @@ class FileStoreController @Inject() (
 
     service.find(search, pagination.getOrElse(Pagination.max)).map { pagedResults =>
       if (pagination.isDefined) {
-        Ok(Json.toJson(pagedResults))
+        pagedResults.map(paged => paged.flatMap(p => Future.sequence(p)))
+//        val results: Paged[Future[FileMetadata]] = pagedResults.map { pagedRes => pagedRes}
+//        Ok(Json.toJson(results))
       } else {
         Ok(Json.toJson(pagedResults.results))
       }
