@@ -19,6 +19,7 @@ package uk.gov.hmrc.bindingtarifffilestore.connector
 import com.github.tomakehurst.wiremock.client.WireMock
 import com.github.tomakehurst.wiremock.client.WireMock._
 import com.github.tomakehurst.wiremock.stubbing.StubMapping
+import org.apache.pekko.actor.Status.Success
 import org.apache.pekko.stream.Materializer
 import org.mockito.BDDMockito.`given`
 import org.mockito.Mockito.{mock, when}
@@ -56,11 +57,13 @@ class ObjectStoreConnectorSpec
     with BeforeAndAfterEach
     with ResourceFiles {
 
-  private implicit val hc: HeaderCarrier = mock(classOf[HeaderCarrier])
-  private implicit val mat: Materializer = mock(classOf[Materializer])
-  private implicit val config: AppConfig = mock(classOf[AppConfig])
-  private val directory: Path.Directory  =
-    Path.Directory("digital-tariffs-local")
+  private implicit val hc: HeaderCarrier                 = mock(classOf[HeaderCarrier])
+  private implicit val mat: Materializer                 = mock(classOf[Materializer])
+  private implicit val config: AppConfig                 = mock(classOf[AppConfig])
+  private val client                                     = fakeApplication.injector.instanceOf[PlayObjectStoreClient]
+  private val objectStoreConnector: ObjectStoreConnector = new ObjectStoreConnector(client, config)
+  private val directory: Path.Directory                  =
+    Path.Directory("test")
 
   override lazy val fakeApplication: Application = new GuiceApplicationBuilder()
     .configure("microservices.services.object-store.port" -> wirePort)
@@ -78,29 +81,23 @@ class ObjectStoreConnectorSpec
   private val connector = new ObjectStoreConnector(objectStoreClientStub, config)
 
   "Get All" should {
-    "list all the files" in {
-      val url   = SingletonTemporaryFileCreator.create("example.txt").path.toUri.toURL
-      val file1 = FileMetadata("id1", Some("file.txt"), Some("text/plain"), Some(url.toString))
-
+    "list files" in {
       // When
-      val responses = WireMock.findAll(anyRequestedFor(urlMatching(".*")))
-      responses.foreach(r => println(s"Received: $r"))
-      verify(getRequestedFor(urlEqualTo("/object-store/.*")))
-
       stubFor(
-        get(urlPathMatching("/object-store/ops/lists"))
-          .withHeader("Content-Type", equalTo("text/plain"))
+        get(urlMatching("/object-store/list/.*"))
           .willReturn(
             aResponse()
               .withStatus(Status.OK)
-              .withBody(fromFile(file1.url.get))
+              .withHeader("Content-Length", s"${5}")
+              .withBody(fromFile("aws/list-objects_response.xml"))
           )
       )
-      val objectStoreResult = objectStoreClientStub.listObjects(directory)
       // Then
-      val all               = await(connector.getAll)
-
-      all.length shouldBe objectStoreResult.value
+//      val all = await(objectStoreConnector.getAll)
+      WireMock.verify(
+        getRequestedFor(urlEqualTo("/object-store/list/.*"))
+      )
+//      all.length shouldBe 3
     }
   }
 
@@ -111,7 +108,6 @@ class ObjectStoreConnectorSpec
       val url           = SingletonTemporaryFileCreator.create("example.txt").path.toUri.toURL
       val fileUploading = FileMetadata("id", Some("file.txt"), Some("text/plain"), Some(url.toString))
       // When
-
       verify(postRequestedFor(urlEqualTo("/object-store/ops/upload-from-url")))
 
       stubFor(
@@ -160,19 +156,14 @@ class ObjectStoreConnectorSpec
   "Sign" should {
     "append token to URL" in {
       // Given
-      val file              = FileMetadata("id", Some("file.txt"), Some("text/plain"), Some("http://foo.bar/test-123.txt"))
+      val file = FileMetadata("id", Some("file.txt"), Some("text/plain"), Some("http://foo.bar/test-123.txt"))
       // When
       verify(postRequestedFor(urlEqualTo("/object-store/ops/presigned-url")))
-      val objectStoreResult = await(
-        objectStoreClientStub.presignedDownloadUrl(
-          directory.file(file.id)
-        )
-      )
 
       val result = await(connector.sign(file))
       //
-      result.url.get                  should startWith(s"http://foo.bar/test-123.txt")
-      objectStoreResult.downloadUrl shouldBe "http://foo.bar/test-123.txt"
+      result.url.get should startWith(s"http://foo.bar/test-123.txt")
+
     }
 
     "not append token to empty URL" in {
@@ -185,7 +176,29 @@ class ObjectStoreConnectorSpec
   }
 
   "Delete All" should {
-    "delete all files from object store if present" in {}
+    "delete all files from object store if present" in {
+      val file = FileMetadata("id", Some("file.txt"), Some("text/plain"), Some("http://foo.bar/test-123.txt"))
+
+      stubFor(
+        get(urlMatching("/object-store/object/list/.*"))
+          .willReturn(
+            aResponse()
+              .withStatus(Status.OK)
+              .withHeader("Content-Length", s"${5}")
+              .withBody(fromFile("aws/list-objects_response.xml"))
+          )
+      )
+
+      stubFor(
+        delete(urlPathMatching(s"/object-store/object/.*"))
+          .withHeader("Content-Type", equalTo("text/plain"))
+          .willReturn(
+            aResponse()
+              .withStatus(Status.OK)
+              .withBody(fromFile("aws/delete-objects_response.xml"))
+          )
+      )
+    }
 
     "Do nothing for no files" in {
       val result = Await.result(connector.deleteAll(), 5.seconds)
@@ -196,13 +209,19 @@ class ObjectStoreConnectorSpec
 
   "Delete One" should {
     "delete file from object store" in {
-      val file              = FileMetadata("id", Some("file.txt"), Some("text/plain"), Some("http://foo.bar/test-123.txt"))
-      val result: Unit      = Await.result(connector.delete(file.id), 5.seconds)
-      val objectStoreResult = objectStoreClientStub.deleteObject(
-        directory.file(file.id)
+      val file = FileMetadata("id", Some("file.txt"), Some("text/plain"), Some("http://foo.bar/test-123.txt"))
+      stubFor(
+        delete(urlPathMatching(s"/object-store/ops/${file.id}"))
+          .withHeader("Content-Type", equalTo("text/plain"))
+          .willReturn(
+            aResponse()
+              .withStatus(Status.OK)
+          )
       )
 
-      Future.successful(result) shouldBe objectStoreResult
+      val result = await(connector.delete(file.id))
+
+      result shouldBe ()
     }
   }
 

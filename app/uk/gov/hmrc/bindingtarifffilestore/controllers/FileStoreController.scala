@@ -17,17 +17,19 @@
 package uk.gov.hmrc.bindingtarifffilestore.controllers
 
 import play.api.Logging
+import play.api.i18n.Lang.jsonTagWrites
 import play.api.libs.Files.TemporaryFile
+import play.api.libs.json.Format.GenericFormat
+import play.api.libs.json.OFormat.oFormatFromReadsAndOWrites
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc._
 import uk.gov.hmrc.bindingtarifffilestore.config.AppConfig
-import uk.gov.hmrc.bindingtarifffilestore.model.FileMetadataREST._
+import uk.gov.hmrc.bindingtarifffilestore.model.FileMetadataREST.format
 import uk.gov.hmrc.bindingtarifffilestore.model._
 import uk.gov.hmrc.bindingtarifffilestore.model.upscan.ScanResult
 import uk.gov.hmrc.bindingtarifffilestore.model.upscan.v2._
 import uk.gov.hmrc.bindingtarifffilestore.service.FileStoreService
 import uk.gov.hmrc.http.HeaderCarrier
-import uk.gov.hmrc.objectstore.client.Path
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import java.nio.charset.StandardCharsets
@@ -145,7 +147,9 @@ class FileStoreController @Inject() (
 
     service.find(search, pagination.getOrElse(Pagination.max)).map { pagedResults =>
       if (pagination.isDefined) {
-        Ok(Json.toJson(pagedResults))
+        pagedResults.map(paged => paged.flatMap(p => Future.sequence(p)))
+//        val results: Paged[Future[FileMetadata]] = pagedResults.map { pagedRes => pagedRes}
+//        Ok(Json.toJson(results))
       } else {
         Ok(Json.toJson(pagedResults.results))
       }

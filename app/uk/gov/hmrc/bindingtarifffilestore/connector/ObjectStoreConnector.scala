@@ -28,7 +28,8 @@ import uk.gov.hmrc.objectstore.client.{ObjectSummary, Path}
 
 import java.net.URI
 import scala.Console.println
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.duration.DurationInt
+import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.util.{Failure, Success, Try}
 
 @Singleton
@@ -80,16 +81,20 @@ class ObjectStoreConnector @Inject() (client: PlayObjectStoreClient, config: App
       }
     )
 
-  def sign(fileMetaData: FileMetadata)(implicit hc: HeaderCarrier): FileMetadata =
+  def sign(fileMetaData: FileMetadata)(implicit hc: HeaderCarrier): Future[FileMetadata] =
     if (fileMetaData.url.isDefined) {
-      val authenticatedUrl = client.presignedDownloadUrl(
-        path = directory.file(fileMetaData.id),
-        owner = "digital-tariffs"
-      )
-      println(fileMetaData.copy(url = Some(authenticatedUrl.toString)).toString)
-      fileMetaData.copy(url = Some(authenticatedUrl.toString))
+      client
+        .presignedDownloadUrl(
+          path = directory.file(fileMetaData.id),
+          owner = "digital-tariffs"
+        )
+        .map { value =>
+          val updatedMetaData = fileMetaData.copy(url = Some(value.toString))
+          println(fileMetaData)
+          println(updatedMetaData)
+          updatedMetaData
+        }
     } else {
-      fileMetaData
+      Future.successful(fileMetaData)
     }
-
 }
