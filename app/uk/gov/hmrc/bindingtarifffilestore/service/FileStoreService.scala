@@ -121,11 +121,16 @@ class FileStoreService @Inject() (
   }
 
   def find(id: String)(implicit hc: HeaderCarrier): Future[Option[FileMetadata]] =
-    repository.get(id) map signingPermanentURL flatMap {innerFuture => innerFuture.get.map(Some(_))}
+    repository.get(id) map signingPermanentURL flatMap { a => a.get.map(Some(_)) }
 
-  def find(search: Search, pagination: Pagination)(implicit hc: HeaderCarrier): Future[Paged[Future[FileMetadata]]] =
-    repository.get(search, pagination: Pagination) map signingPermanentURLs
+  def find(search: Search, pagination: Pagination)(implicit hc: HeaderCarrier): Future[Paged[FileMetadata]] = {
+    val pagedFuture: Future[Paged[Future[FileMetadata]]] =
+      repository.get(search, pagination: Pagination) map signingPermanentURLs
+    pagedFuture.flatMap { paged =>
+      Future.sequence(paged.results).map(resolvedItems => paged.copy(results = resolvedItems))
+    }
 
+  }
 
   // when UpScan comes back to us with the scan result
   def notify(attachment: FileMetadata, scanResult: ScanResult)(implicit
@@ -185,9 +190,7 @@ class FileStoreService @Inject() (
         repository
           .update(metadata.copy(publishable = true, published = true))
           .map(signingPermanentURL)
-          .flatMap(innerFuture => innerFuture.get.map(Some(_)))
-
-
+          .flatMap(a => a.get.map(Some(_)))
 
       // File is safe, unpublished but the download URL has expired. Clean Up.
       case (Some(READY), false) =>
@@ -236,11 +239,15 @@ class FileStoreService @Inject() (
     } yield initiateResponse
   }
 
-  private def signingPermanentURL(implicit hc: HeaderCarrier): Option[FileMetadata] => Option[Future[FileMetadata]] =
-    _ map signingIfPublished
+  private def signingPermanentURL(implicit hc: HeaderCarrier): Option[FileMetadata] => Option[Future[FileMetadata]] = {
+    asd =>
+      asd.map(signingIfPublished)
+  }
 
-  private def signingPermanentURLs(implicit hc: HeaderCarrier): Paged[FileMetadata] => Paged[Future[FileMetadata]] =
-    _ map signingIfPublished map {sign => sign}
+  private def signingPermanentURLs()(implicit hc: HeaderCarrier): Paged[FileMetadata] => Paged[Future[FileMetadata]] = {
+    asd =>
+      asd.map(signingIfPublished)
+  }
 
   private def signingIfPublished(implicit hc: HeaderCarrier): FileMetadata => Future[FileMetadata] = {
     case file if file.published => fileStoreConnector.sign(file)

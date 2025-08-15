@@ -28,8 +28,8 @@ import uk.gov.hmrc.objectstore.client.{ObjectSummary, Path}
 
 import java.net.URI
 import scala.Console.println
-import scala.concurrent.duration.DurationInt
-import scala.concurrent.{Await, ExecutionContext, Future}
+import scala.concurrent.{ExecutionContext, Future}
+import scala.reflect.io.Directory
 import scala.util.{Failure, Success, Try}
 
 @Singleton
@@ -40,9 +40,9 @@ class ObjectStoreConnector @Inject() (client: PlayObjectStoreClient, config: App
   private val directory: Path.Directory =
     Path.Directory("digital-tariffs-local")
 
-  def getAll()(implicit hc: HeaderCarrier): Future[List[ObjectSummary]] =
+  def getAll(path: Path.Directory)(implicit hc: HeaderCarrier): Future[List[ObjectSummary]] =
     client
-      .listObjects(directory)
+      .listObjects(path)
       .map(_.objectSummaries.map(o => ObjectSummary(o.location, o.contentLength, o.lastModified)))
 
   def upload(fileMetaData: FileMetadata)(implicit hc: HeaderCarrier): FileMetadata =
@@ -50,9 +50,7 @@ class ObjectStoreConnector @Inject() (client: PlayObjectStoreClient, config: App
       client
         .uploadFromUrl(
           from = new URI(fileMetaData.url.getOrElse(throw new IllegalArgumentException("Missing URL"))).toURL,
-          to = directory.file(fileMetaData.fileName.getOrElse("")),
-          contentType = fileMetaData.mimeType,
-          owner = config.appName
+          to = directory.file(fileMetaData.fileName.get)
         )
     ) match {
       case Success(_)            =>
@@ -68,7 +66,7 @@ class ObjectStoreConnector @Inject() (client: PlayObjectStoreClient, config: App
     )
 
   def deleteAll()(implicit hc: HeaderCarrier): Unit =
-    getAll().map(files =>
+    getAll(directory).map(files =>
       if (files.nonEmpty) {
         log.info(s"Removing [${files.length}] files from object store")
         Future.traverse(files)(filename =>
@@ -90,7 +88,6 @@ class ObjectStoreConnector @Inject() (client: PlayObjectStoreClient, config: App
         )
         .map { value =>
           val updatedMetaData = fileMetaData.copy(url = Some(value.toString))
-          println(fileMetaData)
           println(updatedMetaData)
           updatedMetaData
         }

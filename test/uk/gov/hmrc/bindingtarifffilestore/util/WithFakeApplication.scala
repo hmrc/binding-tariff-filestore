@@ -21,12 +21,6 @@ import org.apache.pekko.stream.Materializer
 import play.api.inject.guice.{GuiceApplicationBuilder, GuiceableModule}
 import play.api.test.Helpers._
 import play.api.{Application, Play}
-import uk.gov.hmrc.objectstore.client.RetentionPeriod
-import uk.gov.hmrc.objectstore.client.config.ObjectStoreClientConfig
-import uk.gov.hmrc.objectstore.client.play.test.stub.StubPlayObjectStoreClient
-import scala.concurrent.ExecutionContext.Implicits.global
-
-import java.util.UUID.randomUUID
 
 /** Use this instead of play.test.WithApplication
   *

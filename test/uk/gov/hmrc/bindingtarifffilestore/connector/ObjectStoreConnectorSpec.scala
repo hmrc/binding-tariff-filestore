@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.bindingtarifffilestore.connector
 
+import com.amazonaws.services.s3.model.AmazonS3Exception
 import com.github.tomakehurst.wiremock.client.WireMock
 import com.github.tomakehurst.wiremock.client.WireMock._
 import com.github.tomakehurst.wiremock.stubbing.StubMapping
@@ -43,8 +44,8 @@ import uk.gov.hmrc.objectstore.client.play.PlayObjectStoreClient
 import uk.gov.hmrc.objectstore.client.play.test.stub
 import uk.gov.hmrc.objectstore.client.play.test.stub.StubPlayObjectStoreClient
 
-import java.net.URI
-import java.time.LocalDate
+import java.net.{URI, URL}
+import java.time.{Instant, LocalDate}
 import java.time.format.DateTimeFormatter
 import java.util.UUID.randomUUID
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -57,17 +58,33 @@ class ObjectStoreConnectorSpec
     with BeforeAndAfterEach
     with ResourceFiles {
 
-  private implicit val hc: HeaderCarrier                 = mock(classOf[HeaderCarrier])
-  private implicit val mat: Materializer                 = mock(classOf[Materializer])
-  private implicit val config: AppConfig                 = mock(classOf[AppConfig])
-  private val client                                     = fakeApplication.injector.instanceOf[PlayObjectStoreClient]
-  private val objectStoreConnector: ObjectStoreConnector = new ObjectStoreConnector(client, config)
-  private val directory: Path.Directory                  =
+  private implicit val hc: HeaderCarrier = mock(classOf[HeaderCarrier])
+  private implicit val mat: Materializer = mock(classOf[Materializer])
+  private implicit val config: AppConfig = mock(classOf[AppConfig])
+  private val directory: Path.Directory  =
     Path.Directory("test")
 
   override lazy val fakeApplication: Application = new GuiceApplicationBuilder()
     .configure("microservices.services.object-store.port" -> wirePort)
     .build()
+
+  private def objectListingJson: String =
+    """{
+    "objectSummaries": [
+      {
+        "location": "/object-store/object/something/0993180f-8f31-41b2-905c-71f0273bb7d4",
+        "contentLength": 49,
+        "contentMD5": "4033ff85a6fdc6a2f51e60d89236a244",
+        "lastModified": "2020-07-21T13:16:42.859Z"
+      },
+      {
+        "location": "/object-store/object/something/23265eab-268e-4fcc-904f-775586b362c2",
+        "contentLength": 49,
+        "contentMD5": "a3c2f1e38701bd2c7b54ebd7b1cd0dbc",
+        "lastModified": "2020-07-21T13:16:41.226Z"
+      }
+    ]
+  }"""
 
   lazy val objectStoreClientStub: StubPlayObjectStoreClient = {
     val baseUrl = s"baseUrl-${randomUUID().toString}"
@@ -84,20 +101,20 @@ class ObjectStoreConnectorSpec
     "list files" in {
       // When
       stubFor(
-        get(urlMatching("/object-store/list/.*"))
+        get(urlMatching(s"/object-store/list/.*"))
           .willReturn(
             aResponse()
               .withStatus(Status.OK)
-              .withHeader("Content-Length", s"${5}")
-              .withBody(fromFile("aws/list-objects_response.xml"))
+              .withHeader("Content-Length", s"${objectListingJson.length}")
+              .withBody(objectListingJson)
           )
       )
+
       // Then
-//      val all = await(objectStoreConnector.getAll)
+      val all = await(connector.getAll(directory))
       WireMock.verify(
-        getRequestedFor(urlEqualTo("/object-store/list/.*"))
+        getRequestedFor(urlMatching("/object-store/list/.*"))
       )
-//      all.length shouldBe 3
     }
   }
 
@@ -108,10 +125,10 @@ class ObjectStoreConnectorSpec
       val url           = SingletonTemporaryFileCreator.create("example.txt").path.toUri.toURL
       val fileUploading = FileMetadata("id", Some("file.txt"), Some("text/plain"), Some(url.toString))
       // When
-      verify(postRequestedFor(urlEqualTo("/object-store/ops/upload-from-url")))
+      verify(postRequestedFor(urlEqualTo("/object-store/object/.*")))
 
       stubFor(
-        post(urlPathMatching("/object-store/ops/upload-from-url"))
+        post(urlPathMatching("/object-store/object/.*"))
           .withHeader("Content-Type", equalTo("text/plain"))
           .willReturn(
             aResponse()
@@ -136,21 +153,32 @@ class ObjectStoreConnectorSpec
       exception.getMessage shouldBe "Missing URL"
     }
 
-//    "Throw Exception on upload failure" in {
-//      val url           = SingletonTemporaryFileCreator.create("example.txt").path.toUri.toURL.toString
-//      val fileUploading = FileMetadata("id", Some("file.txt"), Some("text/plain"), Some(url))
-//
-//      // Then
-////      val error: Throwable = connector.upload(fileUploading).value.get
-////
-////      error mustBe a[DraftAttachmentsConnectorException]
-////      error
-////        .asInstanceOf[DraftAttachmentsConnectorException]
-////        .errors
-////        .toList                must contain only "Digest header missing"
-////      exception.getMessage shouldBe
-////        """Failed to upload to the object store;""".stripMargin.replaceAll("\n", "")
-//    }
+    "Throw Exception on upload failure" in {
+      // Given
+      stubFor(
+        post(urlPathMatching("/object-store/object/.*"))
+          .withHeader("Content-Type", equalTo("text/plain"))
+          .willReturn(
+            aResponse()
+              .withStatus(Status.BAD_GATEWAY)
+          )
+      )
+      val url           = SingletonTemporaryFileCreator.create("example.txt").path.toUri.toURL.toString
+      val fileUploading = FileMetadata("id", Some("file.txt"), Some("text/plain"), Some(url))
+
+      // Then
+      val exception = intercept[AmazonS3Exception] {
+        connector.upload(fileUploading)
+      }
+
+      exception.getMessage shouldBe
+        """Bad Gateway (Service: Amazon S3;
+          | Status Code: 502;
+          | Error Code: 502 Bad Gateway;
+          | Request ID: null;
+          | S3 Extended Request ID: null;
+          | Proxy: null)""".stripMargin.replaceAll("\n", "")
+    }
   }
 
   "Sign" should {
