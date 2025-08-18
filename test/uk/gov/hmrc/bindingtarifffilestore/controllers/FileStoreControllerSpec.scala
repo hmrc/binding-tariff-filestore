@@ -47,12 +47,13 @@ import scala.concurrent.Future.{failed, successful}
 
 class FileStoreControllerSpec extends UnitSpec with Matchers with WithFakeApplication with BeforeAndAfterEach {
 
-  implicit lazy val mat: Materializer         = fakeApplication.injector.instanceOf[Materializer]
-  implicit val hc: HeaderCarrier              = HeaderCarrier()
-  private val controller: FileStoreController = fakeApplication.injector.instanceOf[FileStoreController]
-  private val appConfig: AppConfig            = mock(classOf[AppConfig])
-  private val service: FileStoreService       = mock(classOf[FileStoreService])
-  lazy val cc: MessagesControllerComponents   = fakeApplication.injector.instanceOf[MessagesControllerComponents]
+  implicit lazy val mat: Materializer               = mock(classOf[Materializer])
+  implicit val hc: HeaderCarrier                    = mock(classOf[HeaderCarrier])
+  private val appConfig: AppConfig                  = mock(classOf[AppConfig])
+  private val service: FileStoreService             = mock(classOf[FileStoreService])
+  private lazy val playBodyParsers: PlayBodyParsers = fakeApplication.injector.instanceOf[PlayBodyParsers]
+  lazy val cc: MessagesControllerComponents         = fakeApplication.injector.instanceOf[MessagesControllerComponents]
+  private val controller: FileStoreController       = new FileStoreController(appConfig, service, playBodyParsers, cc)
 
   private val fakeRequest: FakeRequest[AnyContentAsEmpty.type] = FakeRequest()
 
@@ -171,6 +172,8 @@ class FileStoreControllerSpec extends UnitSpec with Matchers with WithFakeApplic
 
       when(service.find(Search(ids = Some(Set("id1", "id2"))), Pagination.max))
         .thenReturn(successful(Paged(Seq(attachment1, attachment2))))
+
+      println(service.find(Search(ids = Some(Set("id1", "id2"))), Pagination.max))
 
       val result = await(controller.getAll(Search(ids = Some(Set("id1", "id2"))), None)(fakeRequest))
 
