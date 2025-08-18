@@ -42,6 +42,7 @@ import uk.gov.hmrc.http.HeaderCarrier
 import java.time.Instant
 import java.util.Collections
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 import scala.concurrent.Future.{failed, successful}
 
 class FileStoreControllerSpec extends UnitSpec with Matchers with WithFakeApplication with BeforeAndAfterEach {
@@ -93,9 +94,11 @@ class FileStoreControllerSpec extends UnitSpec with Matchers with WithFakeApplic
       val error = new RuntimeException
 
       when(appConfig.isTestMode).thenReturn(true)
-      when(service.deleteAll()).thenReturn(failed(error))
+      when(service.deleteAll()).thenReturn(Future.failed(error))
 
       val result = await(controller.deleteAll()(req))
+
+      println(result)
 
       status(result)                shouldEqual INTERNAL_SERVER_ERROR
       jsonBodyOf(result).toString() shouldEqual """{"code":"UNKNOWN_ERROR","message":"An unexpected error occurred"}"""
