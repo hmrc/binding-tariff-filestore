@@ -67,80 +67,20 @@ class FileStoreControllerSpec extends UnitSpec with Matchers with WithFakeApplic
     reset(service)
   }
 
-  "Delete All" should {
-
-    val req = FakeRequest(method = "DELETE", path = "/file")
-
-    "return 403 if the test mode is disabled" in {
-
-      when(appConfig.isTestMode).thenReturn(false)
-
-      val result = await(controller.deleteAll()(req))
-
-      status(result) shouldEqual FORBIDDEN
-      jsonBodyOf(result)
-        .toString()  shouldEqual s"""{"code":"FORBIDDEN","message":"You are not allowed to call ${req.method} ${req.path}"}"""
-    }
-
-    "return 204 if the test mode is enabled" in {
-      when(appConfig.isTestMode).thenReturn(true)
-      when(service.deleteAll()).thenReturn(successful(()))
-
-      val result = await(controller.deleteAll()(req))
-
-      status(result) shouldEqual NO_CONTENT
-    }
-
-    "return 500 when an error occurred" in {
-      val error = new RuntimeException
-
-      when(appConfig.isTestMode).thenReturn(true)
-      when(service.deleteAll()).thenReturn(Future.failed(error))
-
-      val result = await(controller.deleteAll()(req))
-
-      println(result)
-
-      status(result)                shouldEqual INTERNAL_SERVER_ERROR
-      jsonBodyOf(result).toString() shouldEqual """{"code":"UNKNOWN_ERROR","message":"An unexpected error occurred"}"""
-    }
-
-  }
-
-  "Delete By ID" should {
-
-    val id  = "ABC-123_000"
-    val req = FakeRequest(method = "DELETE", path = s"/file/$id")
-
-    "return 204" in {
-      when(appConfig.isTestMode).thenReturn(true)
-      when(service.delete(id)).thenReturn(successful((): Unit))
-
-      val result = await(controller.delete(id)(req))
-
-      status(result) shouldBe NO_CONTENT
-    }
-
-    "return 500 when an error occurred" in {
-      val error = new RuntimeException
-
-      when(appConfig.isTestMode).thenReturn(true)
-      when(service.delete(id)).thenReturn(failed(error))
-
-      val result = await(controller.delete(id)(req))
-
-      status(result)                shouldEqual INTERNAL_SERVER_ERROR
-      jsonBodyOf(result).toString() shouldEqual """{"code":"UNKNOWN_ERROR","message":"An unexpected error occurred"}"""
-    }
-
-  }
-
   "Get By ID" should {
     "return 200 when found" in {
+      val id         = "id"
       val attachment = FileMetadata(id = "id", fileName = Some("file"), mimeType = Some("type"))
+      val req        = FakeRequest(method = "GET", path = s"/file/$id")
+
+      when(appConfig.isTestMode).thenReturn(true)
       when(service.find(id = "id")).thenReturn(successful(Some(attachment)))
 
-      val result = await(controller.get("id")(fakeRequest))
+      println(s"Service: ${await(controller.get("id")(req))}")
+      val result = await(controller.get("id")(req))
+
+      println(s"Service: $service")
+//      println(await(controller.get("id")(req)))
 
       status(result)    shouldBe OK
       bodyOf(result) shouldEqual Json.toJson(attachment).toString()
@@ -173,8 +113,6 @@ class FileStoreControllerSpec extends UnitSpec with Matchers with WithFakeApplic
       when(service.find(Search(ids = Some(Set("id1", "id2"))), Pagination.max))
         .thenReturn(successful(Paged(Seq(attachment1, attachment2))))
 
-      println(service.find(Search(ids = Some(Set("id1", "id2"))), Pagination.max))
-
       val result = await(controller.getAll(Search(ids = Some(Set("id1", "id2"))), None)(fakeRequest))
 
       status(result)    shouldBe OK
@@ -193,6 +131,81 @@ class FileStoreControllerSpec extends UnitSpec with Matchers with WithFakeApplic
       status(result)    shouldBe OK
       bodyOf(result) shouldEqual Json.toJson(Paged(Seq(attachment1, attachment2))).toString()
     }
+  }
+
+  "Delete All" should {
+
+    val req = FakeRequest(method = "DELETE", path = "/file")
+
+    "return 403 if the test mode is disabled" in {
+
+      when(appConfig.isTestMode).thenReturn(false)
+
+      val result = await(controller.deleteAll()(req))
+
+      status(result) shouldEqual FORBIDDEN
+      jsonBodyOf(result)
+        .toString()  shouldEqual s"""{"code":"FORBIDDEN","message":"You are not allowed to call ${req.method} ${req.path}"}"""
+    }
+
+    "return 204 if the test mode is enabled" in {
+      val attachment = FileMetadata(id = "id", fileName = Some("file"), mimeType = Some("type"))
+
+      when(appConfig.isTestMode).thenReturn(true)
+      when(service.deleteAll()).thenReturn(successful(()))
+      when(service.find(id = "id")).thenReturn(Some(attachment))
+
+//      println(s"Service result: ${await(service.deleteAll())}")
+//      println(s"Controller result: ${await(controller.deleteAll()(req))}")
+      val result = await(controller.deleteAll()(req))
+
+      status(result) shouldEqual NO_CONTENT
+    }
+
+    "return 500 when an error occurred" in {
+      val error = new RuntimeException
+
+      when(appConfig.isTestMode).thenReturn(true)
+      when(service.deleteAll()).thenReturn(Future.failed(error))
+
+      val result = await(controller.deleteAll()(req))
+
+//      println(result)
+      status(result)                shouldEqual INTERNAL_SERVER_ERROR
+      jsonBodyOf(result).toString() shouldEqual """{"code":"UNKNOWN_ERROR","message":"An unexpected error occurred"}"""
+    }
+
+  }
+
+  "Delete By ID" should {
+
+    val id  = "ABC-123_000"
+    val req = FakeRequest(method = "DELETE", path = s"/file/$id")
+
+    "return 204" in {
+      when(appConfig.isTestMode).thenReturn(true)
+      when(service.delete(id)).thenReturn(Future.successful((): Unit))
+
+//      println(service.find(id))
+//      println(controller.delete(id)(req))
+
+      val result = await(controller.delete(id)(req))
+
+      status(result) shouldBe NO_CONTENT
+    }
+
+    "return 500 when an error occurred" in {
+      val error = new RuntimeException
+
+      when(appConfig.isTestMode).thenReturn(true)
+      when(service.delete(id)).thenReturn(Future.failed(error))
+
+      val result = await(controller.delete(id)(req))
+
+      status(result)                shouldEqual INTERNAL_SERVER_ERROR
+      jsonBodyOf(result).toString() shouldEqual """{"code":"UNKNOWN_ERROR","message":"An unexpected error occurred"}"""
+    }
+
   }
 
   "Notify" should {
@@ -288,6 +301,7 @@ class FileStoreControllerSpec extends UnitSpec with Matchers with WithFakeApplic
         .thenReturn(successful(Some(attachmentUpdated)))
 
       val result: Result = await(controller.publish(id = "id")(fakeRequest))
+      println(result)
 
       status(result)     shouldBe ACCEPTED
       jsonBodyOf(result) shouldBe Json.toJson(attachmentUpdated)
@@ -297,6 +311,7 @@ class FileStoreControllerSpec extends UnitSpec with Matchers with WithFakeApplic
       when(service.find(id = "id")).thenReturn(successful(None))
 
       val result: Result = await(controller.publish(id = "id")(fakeRequest))
+      println(result)
 
       status(result) shouldBe NOT_FOUND
     }
@@ -304,8 +319,9 @@ class FileStoreControllerSpec extends UnitSpec with Matchers with WithFakeApplic
     "return 404 when publish returns not found" in {
       val attachmentExisting =
         FileMetadata(id = "id", fileName = Some("file"), mimeType = Some("type"), scanStatus = Some(ScanStatus.READY))
+
       when(service.find(id = "id")).thenReturn(successful(Some(attachmentExisting)))
-      when(service.publish(refEq(attachmentExisting))(any[HeaderCarrier])).thenReturn(successful(None))
+      when(service.publish(refEq(attachmentExisting))(any[HeaderCarrier])).thenReturn(Future.successful(None))
 
       val result: Result = await(controller.publish(id = "id")(fakeRequest))
 

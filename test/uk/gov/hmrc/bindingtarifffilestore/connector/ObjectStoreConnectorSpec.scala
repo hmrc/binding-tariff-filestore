@@ -60,13 +60,8 @@ class ObjectStoreConnectorSpec
 
   private implicit val hc: HeaderCarrier = mock(classOf[HeaderCarrier])
   private implicit val mat: Materializer = mock(classOf[Materializer])
-  private implicit val config: AppConfig = mock(classOf[AppConfig])
   private val directory: Path.Directory  =
     Path.Directory("test")
-
-  override lazy val fakeApplication: Application = new GuiceApplicationBuilder()
-    .configure("microservices.services.object-store.port" -> wirePort)
-    .build()
 
   private def objectListingJson: String =
     """{
@@ -87,13 +82,22 @@ class ObjectStoreConnectorSpec
   }"""
 
   lazy val objectStoreClientStub: StubPlayObjectStoreClient = {
-    val baseUrl = s"baseUrl-${randomUUID().toString}"
+    val baseUrl = wireMockUrl
     val owner   = s"owner-${randomUUID().toString}"
     val token   = s"token-${randomUUID().toString}"
     val config  = ObjectStoreClientConfig(baseUrl, owner, token, RetentionPeriod.OneWeek)
 
     new StubPlayObjectStoreClient(config)
   }
+
+  override lazy val fakeApplication: Application = new GuiceApplicationBuilder()
+    .configure(
+      "microservice.services.object-store.port" -> s"$wirePort"
+    )
+    .bindings(inject.bind(classOf[PlayObjectStoreClient]).to(objectStoreClientStub))
+    .build()
+
+  private implicit val config: AppConfig = fakeApplication.injector.instanceOf[AppConfig]
 
   private val connector = new ObjectStoreConnector(objectStoreClientStub, config)
 
@@ -111,10 +115,18 @@ class ObjectStoreConnectorSpec
       )
 
       // Then
-      val all = await(connector.getAll(directory))
-      WireMock.verify(
-        getRequestedFor(urlMatching("/object-store/list/.*"))
-      )
+      val all = objectStoreClientStub.listObjects(directory)
+
+//      println(s"Connector base url: ${config.filestoreUrl}")
+//      println(s"Wiremock base url: $wireMockUrl")
+//      println(config.filestoreUrl)
+//      println(config.upscanInitiateUrl)
+//      println(await(connector.getAll(directory)))
+//      println(objectStoreClientStub.listObjects(directory))
+//      println(WireMock.getAllServeEvents)
+
+      verify(getRequestedFor(urlMatching("/object-store/list/.*")))
+
     }
   }
 

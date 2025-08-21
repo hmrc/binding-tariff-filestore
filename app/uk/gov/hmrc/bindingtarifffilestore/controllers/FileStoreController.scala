@@ -56,10 +56,11 @@ class FileStoreController @Inject() (
 
   private def withFileMetadata(id: String)(f: FileMetadata => Future[Result]): Future[Result] = {
     implicit val hc: HeaderCarrier = HeaderCarrier()
+
     service.find(id).flatMap {
       case Some(meta) =>
         logger.info(
-          s"[FileStoreController][withFileMetadata] Attachement File: $id, Scan succeeded with details fileMetadata: ${encodeInBase64(meta.toString)}"
+          s"[FileStoreController][withFileMetadata] Attachment File: $id, Scan succeeded with details fileMetadata: ${encodeInBase64(meta.toString)}"
         )
         f(meta)
       case None       =>
@@ -114,8 +115,10 @@ class FileStoreController @Inject() (
     }
   }
 
-  def get(id: String): Action[AnyContent] = Action.async {
-    withFileMetadata(id)(meta => Future.successful(Ok(Json.toJson(meta))))
+  def get(id: String): Action[AnyContent] = Action.async { implicit request =>
+    withFileMetadata(id) { meta =>
+      Future.successful(Ok(Json.toJson(meta)))
+    }
   }
 
   def notification(id: String): Action[JsValue] = withErrorHandling {

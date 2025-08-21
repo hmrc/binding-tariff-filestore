@@ -121,15 +121,15 @@ class FileStoreService @Inject() (
   }
 
   def find(id: String)(implicit hc: HeaderCarrier): Future[Option[FileMetadata]] =
-    repository.get(id) map signingPermanentURL flatMap { a => a.get.map(Some(_)) }
+    repository
+      .get(id) map signingPermanentURL flatMap { a => a.get.map(Some(_)) }
 
   def find(search: Search, pagination: Pagination)(implicit hc: HeaderCarrier): Future[Paged[FileMetadata]] = {
     val pagedFuture: Future[Paged[Future[FileMetadata]]] =
-      repository.get(search, pagination: Pagination) map signingPermanentURLs
+      repository.get(search, pagination: Pagination) map signingPermanentURLs()
     pagedFuture.flatMap { paged =>
       Future.sequence(paged.results).map(resolvedItems => paged.copy(results = resolvedItems))
     }
-
   }
 
   // when UpScan comes back to us with the scan result
@@ -187,6 +187,12 @@ class FileStoreService @Inject() (
         val metadata: FileMetadata = fileStoreConnector.upload(att)
         auditService.auditFilePublished(att.id, att.fileName.get)
         logger.info(s"[FileStoreService][publish] File: ${att.id}, Published file to Permanent Storage")
+//        println(
+//          repository
+//            .update(metadata.copy(publishable = true, published = true))
+//            .map(signingPermanentURL)
+//            .flatMap(a => a.get.map(Some(_)))
+//        )
         repository
           .update(metadata.copy(publishable = true, published = true))
           .map(signingPermanentURL)

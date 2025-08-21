@@ -29,7 +29,6 @@ import uk.gov.hmrc.objectstore.client.{ObjectSummary, Path}
 import java.net.URI
 import scala.Console.println
 import scala.concurrent.{ExecutionContext, Future}
-import scala.reflect.io.Directory
 import scala.util.{Failure, Success, Try}
 
 @Singleton
@@ -60,9 +59,10 @@ class ObjectStoreConnector @Inject() (client: PlayObjectStoreClient, config: App
         throw e
     }
 
-  def delete(id: String)(implicit hc: HeaderCarrier): Unit =
+  def delete(id: String)(implicit hc: HeaderCarrier): Future[Unit] =
     client.deleteObject(
-      path = directory.file(id)
+      path = directory.file(id),
+      owner = "digital-tariffs-local"
     )
 
   def deleteAll()(implicit hc: HeaderCarrier): Unit =
@@ -88,7 +88,6 @@ class ObjectStoreConnector @Inject() (client: PlayObjectStoreClient, config: App
         )
         .map { value =>
           val updatedMetaData = fileMetaData.copy(url = Some(value.toString))
-          println(updatedMetaData)
           updatedMetaData
         }
     } else {
