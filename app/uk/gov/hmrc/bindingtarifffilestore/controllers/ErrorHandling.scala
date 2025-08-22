@@ -24,7 +24,7 @@ import uk.gov.hmrc.bindingtarifffilestore.model.{ErrorCode, JsErrorResponse}
 import scala.concurrent.{ExecutionContext, Future}
 
 trait ErrorHandling {
-  self: BaseController with Logging =>
+  self: BaseController & Logging =>
   private val duplicateErrorCode = 11000
 
   private[controllers] def mongoErrorHandler: PartialFunction[Throwable, Result] = {
@@ -36,7 +36,7 @@ trait ErrorHandling {
   }
 
   def withErrorHandling(f: Request[AnyContent] => Future[Result])(implicit ec: ExecutionContext): Action[AnyContent] =
-    Action.async { request: Request[AnyContent] => f(request).recover(mongoErrorHandler) }
+    Action.async((request: Request[AnyContent]) => f(request).recover(mongoErrorHandler))
 
   def withErrorHandling[A](action: Action[A])(implicit ec: ExecutionContext): Action[A] =
     Action(action.parser).async(request => action(request).recover(mongoErrorHandler))

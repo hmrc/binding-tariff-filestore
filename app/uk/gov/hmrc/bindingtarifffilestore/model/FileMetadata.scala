@@ -16,12 +16,12 @@
 
 package uk.gov.hmrc.bindingtarifffilestore.model
 
-import play.api.libs.json._
-import uk.gov.hmrc.bindingtarifffilestore.model.ScanStatus._
-import uk.gov.hmrc.bindingtarifffilestore.model.upscan._
+import play.api.libs.json.*
+import uk.gov.hmrc.bindingtarifffilestore.model.ScanStatus.*
+import uk.gov.hmrc.bindingtarifffilestore.model.upscan.*
 
 import java.time.{Instant, LocalDateTime, ZoneOffset}
-import java.{util => ju}
+import java.util as ju
 
 case class FileMetadata(
   id: String,
@@ -36,7 +36,7 @@ case class FileMetadata(
   private lazy val date    = "X-Amz-Date=(\\d{4})(\\d{2})(\\d{2})T(\\d{2})(\\d{2})(\\d{2})".r.unanchored
   private lazy val expires = "X-Amz-Expires=(\\d+)".r.unanchored
 
-  //date time groups -> based on date regex above
+  // date time groups -> based on date regex above
   private val yearGroup   = 1
   private val monthGroup  = 2
   private val dayGroup    = 3
@@ -102,10 +102,10 @@ object FileMetadataREST {
   val writes: OWrites[FileMetadata]          = (o: FileMetadata) =>
     JsObject(
       Map[String, JsValue](
-        "id"                         -> JsString(o.id),
-        "publishable"                -> JsBoolean(o.publishable),
-        "published"                  -> JsBoolean(o.published),
-        "lastUpdated"                -> JsString(o.lastUpdated.toString)
+        "id"          -> JsString(o.id),
+        "publishable" -> JsBoolean(o.publishable),
+        "published"   -> JsBoolean(o.published),
+        "lastUpdated" -> JsString(o.lastUpdated.toString)
       )
         ++ o.fileName.map("fileName" -> Json.toJson(_))
         ++ o.mimeType.map("mimeType" -> Json.toJson(_))
@@ -117,7 +117,7 @@ object FileMetadataREST {
 
 object FileMetadataMongo {
   implicit val instantFormat: OFormat[Instant] = new OFormat[Instant] {
-    override def writes(instant: Instant): JsObject      =
+    override def writes(instant: Instant): JsObject =
       Json.obj("$date" -> instant.toEpochMilli)
 
     override def reads(json: JsValue): JsResult[Instant] =
@@ -137,9 +137,5 @@ object FileMetadataMongo {
       }
   }
 
-  private val underlying                     = Json.using[Json.WithDefaultValues].format[FileMetadata]
-  implicit val format: OFormat[FileMetadata] = OFormat(
-    r = underlying,
-    w = OWrites(fm => underlying.writes(fm).as[JsObject])
-  )
+  implicit val format: OFormat[FileMetadata] = Json.using[Json.WithDefaultValues].format[FileMetadata]
 }

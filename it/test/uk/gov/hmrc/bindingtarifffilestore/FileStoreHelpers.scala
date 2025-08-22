@@ -38,6 +38,9 @@ import scala.concurrent.duration._
 import scala.io.Source
 import scala.jdk.CollectionConverters._
 
+import org.mongodb.scala.SingleObservableFuture
+import play.api.libs.ws.JsonBodyWritables.writeableOf_JsValue
+
 trait FileStoreHelpers extends WiremockFeatureTestServer {
 
   private def fromFile(path: String): String = {

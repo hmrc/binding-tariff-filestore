@@ -23,19 +23,20 @@ import scala.util.Try
 
 object EnumJson {
 
-  private def enumReads[E <: Enumeration](`enum`: E): Reads[E#Value] = {
+  private def enumReads[E <: Enumeration](customEnum: E): Reads[customEnum.Value] = {
     case JsString(s) =>
-      Try(JsSuccess(enum.withName(s))).recover { case _: NoSuchElementException =>
+      Try(JsSuccess(customEnum.withName(s))).recover { case _: NoSuchElementException =>
         JsError(
-          s"Expected an enumeration of type: '${enum.getClass.getSimpleName}', but it does not contain the name: '$s'"
+          s"Expected an enumeration of type: '${customEnum.getClass.getSimpleName}', but it does not contain the name: '$s'"
         )
       }.get
 
     case _ => JsError("String value is expected")
   }
 
-  implicit def enumWrites[E <: Enumeration]: Writes[E#Value] = (v: E#Value) => JsString(v.toString)
+  private def enumWrites[E <: Enumeration, V <: Enumeration#Value]: Writes[V] =
+    Writes((v: V) => JsString(v.toString))
 
-  implicit def format[E <: Enumeration](`enum`: E): Format[E#Value] = Format(enumReads(enum), enumWrites)
-
+  implicit def format[E <: Enumeration](customEnum: E): Format[customEnum.Value] =
+    Format(enumReads(customEnum), enumWrites[E, customEnum.Value])
 }

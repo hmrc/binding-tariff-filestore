@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.bindingtarifffilestore.model.upscan
 
-import play.api.libs.json.{Format, Json}
+import play.api.libs.json.{Json, OFormat}
 
 case class UploadSettings(
   callbackUrl: String,
@@ -25,5 +25,5 @@ case class UploadSettings(
 )
 
 object UploadSettings {
-  implicit val format: Format[UploadSettings] = Json.format
+  given format: OFormat[UploadSettings] = Json.format[UploadSettings]
 }

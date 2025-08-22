@@ -23,11 +23,13 @@ import org.scalatest.{Assertion, BeforeAndAfterAll, BeforeAndAfterEach}
 import uk.gov.hmrc.bindingtarifffilestore.model.{FileMetadata, Paged, Pagination, Search}
 import uk.gov.hmrc.bindingtarifffilestore.util.Logging
 import uk.gov.hmrc.mongo.test.MongoSupport
+import org.mongodb.scala.SingleObservableFuture
 
 import java.time.temporal.ChronoUnit
 import java.util.UUID
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
+import scala.concurrent.Await
 
 class FileMetadataRepositorySpec
     extends BaseMongoIndexSpec
@@ -59,7 +61,7 @@ class FileMetadataRepositorySpec
     await(repository.collection.countDocuments(Filters.notEqual("id", "")).toFuture()).toInt
 
   private def insertFileWithAssert(file: FileMetadata): Assertion =
-    await(repository.insertFile(file)) shouldBe Some(file)
+    await(repository.insertFile(file)).shouldBe(Some(file))
 
   private def insertFilesWithAssert(files: FileMetadata*): Assertion = {
     val beforeSize = currentCollectionSize
@@ -70,7 +72,7 @@ class FileMetadataRepositorySpec
     val afterSize  = currentCollectionSize
 
     eventually(timeout(5.second), interval(50.milliseconds)) {
-      (afterSize - beforeSize) shouldBe files.size
+      (afterSize - beforeSize).shouldBe(files.size)
     }
   }
 
@@ -91,8 +93,8 @@ class FileMetadataRepositorySpec
     "clear the collection" in {
       insertFilesWithAssert(att1, att2)
 
-      await(repository.deleteAll()) shouldBe ((): Unit)
-      currentCollectionSize         shouldBe 0
+      await(repository.deleteAll()).shouldBe((): Unit)
+      currentCollectionSize.shouldBe(0)
     }
 
   }
@@ -102,7 +104,7 @@ class FileMetadataRepositorySpec
     "insert a new document in the collection" in {
       insertFilesWithAssert(att1)
 
-      await(repository.get(att1.id)) shouldBe Some(att1)
+      await(repository.get(att1.id)).shouldBe(Some(att1))
     }
 
   }
@@ -115,20 +117,20 @@ class FileMetadataRepositorySpec
 
       val updated = att1.copy(mimeType = Some(generateString), fileName = Some(generateString))
       await(repository.update(updated))
-      currentCollectionSize shouldBe size
+      currentCollectionSize.shouldBe(size)
 
       val metadata = await(repository.get(att1.id))
-      metadata.map(_.id)                                           shouldBe Some(att1.id)
-      metadata.map(_.mimeType)                                     shouldBe Some(updated.mimeType)
-      metadata.map(_.fileName)                                     shouldBe Some(updated.fileName)
-      metadata.map(_.lastUpdated).get.isAfter(updated.lastUpdated) shouldBe true
+      metadata.map(_.id).shouldBe(Some(att1.id))
+      metadata.map(_.mimeType).shouldBe(Some(updated.mimeType))
+      metadata.map(_.fileName).shouldBe(Some(updated.fileName))
+      metadata.map(_.lastUpdated).get.isAfter(updated.lastUpdated).shouldBe(true)
     }
 
     "do nothing when trying to update a non existing document in the collection" in {
       val size = currentCollectionSize
 
-      await(repository.update(att1)) shouldBe None
-      currentCollectionSize          shouldBe size
+      await(repository.update(att1)).shouldBe(None)
+      currentCollectionSize.shouldBe(size)
     }
   }
 
@@ -137,13 +139,13 @@ class FileMetadataRepositorySpec
     "retrieve the expected document from the collection" in {
       insertFilesWithAssert(att1, att2)
 
-      await(repository.get(att1.id)) shouldBe Some(att1)
-      await(repository.get(att2.id)) shouldBe Some(att2)
+      await(repository.get(att1.id)).shouldBe(Some(att1))
+      await(repository.get(att2.id)).shouldBe(Some(att2))
     }
 
     "return None when there are no documents in the collection" in {
       await(repository.deleteAll())
-      await(repository.get(att1.id)) shouldBe None
+      await(repository.get(att1.id)).shouldBe(None)
     }
 
   }
@@ -154,8 +156,8 @@ class FileMetadataRepositorySpec
       insertFilesWithAssert(att1, att2)
 
       await(repository.delete(att1.id))
-      currentCollectionSize          shouldBe 1
-      await(repository.get(att1.id)) shouldBe None
+      currentCollectionSize.shouldBe(1)
+      await(repository.get(att1.id)).shouldBe(None)
     }
 
   }
@@ -170,8 +172,8 @@ class FileMetadataRepositorySpec
         await(repository.collection.insertOne(att1.copy(url = Some(generateString))).toFuture())
       }
 
-      caught.getCode        shouldBe 11000
-      currentCollectionSize shouldBe size
+      caught.getCode.shouldBe(11000)
+      currentCollectionSize.shouldBe(size)
     }
 
     "have all expected indexes" in {
@@ -198,37 +200,41 @@ class FileMetadataRepositorySpec
     "retrieve the expected documents by id" in {
       insertFilesWithAssert(att1, att2)
 
-      await(repository.get(Search(ids = Some(Set(att1.id))), Pagination())) shouldBe Paged(Seq(att1))
-      await(repository.get(Search(ids = Some(Set(att2.id))), Pagination())) shouldBe Paged(Seq(att2))
+      await(repository.get(Search(ids = Some(Set(att1.id))), Pagination())).shouldBe(Paged(Seq(att1)))
+      await(repository.get(Search(ids = Some(Set(att2.id))), Pagination())).shouldBe(Paged(Seq(att2)))
     }
 
     "retrieve the expected documents by published" in {
       insertFilesWithAssert(att1.copy(published = true), att2.copy(published = false))
 
-      await(repository.get(Search(published = Some(true)), Pagination()))  shouldBe Paged(
-        Seq(att1.copy(published = true))
+      await(repository.get(Search(published = Some(true)), Pagination())).shouldBe(
+        Paged(
+          Seq(att1.copy(published = true))
+        )
       )
-      await(repository.get(Search(published = Some(false)), Pagination())) shouldBe Paged(
-        Seq(att2.copy(published = false))
+      await(repository.get(Search(published = Some(false)), Pagination())).shouldBe(
+        Paged(
+          Seq(att2.copy(published = false))
+        )
       )
     }
 
     "retrieve the expected documents by page number and page size" in {
       insertFilesWithAssert(att1, att2)
 
-      await(repository.get(Search(), pageOneSizeOne)) shouldBe Paged(Seq(att1), pageOneSizeOne, 1)
-      await(repository.get(Search(), pageTwoSizeOne)) shouldBe Paged(Seq(att2), pageTwoSizeOne, 1)
+      await(repository.get(Search(), pageOneSizeOne)).shouldBe(Paged(Seq(att1), pageOneSizeOne, 1))
+      await(repository.get(Search(), pageTwoSizeOne)).shouldBe(Paged(Seq(att2), pageTwoSizeOne, 1))
     }
 
     "retrieve all the files for empty Search" in {
       insertFilesWithAssert(att1, att2)
 
-      await(repository.get(Search(), Pagination())) shouldBe Paged(Seq(att1, att2))
+      await(repository.get(Search(), Pagination())).shouldBe(Paged(Seq(att1, att2)))
     }
 
     "return None when there are no documents matching" in {
       await(repository.deleteAll())
-      await(repository.get(Search(), Pagination())) shouldBe Paged.empty[FileMetadata]
+      await(repository.get(Search(), Pagination())).shouldBe(Paged.empty[FileMetadata])
     }
 
   }
