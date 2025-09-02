@@ -27,7 +27,6 @@ import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.objectstore.client.{ObjectSummary, Path}
 
 import java.net.URI
-import scala.Console.println
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success, Try}
 
@@ -59,9 +58,9 @@ class ObjectStoreConnector @Inject() (client: PlayObjectStoreClient, config: App
         throw e
     }
 
-  def delete(id: String)(implicit hc: HeaderCarrier): Future[Unit] =
+  def delete(fileName: String)(implicit hc: HeaderCarrier): Future[Unit] =
     client.deleteObject(
-      path = directory.file(id),
+      path = directory.file(fileName),
       owner = "digital-tariffs-local"
     )
 
@@ -71,7 +70,8 @@ class ObjectStoreConnector @Inject() (client: PlayObjectStoreClient, config: App
         log.info(s"Removing [${files.length}] files from object store")
         Future.traverse(files)(filename =>
           client.deleteObject(
-            path = directory.file(filename.location.fileName)
+            path = directory.file(filename.location.fileName),
+            owner = "digital-tariffs-local"
           )
         )
       } else {
@@ -84,11 +84,16 @@ class ObjectStoreConnector @Inject() (client: PlayObjectStoreClient, config: App
       client
         .presignedDownloadUrl(
           path = directory.file(fileMetaData.id),
-          owner = "digital-tariffs"
+          owner = "digital-tariffs-local"
         )
-        .map { value =>
-          val updatedMetaData = fileMetaData.copy(url = Some(value.toString))
-          updatedMetaData
+        .transformWith {
+          case scala.util.Failure(exception)            =>
+            log.error(s"Failure to get pre-signed URL to ${directory.file(fileMetaData.id)} because of $exception")
+            exception.printStackTrace()
+            Future.successful(fileMetaData)
+          case scala.util.Success(presignedDownloadUrl) =>
+            val updatedMetaData = fileMetaData.copy(url = Some(presignedDownloadUrl.downloadUrl.toString))
+            Future.successful(updatedMetaData)
         }
     } else {
       Future.successful(fileMetaData)

@@ -54,9 +54,9 @@ class FileStoreController @Inject() (
   def encodeInBase64(text: String): String =
     Base64.getEncoder.encodeToString(text.getBytes(StandardCharsets.UTF_8))
 
-  private def withFileMetadata(id: String)(f: FileMetadata => Future[Result]): Future[Result] = {
-    implicit val hc: HeaderCarrier = HeaderCarrier()
-
+  private def withFileMetadata(id: String)(f: FileMetadata => Future[Result])(implicit
+    hc: HeaderCarrier
+  ): Future[Result] =
     service.find(id).flatMap {
       case Some(meta) =>
         logger.info(
@@ -67,7 +67,6 @@ class FileStoreController @Inject() (
         logger.warn(s"[FileStoreController][withFileMetadata] FileNotFound")
         Future.successful(FileNotFound)
     }
-  }
 
   lazy private val testModeFilter = TestMode.actionFilter(appConfig, parse.default)
 

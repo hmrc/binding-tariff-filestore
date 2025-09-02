@@ -17,6 +17,9 @@
 package uk.gov.hmrc.bindingtarifffilestore.service
 
 import play.api.Logging
+import play.api.libs.json.Json
+import play.api.mvc.Result
+import play.api.mvc.Results.Created
 import uk.gov.hmrc.bindingtarifffilestore.audit.AuditService
 import uk.gov.hmrc.bindingtarifffilestore.config.AppConfig
 import uk.gov.hmrc.bindingtarifffilestore.connector.{ObjectStoreConnector, UpscanConnector}
@@ -122,7 +125,9 @@ class FileStoreService @Inject() (
 
   def find(id: String)(implicit hc: HeaderCarrier): Future[Option[FileMetadata]] =
     repository
-      .get(id) map signingPermanentURL flatMap { a => a.get.map(Some(_)) }
+      .get(id) map signingPermanentURL flatMap { a =>
+      a.get.map(Some(_))
+    }
 
   def find(search: Search, pagination: Pagination)(implicit hc: HeaderCarrier): Future[Paged[FileMetadata]] = {
     val pagedFuture: Future[Paged[Future[FileMetadata]]] =
@@ -187,12 +192,6 @@ class FileStoreService @Inject() (
         val metadata: FileMetadata = fileStoreConnector.upload(att)
         auditService.auditFilePublished(att.id, att.fileName.get)
         logger.info(s"[FileStoreService][publish] File: ${att.id}, Published file to Permanent Storage")
-//        println(
-//          repository
-//            .update(metadata.copy(publishable = true, published = true))
-//            .map(signingPermanentURL)
-//            .flatMap(a => a.get.map(Some(_)))
-//        )
         repository
           .update(metadata.copy(publishable = true, published = true))
           .map(signingPermanentURL)
