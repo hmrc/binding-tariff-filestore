@@ -60,8 +60,7 @@ class ObjectStoreConnector @Inject() (client: PlayObjectStoreClient, config: App
 
   def delete(fileName: String)(implicit hc: HeaderCarrier): Future[Unit] =
     client.deleteObject(
-      path = directory.file(fileName),
-      owner = "digital-tariffs-local"
+      path = directory.file(fileName)
     )
 
   def deleteAll()(implicit hc: HeaderCarrier): Unit =
@@ -70,8 +69,7 @@ class ObjectStoreConnector @Inject() (client: PlayObjectStoreClient, config: App
         log.info(s"Removing [${files.length}] files from object store")
         Future.traverse(files)(filename =>
           client.deleteObject(
-            path = directory.file(filename.location.fileName),
-            owner = "digital-tariffs-local"
+            path = directory.file(filename.location.fileName)
           )
         )
       } else {
@@ -83,8 +81,7 @@ class ObjectStoreConnector @Inject() (client: PlayObjectStoreClient, config: App
     if (fileMetaData.url.isDefined) {
       client
         .presignedDownloadUrl(
-          path = directory.file(fileMetaData.id),
-          owner = "digital-tariffs-local"
+          path = directory.file(fileMetaData.id)
         )
         .transformWith {
           case scala.util.Failure(exception)            =>

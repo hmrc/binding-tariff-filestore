@@ -17,9 +17,6 @@
 package uk.gov.hmrc.bindingtarifffilestore.service
 
 import play.api.Logging
-import play.api.libs.json.Json
-import play.api.mvc.Result
-import play.api.mvc.Results.Created
 import uk.gov.hmrc.bindingtarifffilestore.audit.AuditService
 import uk.gov.hmrc.bindingtarifffilestore.config.AppConfig
 import uk.gov.hmrc.bindingtarifffilestore.connector.{ObjectStoreConnector, UpscanConnector}
@@ -30,9 +27,9 @@ import uk.gov.hmrc.bindingtarifffilestore.model.upscan.*
 import uk.gov.hmrc.bindingtarifffilestore.repository.FileMetadataMongoRepository
 import uk.gov.hmrc.bindingtarifffilestore.util.HashUtil
 import uk.gov.hmrc.http.HeaderCarrier
-import java.util.Base64
+
 import java.nio.charset.StandardCharsets
-import java.util.UUID
+import java.util.{Base64, UUID}
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -220,9 +217,9 @@ class FileStoreService @Inject() (
   def deleteAll()(implicit hc: HeaderCarrier): Future[Unit] =
     repository.deleteAll() map (_ => fileStoreConnector.deleteAll())
 
-  def delete(id: String)(implicit hc: HeaderCarrier): Future[Unit] = {
+  def delete(id: String, filename: String)(implicit hc: HeaderCarrier): Future[Unit] = {
     logger.info(s"[FileStoreService][delete] Deleting file: $id")
-    repository.delete(id) map (_ => fileStoreConnector.delete(id))
+    repository.delete(id) map (_ => fileStoreConnector.delete(filename))
   }
 
   private def upscanInitiate(fileMetadata: FileMetadata)(implicit hc: HeaderCarrier): Future[UpscanInitiateResponse] = {

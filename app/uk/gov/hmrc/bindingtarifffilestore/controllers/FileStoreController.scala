@@ -80,11 +80,11 @@ class FileStoreController @Inject() (
     }
   }
 
-  def delete(id: String): Action[AnyContent] = withErrorHandling { _ =>
+  def delete(id: String, filename: String): Action[AnyContent] = withErrorHandling { _ =>
     implicit val hc: HeaderCarrier = HeaderCarrier()
 
     service
-      .delete(id)
+      .delete(id, filename)
       .map(_ => NoContent)
   }
 

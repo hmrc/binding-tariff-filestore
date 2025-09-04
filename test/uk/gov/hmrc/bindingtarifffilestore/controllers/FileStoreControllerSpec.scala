@@ -147,7 +147,7 @@ class FileStoreControllerSpec extends UnitSpec with Matchers with WithFakeApplic
       val attachment = FileMetadata(id = "id", fileName = Some("file"), mimeType = Some("type"))
 
       when(appConfig.isTestMode).thenReturn(true)
-      when(service.deleteAll()).thenReturn(successful(()))
+      when(service.deleteAll()(any[HeaderCarrier])).thenReturn(successful(()))
       when(service.find(eqTo("id"))(any[HeaderCarrier])).thenReturn(Some(attachment))
 
       val result = await(controller.deleteAll()(req))
@@ -159,7 +159,7 @@ class FileStoreControllerSpec extends UnitSpec with Matchers with WithFakeApplic
       val error = new RuntimeException
 
       when(appConfig.isTestMode).thenReturn(true)
-      when(service.deleteAll()).thenReturn(Future.failed(error))
+      when(service.deleteAll()(any[HeaderCarrier])).thenReturn(Future.failed(error))
 
       val result = await(controller.deleteAll()(req))
 
@@ -171,14 +171,15 @@ class FileStoreControllerSpec extends UnitSpec with Matchers with WithFakeApplic
 
   "Delete By ID" should {
 
-    val id  = "ABC-123_000"
-    val req = FakeRequest(method = "DELETE", path = s"/file/$id")
+    val attachment = FileMetadata(id = "id", fileName = Some("file"), mimeType = Some("type"))
+    val req        = FakeRequest(method = "DELETE", path = s"/file/${attachment.id}")
 
     "return 204" in {
       when(appConfig.isTestMode).thenReturn(true)
-      when(service.delete(id)).thenReturn(Future.successful((): Unit))
+      when(service.delete(eqTo(attachment.id), eqTo(attachment.fileName.get))(any[HeaderCarrier]))
+        .thenReturn(Future.successful((): Unit))
 
-      val result = await(controller.delete(id)(req))
+      val result = await(controller.delete(attachment.id, attachment.fileName.get)(req))
 
       status(result) shouldBe NO_CONTENT
     }
@@ -187,9 +188,10 @@ class FileStoreControllerSpec extends UnitSpec with Matchers with WithFakeApplic
       val error = new RuntimeException
 
       when(appConfig.isTestMode).thenReturn(true)
-      when(service.delete(id)).thenReturn(Future.failed(error))
+      when(service.delete(eqTo(attachment.id), eqTo(attachment.fileName.get))(any[HeaderCarrier]))
+        .thenReturn(Future.failed(error))
 
-      val result = await(controller.delete(id)(req))
+      val result = await(controller.delete(attachment.id, attachment.fileName.get)(req))
 
       status(result)                shouldEqual INTERNAL_SERVER_ERROR
       jsonBodyOf(result).toString() shouldEqual """{"code":"UNKNOWN_ERROR","message":"An unexpected error occurred"}"""

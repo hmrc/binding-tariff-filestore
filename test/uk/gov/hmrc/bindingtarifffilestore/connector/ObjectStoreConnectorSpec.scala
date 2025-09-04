@@ -16,31 +16,28 @@
 
 package uk.gov.hmrc.bindingtarifffilestore.connector
 
-import com.typesafe.config.ConfigFactory
-import org.apache.pekko.actor.ActorSystem
 import org.apache.pekko.stream.Materializer
 import org.mockito.Mockito.{mock, when}
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.time.SpanSugar.convertIntToGrainOfTime
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.{Application, inject}
-import play.api.libs.Files.SingletonTemporaryFileCreator
 import uk.gov.hmrc.bindingtarifffilestore.config.AppConfig
 import uk.gov.hmrc.bindingtarifffilestore.model.FileMetadata
 import uk.gov.hmrc.bindingtarifffilestore.service.FileStoreService
 import uk.gov.hmrc.bindingtarifffilestore.util._
 import uk.gov.hmrc.http.HeaderCarrier
-import uk.gov.hmrc.objectstore.client.{ObjectSummary, Path, PresignedUrlRequest, RetentionPeriod}
+import uk.gov.hmrc.objectstore.client.Path.{Directory, File}
 import uk.gov.hmrc.objectstore.client.config.ObjectStoreClientConfig
 import uk.gov.hmrc.objectstore.client.play.Implicits.{futureMonad, stringWrite}
 import uk.gov.hmrc.objectstore.client.play.PlayObjectStoreClient
 import uk.gov.hmrc.objectstore.client.play.test.stub.StubPlayObjectStoreClient
+import uk.gov.hmrc.objectstore.client.{ObjectSummary, Path, RetentionPeriod}
 
 import java.time.{Instant, LocalDate, LocalTime, ZoneId}
 import java.util.UUID.randomUUID
+import scala.concurrent.Await
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future.successful
-import scala.concurrent.{Await, Future}
 
 class ObjectStoreConnectorSpec
     extends UnitSpec
@@ -49,13 +46,11 @@ class ObjectStoreConnectorSpec
     with BeforeAndAfterEach
     with ResourceFiles {
 
-  private implicit val hc: HeaderCarrier             = mock(classOf[HeaderCarrier])
-  private implicit val mat: Materializer             = mock(classOf[Materializer])
-  private implicit val client: PlayObjectStoreClient = mock(classOf[PlayObjectStoreClient])
-  private val directory: Path.Directory              =
+  private implicit val hc: HeaderCarrier = mock(classOf[HeaderCarrier])
+  private implicit val mat: Materializer = mock(classOf[Materializer])
+  private val directory: Path.Directory  =
     Path.Directory("test")
 
-  val url           = SingletonTemporaryFileCreator.create("example.txt").path.toUri.toURL
   private val file1 = FileMetadata("id1", Some("file1.txt"), Some("text/plain"), Some("http://foo.bar/test-123.txt"))
   private val file2 = FileMetadata("id2", Some("file2.txt"), Some("text/plain"), Some("http://foo.bar/test-456.txt"))
 
@@ -100,9 +95,13 @@ class ObjectStoreConnectorSpec
   "Upload" should {
 
     "add file to the object store" in {
+
       val all = await(connector.upload(file1))
 
-      all.url.get startsWith "http://foo.bar/test-123.txt"
+      val file = await(connector.getAll(directory))
+
+      file.length        shouldBe 1
+      file.head.location shouldBe File(Directory("digital-tariffs-local/test"), "file1.txt")
     }
 
     "Throw Exception on missing URL" in {
@@ -116,7 +115,7 @@ class ObjectStoreConnectorSpec
   }
 
   "Sign" should {
-    "append token to URL" in {
+    "create a presigned download URL" in {
 
       await(objectStoreClientStub.putObject(directory.file(file1.fileName.get), "text", RetentionPeriod.OneDay))
 
@@ -125,7 +124,7 @@ class ObjectStoreConnectorSpec
       result shouldBe file1
     }
 
-    "not append token to empty URL" in {
+    "not create a presigned download url if there is an empty URL" in {
       val file   = FileMetadata("id", Some("file.txt"), Some("text/plain"), None)
       val result = Await.result(connector.sign(file), 5.seconds)
 
@@ -138,12 +137,13 @@ class ObjectStoreConnectorSpec
       await(
         objectStoreClientStub.putObject(directory.file(file1.fileName.get), file1.mimeType.get, RetentionPeriod.OneDay)
       )
+
       val result: Unit = await(
         connector
           .delete(file1.fileName.get)
       )
-//      await(objectStoreClientStub.deleteObject(directory.file(file1.fileName.get)))
-      val files        = await(connector.getAll(directory))
+
+      val files = await(connector.getAll(directory))
 
       result === ()
       files.size shouldBe 0
@@ -159,6 +159,26 @@ class ObjectStoreConnectorSpec
         objectStoreClientStub.putObject(directory.file(file2.fileName.get), file2.mimeType.get, RetentionPeriod.OneDay)
       )
       await(connector.deleteAll())
+
+//      await(
+//        objectStoreClientStub
+//          .listObjects(directory)
+//          .map(_.objectSummaries.map(o => ObjectSummary(o.location, o.contentLength, o.lastModified)))
+//          .map(files =>
+//            if (files.nonEmpty) {
+//              println(s"Removing [${files.length}] files from object store")
+//              Future.traverse(files)(filename =>
+//                objectStoreClientStub.deleteObject(
+//                  path = directory.file(filename.location.fileName),
+//                  owner = "digital-tariffs-local"
+//                )
+//              )
+//            } else {
+//              println(s"No files to remove from object store")
+//            }
+//          )
+//      )
+
       val all = await(connector.getAll(directory))
 
       all.size shouldBe 0
