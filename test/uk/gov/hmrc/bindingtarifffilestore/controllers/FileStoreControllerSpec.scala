@@ -148,7 +148,7 @@ class FileStoreControllerSpec extends UnitSpec with Matchers with WithFakeApplic
 
       when(appConfig.isTestMode).thenReturn(true)
       when(service.deleteAll()(any[HeaderCarrier])).thenReturn(successful(()))
-      when(service.find(eqTo("id"))(any[HeaderCarrier])).thenReturn(Some(attachment))
+      when(service.find(eqTo("id"))(any[HeaderCarrier])).thenReturn(successful(Some(attachment)))
 
       val result = await(controller.deleteAll()(req))
 

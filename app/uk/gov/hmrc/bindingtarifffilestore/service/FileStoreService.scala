@@ -156,8 +156,8 @@ class FileStoreService @Inject() (
       case SuccessfulScanResult(_, _, _, details) =>
         logger.info(
           s"[FileStoreService][notify] Attachment File: ${attachment.id}, Scan succeeded with details [fileName: ${encodeInBase64(
-            details.fileName
-          )}, fileMimeType:${details.fileMimeType}, checksum:${encodeInBase64(details.checksum)}, ${details.uploadTimestamp}]"
+              details.fileName
+            )}, fileMimeType:${details.fileMimeType}, checksum:${encodeInBase64(details.checksum)}, ${details.uploadTimestamp}]"
         )
         if (updatedAttachment.publishable) {
           for {
@@ -217,9 +217,9 @@ class FileStoreService @Inject() (
   def deleteAll()(implicit hc: HeaderCarrier): Future[Unit] =
     repository.deleteAll() map (_ => fileStoreConnector.deleteAll())
 
-  def delete(id: String, filename: String)(implicit hc: HeaderCarrier): Future[Unit] = {
+  def delete(id: String, fileName: String)(implicit hc: HeaderCarrier): Future[Unit] = {
     logger.info(s"[FileStoreService][delete] Deleting file: $id")
-    repository.delete(id) map (_ => fileStoreConnector.delete(filename))
+    repository.delete(id) map (_ => fileStoreConnector.delete(fileName))
   }
 
   private def upscanInitiate(fileMetadata: FileMetadata)(implicit hc: HeaderCarrier): Future[UpscanInitiateResponse] = {

@@ -24,8 +24,7 @@ import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.{Application, inject}
 import uk.gov.hmrc.bindingtarifffilestore.config.AppConfig
 import uk.gov.hmrc.bindingtarifffilestore.model.FileMetadata
-import uk.gov.hmrc.bindingtarifffilestore.service.FileStoreService
-import uk.gov.hmrc.bindingtarifffilestore.util._
+import uk.gov.hmrc.bindingtarifffilestore.util.*
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.objectstore.client.Path.{Directory, File}
 import uk.gov.hmrc.objectstore.client.config.ObjectStoreClientConfig
@@ -143,6 +142,8 @@ class ObjectStoreConnectorSpec
           .delete(file1.fileName.get)
       )
 
+//      objectStoreClientStub.deleteObject(directory.file(file1.fileName.get))
+
       val files = await(connector.getAll(directory))
 
       result === ()
@@ -159,25 +160,6 @@ class ObjectStoreConnectorSpec
         objectStoreClientStub.putObject(directory.file(file2.fileName.get), file2.mimeType.get, RetentionPeriod.OneDay)
       )
       await(connector.deleteAll())
-
-//      await(
-//        objectStoreClientStub
-//          .listObjects(directory)
-//          .map(_.objectSummaries.map(o => ObjectSummary(o.location, o.contentLength, o.lastModified)))
-//          .map(files =>
-//            if (files.nonEmpty) {
-//              println(s"Removing [${files.length}] files from object store")
-//              Future.traverse(files)(filename =>
-//                objectStoreClientStub.deleteObject(
-//                  path = directory.file(filename.location.fileName),
-//                  owner = "digital-tariffs-local"
-//                )
-//              )
-//            } else {
-//              println(s"No files to remove from object store")
-//            }
-//          )
-//      )
 
       val all = await(connector.getAll(directory))
 
