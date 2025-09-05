@@ -98,7 +98,7 @@ class ObjectStoreConnectorSpec
 
     "add file to the object store" in {
 
-      val all = await(connector.upload(file1))
+      await(connector.upload(file1))
 
       val file = await(connector.getAll(directory))
 
@@ -123,7 +123,8 @@ class ObjectStoreConnectorSpec
 
       val result = await(connector.sign(file1))
 
-      result shouldBe file1
+      result     shouldBe file1
+      result.url shouldBe Some("http://foo.bar/test-123.txt")
     }
 
     "not create a presigned download url if there is an empty URL" in {
