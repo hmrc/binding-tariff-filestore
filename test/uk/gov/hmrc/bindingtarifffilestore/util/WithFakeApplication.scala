@@ -32,7 +32,7 @@ trait WithFakeApplication extends BeforeAndAfterAll {
   final implicit val materializer: Materializer = fakeApplication.materializer
 
   lazy val fakeApplication: Application = new GuiceApplicationBuilder()
-    .bindings(bindModules: _*)
+    .bindings(bindModules*)
     .build()
 
   def bindModules: Seq[GuiceableModule] = Seq()

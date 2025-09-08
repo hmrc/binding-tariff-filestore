@@ -217,9 +217,9 @@ class FileStoreService @Inject() (
   def deleteAll()(implicit hc: HeaderCarrier): Future[Unit] =
     repository.deleteAll() map (_ => fileStoreConnector.deleteAll())
 
-  def delete(id: String, fileName: String)(implicit hc: HeaderCarrier): Future[Unit] = {
+  def delete(id: String, filename: String)(implicit hc: HeaderCarrier): Future[Unit] = {
     logger.info(s"[FileStoreService][delete] Deleting file: $id")
-    repository.delete(id) map (_ => fileStoreConnector.delete(fileName))
+    repository.delete(id) map (_ => fileStoreConnector.delete(filename))
   }
 
   private def upscanInitiate(fileMetadata: FileMetadata)(implicit hc: HeaderCarrier): Future[UpscanInitiateResponse] = {

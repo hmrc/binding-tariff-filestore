@@ -16,10 +16,8 @@
 
 package uk.gov.hmrc.bindingtarifffilestore.connector
 
-import com.github.tomakehurst.wiremock.client.WireMock._
-import org.apache.pekko.stream.Materializer
-import org.mockito.BDDMockito.given
-import org.mockito.Mockito.mock
+import com.github.tomakehurst.wiremock.client.WireMock.*
+import org.mockito.Mockito.{mock, when}
 import org.scalatest.BeforeAndAfterEach
 import play.api.http.Status._
 import play.api.libs.Files.SingletonTemporaryFileCreator
@@ -43,13 +41,13 @@ class UpscanConnectorSpec
   private val config: AppConfig = mock(classOf[AppConfig])
   val httpClient: HttpClientV2  = fakeApplication.injector.instanceOf[HttpClientV2]
 
-  private implicit val headers: HeaderCarrier = HeaderCarrier()
+  implicit lazy val headers: HeaderCarrier = HeaderCarrier()
 
   private val connector: UpscanConnector = new UpscanConnector(config, httpClient)
 
   override protected def beforeEach(): Unit = {
     super.beforeEach()
-    given(config.upscanInitiateUrl).willReturn(wireMockUrl)
+    when(config.upscanInitiateUrl).thenReturn(wireMockUrl)
   }
 
   "UpscanConnector" should {
@@ -136,7 +134,7 @@ class UpscanConnectorSpec
         (None, Some("text/plain")),
         (Some("file.txt"), None),
         (None, None)
-      ).foreach(args => (test _).tupled(args))
+      ).foreach(args => test.tupled(args))
     }
 
     "Upload with error handling if 502 BAD_GATEWAY is returned" in {

@@ -17,7 +17,7 @@
 package uk.gov.hmrc.bindingtarifffilestore.connector
 
 import org.apache.pekko.stream.Materializer
-import org.mockito.Mockito.{mock, when}
+import org.mockito.Mockito.mock
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.time.SpanSugar.convertIntToGrainOfTime
 import play.api.inject.guice.GuiceApplicationBuilder
@@ -45,7 +45,7 @@ class ObjectStoreConnectorSpec
     with BeforeAndAfterEach
     with ResourceFiles {
 
-  private implicit val hc: HeaderCarrier = mock(classOf[HeaderCarrier])
+  implicit lazy val hc: HeaderCarrier    = mock(classOf[HeaderCarrier])
   private implicit val mat: Materializer = mock(classOf[Materializer])
   private val directory: Path.Directory  =
     Path.Directory("test")
@@ -75,6 +75,9 @@ class ObjectStoreConnectorSpec
 
   val zonedDateTime: Instant =
     LocalDate.of(2025, 1, 1).atTime(LocalTime.of(12, 30)).atZone(ZoneId.of("Europe/Paris")).toInstant
+
+  override protected def beforeEach(): Unit =
+    super.beforeEach()
 
   "Get All" should {
     "list files when no files exist" in {
@@ -142,8 +145,6 @@ class ObjectStoreConnectorSpec
           .delete(file1.fileName.get)
       )
 
-//      objectStoreClientStub.deleteObject(directory.file(file1.fileName.get))
-
       val files = await(connector.getAll(directory))
 
       result === ()
@@ -152,6 +153,15 @@ class ObjectStoreConnectorSpec
   }
 
   "Delete All" should {
+    "Do nothing for no files" in {
+      await(connector.deleteAll(), 5.seconds)
+
+      val files = await(connector.getAll(directory))
+
+      files.size shouldBe 0
+
+    }
+
     "delete all files from object store if present" in {
       await(
         objectStoreClientStub.putObject(directory.file(file1.fileName.get), file1.mimeType.get, RetentionPeriod.OneDay)
@@ -164,11 +174,6 @@ class ObjectStoreConnectorSpec
       val all = await(connector.getAll(directory))
 
       all.size shouldBe 0
-
-    }
-
-    "Do nothing for no files" in {
-      val result: Unit = Await.result(connector.deleteAll(), 5.seconds)
 
     }
   }

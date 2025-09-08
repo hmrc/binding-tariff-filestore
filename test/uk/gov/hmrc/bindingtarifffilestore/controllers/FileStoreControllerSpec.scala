@@ -17,42 +17,43 @@
 package uk.gov.hmrc.bindingtarifffilestore.controllers
 
 import com.mongodb.{MongoWriteException, ServerAddress, WriteError}
-import org.mockito.ArgumentMatchers.{any, eq => eqTo}
+import org.apache.pekko.stream.Materializer
 import org.mockito.ArgumentCaptor
-import org.mockito.ArgumentMatchers.{any, refEq}
-import org.mockito.Mockito._
+import org.mockito.ArgumentMatchers.{any, eq as eqTo, refEq}
+import org.mockito.Mockito.*
 import org.mongodb.scala.bson.BsonDocument
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.matchers.should.Matchers
-import play.api.http.Status._
+import play.api.http.Status.*
 import play.api.libs.Files.{SingletonTemporaryFileCreator, TemporaryFile}
 import play.api.libs.json.{JsValue, Json, Writes}
+import play.api.mvc.*
 import play.api.mvc.MultipartFormData.FilePart
-import play.api.mvc._
 import play.api.test.FakeRequest
 import uk.gov.hmrc.bindingtarifffilestore.config.AppConfig
+import uk.gov.hmrc.bindingtarifffilestore.model.*
 import uk.gov.hmrc.bindingtarifffilestore.model.FileMetadataREST.format
-import uk.gov.hmrc.bindingtarifffilestore.model._
 import uk.gov.hmrc.bindingtarifffilestore.model.upscan.v2.{FileStoreInitiateRequest, FileStoreInitiateResponse, UpscanFormTemplate}
 import uk.gov.hmrc.bindingtarifffilestore.model.upscan.{ScanResult, SuccessfulScanResult, UploadDetails}
 import uk.gov.hmrc.bindingtarifffilestore.service.FileStoreService
-import uk.gov.hmrc.bindingtarifffilestore.util._
+import uk.gov.hmrc.bindingtarifffilestore.util.*
 import uk.gov.hmrc.http.HeaderCarrier
 
 import java.time.Instant
 import java.util.Collections
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-import scala.concurrent.Future.{failed, successful}
+import scala.concurrent.Future.successful
 
 class FileStoreControllerSpec extends UnitSpec with Matchers with WithFakeApplication with BeforeAndAfterEach {
 
+  implicit lazy val mat: Materializer               = mock(classOf[Materializer])
+  implicit lazy val hc: HeaderCarrier               = mock(classOf[HeaderCarrier])
   private val appConfig: AppConfig                  = mock(classOf[AppConfig])
   private val service: FileStoreService             = mock(classOf[FileStoreService])
   private lazy val playBodyParsers: PlayBodyParsers = mock(classOf[PlayBodyParsers])
   lazy val cc: MessagesControllerComponents         = fakeApplication.injector.instanceOf[MessagesControllerComponents]
   private val controller: FileStoreController       = new FileStoreController(appConfig, service, playBodyParsers, cc)
-  implicit val hc: HeaderCarrier                    = mock(classOf[HeaderCarrier])
 
   private val fakeRequest: FakeRequest[AnyContentAsEmpty.type] =
     FakeRequest()

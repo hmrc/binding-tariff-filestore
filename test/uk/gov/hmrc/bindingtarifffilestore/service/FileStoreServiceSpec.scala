@@ -43,7 +43,7 @@ class FileStoreServiceSpec extends UnitSpec with BeforeAndAfterEach with Eventua
   private val repository: FileMetadataMongoRepository    = mock(classOf[FileMetadataMongoRepository])
   private val upscanConnector: UpscanConnector           = mock(classOf[UpscanConnector])
   private val auditService: AuditService                 = mock(classOf[AuditService])
-  private implicit val hc: HeaderCarrier                 = HeaderCarrier()
+  private implicit lazy val hc: HeaderCarrier            = mock(classOf[HeaderCarrier])
 
   private val service: FileStoreService =
     new FileStoreService(config, objectStoreConnector, repository, upscanConnector, auditService)
