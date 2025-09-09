@@ -14,7 +14,7 @@ object AppDependencies {
     "uk.gov.hmrc.objectstore"      %% "object-store-client-play-30" % "2.2.0"
   )
 
-  val test: Seq[ModuleID] = Seq(
+  val test: Seq[ModuleID]    = Seq(
     "org.scalacheck"    %% "scalacheck"              % "1.18.1",
     "uk.gov.hmrc.mongo" %% "hmrc-mongo-test-play-30" % hmrcMongoVersion,
     "uk.gov.hmrc"       %% "bootstrap-test-play-30"  % bootstrapPlayVersion

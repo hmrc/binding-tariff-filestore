@@ -16,7 +16,7 @@
 
 package uk.gov.hmrc.bindingtarifffilestore.connector
 
-import com.github.tomakehurst.wiremock.client.WireMock.*
+import com.github.tomakehurst.wiremock.client.WireMock._
 import org.mockito.Mockito.{mock, when}
 import org.scalatest.BeforeAndAfterEach
 import play.api.http.Status._
