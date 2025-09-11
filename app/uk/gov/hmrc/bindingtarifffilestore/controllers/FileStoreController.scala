@@ -26,7 +26,6 @@ import uk.gov.hmrc.bindingtarifffilestore.config.AppConfig
 import uk.gov.hmrc.bindingtarifffilestore.model.FileMetadataREST.format
 import uk.gov.hmrc.bindingtarifffilestore.model._
 import uk.gov.hmrc.bindingtarifffilestore.model.upscan.ScanResult
-import scala.reflect.ClassTag
 import uk.gov.hmrc.bindingtarifffilestore.model.upscan.v2._
 import uk.gov.hmrc.bindingtarifffilestore.service.FileStoreService
 import uk.gov.hmrc.http.HeaderCarrier

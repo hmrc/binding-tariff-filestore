@@ -36,7 +36,7 @@ class ObjectStoreConnector @Inject() (client: PlayObjectStoreClient, config: App
 ) extends Logging {
 
   private val directory: Path.Directory =
-    Path.Directory("digital-tariffs-local")
+    Path.Directory("binding-tariff-filestore")
 
   def getAll(path: Path.Directory)(implicit hc: HeaderCarrier): Future[List[ObjectSummary]] =
     client
@@ -52,6 +52,7 @@ class ObjectStoreConnector @Inject() (client: PlayObjectStoreClient, config: App
         )
     ) match {
       case Success(_)            =>
+        println(fileMetaData)
         fileMetaData.copy(url = Some(s"${config.filestoreUrl}/${fileMetaData.id}"))
       case Failure(e: Throwable) =>
         log.error("Failed to upload to the object store.", e)
@@ -63,15 +64,16 @@ class ObjectStoreConnector @Inject() (client: PlayObjectStoreClient, config: App
       path = directory.file(fileName)
     )
 
-  def deleteAll()(implicit hc: HeaderCarrier): Unit =
+  def deleteAll()(implicit hc: HeaderCarrier): Future[Unit] =
     getAll(directory).map(files =>
       if (files.nonEmpty) {
         log.info(s"Removing [${files.length}] files from object store")
-        Future.traverse(files)(filename =>
+        Future.traverse(files) { filename =>
           client.deleteObject(
             path = directory.file(filename.location.fileName)
           )
-        )
+        }
+
       } else {
         log.info(s"No files to remove from object store")
       }

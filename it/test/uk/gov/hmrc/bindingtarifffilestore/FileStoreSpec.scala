@@ -44,7 +44,7 @@ class FileStoreSpec extends FileStoreHelpers with Eventually {
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder()
       .configure(
-        "s3.endpoint"                                -> s"http://localhost:$wirePort",
+        "microservice.object-store.port"             -> s"$wirePort",
         "microservice.services.upscan-initiate.port" -> s"$wirePort"
       )
       .overrides(bind[FileMetadataMongoRepository].toInstance(repository))
@@ -73,11 +73,11 @@ class FileStoreSpec extends FileStoreHelpers with Eventually {
       dbFileStoreSize.shouldBe(1)
 
       When("I request the file details")
-      val deleteResult = Await.result(deleteFile(id1), 7.seconds)
+      val deleteResult = Await.result(deleteFile(file1), 7.seconds)
 
       Then("The response code should be Ok")
 
-      deleteResult.status.shouldBe(Status.NO_CONTENT)
+      deleteResult.status.shouldBe(Status.OK)
 
       And("The response body is empty")
       deleteResult.body.shouldBe("")
@@ -97,8 +97,8 @@ class FileStoreSpec extends FileStoreHelpers with Eventually {
       await(upload(Some(id2), file2, contentType, publishable = true))
 
       dbFileStoreSize shouldBe 2
-      stubS3ListAll()
-      stubS3DeleteAll()
+      stubObjectStoreListAll()
+      stubObjectStoreDeleteAll()
 
       When("I delete all documents")
       val deleteResult = await(deleteFiles())
@@ -242,8 +242,8 @@ class FileStoreSpec extends FileStoreHelpers with Eventually {
       await(upload(Some(id2), file2, contentType, publishable = false))
 
       dbFileStoreSize shouldBe 2
-      stubS3ListAll()
-      stubS3DeleteAll()
+      stubObjectStoreListAll()
+      stubObjectStoreDeleteAll()
 
       When("I request the file details")
 
@@ -333,12 +333,12 @@ class FileStoreSpec extends FileStoreHelpers with Eventually {
 
       Given("A File has been uploaded")
 
-      stubS3Upload(id1)
+      stubObjectStoreUpload(id1)
       await(upload(Some(id1), file1, contentType, publishable = true))
 
       dbFileStoreSize shouldBe 1
-      stubS3ListAll()
-      stubS3DeleteAll()
+      stubObjectStoreListAll()
+      stubObjectStoreDeleteAll()
 
       When("Notify is Called")
 
@@ -412,9 +412,6 @@ class FileStoreSpec extends FileStoreHelpers with Eventually {
       And("The response shows the file published")
 
       (result.json \\ "url").map(_.as[String]).headOption.getOrElse("") should include(s"$id1")
-      (result.json \\ "url").map(_.as[String]).headOption.getOrElse("") should include(
-        "X-Amz-Algorithm=AWS4-HMAC-SHA256"
-      )
     }
 
     Scenario("Should mark an un-safe file as publishable, but not persist") {
@@ -466,13 +463,13 @@ class FileStoreSpec extends FileStoreHelpers with Eventually {
         notifySuccess(
           id1,
           file1,
-          uri = new URI(uri.toString + "?X-Amz-Date=19700101T000000Z&X-Amz-Expires=0")
+          uri = new URI(uri.toString)
         )
       )
 
       When("It is Published")
 
-      val publishResponse = publishSafeFile(id1)
+      val publishResponse = publishSafeExpireFile(id1)
 
       Then("The response code should be Not Found")
 

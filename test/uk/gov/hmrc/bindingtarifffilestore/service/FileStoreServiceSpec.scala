@@ -17,7 +17,7 @@
 package uk.gov.hmrc.bindingtarifffilestore.service
 
 import org.mockito.ArgumentCaptor
-import org.mockito.ArgumentMatchers.{any, eq as eqTo}
+import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.*
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.concurrent.Eventually

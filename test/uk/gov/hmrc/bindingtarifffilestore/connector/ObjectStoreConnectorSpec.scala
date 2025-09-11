@@ -48,7 +48,7 @@ class ObjectStoreConnectorSpec
   implicit lazy val hc: HeaderCarrier    = mock(classOf[HeaderCarrier])
   private implicit val mat: Materializer = mock(classOf[Materializer])
   private val directory: Path.Directory  =
-    Path.Directory("test")
+    Path.Directory("binding-tariff-filestore")
 
   private val file1 = FileMetadata("id1", Some("file1.txt"), Some("text/plain"), Some("http://foo.bar/test-123.txt"))
   private val file2 = FileMetadata("id2", Some("file2.txt"), Some("text/plain"), Some("http://foo.bar/test-456.txt"))
@@ -103,7 +103,7 @@ class ObjectStoreConnectorSpec
       val file = await(connector.getAll(directory))
 
       file.length        shouldBe 1
-      file.head.location shouldBe File(Directory("digital-tariffs-local/test"), "file1.txt")
+      file.head.location shouldBe File(Directory("digital-tariffs-local/binding-tariff-filestore"), "file1.txt")
     }
 
     "Throw Exception on missing URL" in {
@@ -140,6 +140,8 @@ class ObjectStoreConnectorSpec
       await(
         objectStoreClientStub.putObject(directory.file(file1.fileName.get), file1.mimeType.get, RetentionPeriod.OneDay)
       )
+
+      println(directory.file(file1.fileName.get).asUri)
 
       val result: Unit = await(
         connector
