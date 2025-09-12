@@ -78,7 +78,7 @@ trait FileStoreHelpers extends WiremockFeatureTestServer {
   }
 
   def publishSafeFile(id: String)(implicit hc: HeaderCarrier): Future[HttpResponse] = {
-    stubS3Upload(id)
+    stubObjectStoreUpload(id)
 
     httpClientV2
       .post(url"$serviceUrl/file/$id/publish")
@@ -174,7 +174,7 @@ trait FileStoreHelpers extends WiremockFeatureTestServer {
         )
     )
 
-  def stubS3Upload(id: String): StubMapping =
+  def stubObjectStoreUpload(id: String): StubMapping =
     stubFor(
       put(s"/digital-tariffs-local/$id")
         .willReturn(
@@ -183,7 +183,7 @@ trait FileStoreHelpers extends WiremockFeatureTestServer {
         )
     )
 
-  def stubS3ListAll(): StubMapping =
+  def stubObjectStoreListAll(): StubMapping =
     stubFor(
       get("/digital-tariffs-local/?encoding-type=url")
         .willReturn(
@@ -193,7 +193,7 @@ trait FileStoreHelpers extends WiremockFeatureTestServer {
         )
     )
 
-  def stubS3DeleteAll(): StubMapping =
+  def stubObjectStoreDeleteAll(): StubMapping =
     stubFor(
       post(s"/digital-tariffs-local/?delete")
         .willReturn(

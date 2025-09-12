@@ -469,7 +469,7 @@ class FileStoreSpec extends FileStoreHelpers with Eventually {
 
       When("It is Published")
 
-      val publishResponse = publishSafeExpireFile(id1)
+      val publishResponse = publishSafeFile(id1)
 
       Then("The response code should be Not Found")
 
