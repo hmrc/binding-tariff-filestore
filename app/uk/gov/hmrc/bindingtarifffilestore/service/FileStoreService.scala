@@ -32,6 +32,7 @@ import java.nio.charset.StandardCharsets
 import java.util.{Base64, UUID}
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
+import scala.language.postfixOps
 
 @Singleton()
 class FileStoreService @Inject() (
@@ -120,9 +121,9 @@ class FileStoreService @Inject() (
   }
 
   def find(id: String)(implicit hc: HeaderCarrier): Future[Option[FileMetadata]] =
-    repository
-      .get(id) map signingPermanentURL flatMap { a =>
-      a.get.map(Some(_))
+    repository.get(id) map signingPermanentURL flatMap {
+      case Some(value) => value.map(data => Some(data))
+      case None        => Future.successful(None)
     }
 
   def find(search: Search, pagination: Pagination)(implicit hc: HeaderCarrier): Future[Paged[FileMetadata]] = {

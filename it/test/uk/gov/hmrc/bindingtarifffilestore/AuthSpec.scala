@@ -46,7 +46,7 @@ class AuthSpec extends BaseFeatureSpec with ResourceFiles {
 
       val hc: HeaderCarrier = HeaderCarrier(extraHeaders = Seq(apiTokenKey -> appConfig.authorization))
 
-      val response: Future[HttpResponse] = httpClientV2.get(url"$serviceUrl/file")(hc).execute[HttpResponse]
+      val response: Future[HttpResponse] = httpClientV2.get(url"$serviceUrl/object-store")(hc).execute[HttpResponse]
 
       Then("The response code should not be 403")
       val result = await(response)

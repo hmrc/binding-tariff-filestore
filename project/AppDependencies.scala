@@ -2,8 +2,8 @@ import sbt.*
 
 object AppDependencies {
 
-  private lazy val bootstrapPlayVersion = "9.12.0"
-  private lazy val hmrcMongoVersion     = "2.6.0"
+  private lazy val bootstrapPlayVersion = "10.1.0"
+  private lazy val hmrcMongoVersion     = "2.7.0"
 
   val compile: Seq[ModuleID] = Seq(
     "com.amazonaws"                 % "aws-java-sdk-s3"             % "1.12.788",
@@ -11,7 +11,7 @@ object AppDependencies {
     "uk.gov.hmrc.mongo"            %% "hmrc-mongo-play-30"          % hmrcMongoVersion,
     "com.fasterxml.jackson.module" %% "jackson-module-scala"        % "2.19.2",
     "org.apache.httpcomponents"     % "httpmime"                    % "4.5.14",
-    "uk.gov.hmrc.objectstore"      %% "object-store-client-play-30" % "2.2.0"
+    "uk.gov.hmrc.objectstore"      %% "object-store-client-play-30" % "2.4.0"
   )
 
   val test: Seq[ModuleID] = Seq(

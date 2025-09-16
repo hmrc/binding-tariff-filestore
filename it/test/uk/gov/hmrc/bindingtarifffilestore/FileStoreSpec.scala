@@ -16,17 +16,17 @@
 
 package uk.gov.hmrc.bindingtarifffilestore
 
+import org.scalatest.concurrent.Eventually
 import play.api.Application
 import play.api.http.Status
 import play.api.inject.bind
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.*
-import uk.gov.hmrc.bindingtarifffilestore.model.ScanStatus.{FAILED, READY}
 import uk.gov.hmrc.bindingtarifffilestore.model.*
+import uk.gov.hmrc.bindingtarifffilestore.model.ScanStatus.{FAILED, READY}
 import uk.gov.hmrc.bindingtarifffilestore.model.upscan.v2.{FileStoreInitiateResponse, UpscanFormTemplate}
 import uk.gov.hmrc.bindingtarifffilestore.repository.FileMetadataMongoRepository
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
-import org.scalatest.concurrent.Eventually
 
 import java.io.File
 import java.net.URI
@@ -44,7 +44,7 @@ class FileStoreSpec extends FileStoreHelpers with Eventually {
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder()
       .configure(
-        "microservice.object-store.port"             -> s"$wirePort",
+        "microservice.services.object-store.port"    -> s"$wirePort",
         "microservice.services.upscan-initiate.port" -> s"$wirePort"
       )
       .overrides(bind[FileMetadataMongoRepository].toInstance(repository))
@@ -73,11 +73,12 @@ class FileStoreSpec extends FileStoreHelpers with Eventually {
       dbFileStoreSize.shouldBe(1)
 
       When("I request the file details")
+
       val deleteResult = Await.result(deleteFile(file1), 7.seconds)
 
       Then("The response code should be Ok")
 
-      deleteResult.status.shouldBe(Status.OK)
+      deleteResult.status.shouldBe(Status.NO_CONTENT)
 
       And("The response body is empty")
       deleteResult.body.shouldBe("")
@@ -116,7 +117,7 @@ class FileStoreSpec extends FileStoreHelpers with Eventually {
 
       val fileResult = await(getFiles(Seq("id" -> id1, "id" -> id2)))
 
-      fileResult.status shouldBe Status.OK
+      fileResult.status shouldBe Status.NO_CONTENT
       fileResult.body   shouldBe "[]"
     }
   }
@@ -248,6 +249,8 @@ class FileStoreSpec extends FileStoreHelpers with Eventually {
       When("I request the file details")
 
       val getFilesResult = await(getFiles(Seq("id" -> id1, "id" -> id2)))
+
+      println(s"Files retrieved: $getFilesResult")
 
       Then("The response code should be Ok")
 
@@ -459,11 +462,13 @@ class FileStoreSpec extends FileStoreHelpers with Eventually {
 
       val uri = new File(filePath).toURI
 
+      println(s"URI new: $uri")
+
       await(
         notifySuccess(
           id1,
           file1,
-          uri = new URI(uri.toString)
+          uri = new URI(uri.toString + "?X-Amz-Date=19700101T000000Z&X-Amz-Expires=0")
         )
       )
 

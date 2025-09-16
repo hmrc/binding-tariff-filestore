@@ -17,15 +17,13 @@
 package uk.gov.hmrc.bindingtarifffilestore.repository
 
 import org.mongodb.scala.bson.conversions.Bson
-import org.mongodb.scala.model.Filters._
-import org.mongodb.scala.model._
+import org.mongodb.scala.model.*
+import org.mongodb.scala.model.Filters.*
 import org.mongodb.scala.result.UpdateResult
-import uk.gov.hmrc.bindingtarifffilestore.model._
+import uk.gov.hmrc.bindingtarifffilestore.model.*
 import uk.gov.hmrc.bindingtarifffilestore.util.Logging
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
-import org.mongodb.scala.SingleObservableFuture
-import org.mongodb.scala.ObservableFuture
 
 import java.time.Instant
 import javax.inject.{Inject, Singleton}
