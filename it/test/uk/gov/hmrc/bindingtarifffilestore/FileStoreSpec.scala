@@ -117,7 +117,7 @@ class FileStoreSpec extends FileStoreHelpers with Eventually {
 
       val fileResult = await(getFiles(Seq("id" -> id1, "id" -> id2)))
 
-      fileResult.status shouldBe Status.NO_CONTENT
+      fileResult.status shouldBe Status.OK
       fileResult.body   shouldBe "[]"
     }
   }
@@ -244,13 +244,10 @@ class FileStoreSpec extends FileStoreHelpers with Eventually {
 
       dbFileStoreSize shouldBe 2
       stubObjectStoreListAll()
-      stubObjectStoreDeleteAll()
 
       When("I request the file details")
 
       val getFilesResult = await(getFiles(Seq("id" -> id1, "id" -> id2)))
-
-      println(s"Files retrieved: $getFilesResult")
 
       Then("The response code should be Ok")
 
@@ -336,7 +333,7 @@ class FileStoreSpec extends FileStoreHelpers with Eventually {
 
       Given("A File has been uploaded")
 
-      stubObjectStoreUpload(id1)
+      stubObjectStoreSign(id1)
       await(upload(Some(id1), file1, contentType, publishable = true))
 
       dbFileStoreSize shouldBe 1
@@ -461,8 +458,6 @@ class FileStoreSpec extends FileStoreHelpers with Eventually {
       await(upload(Some(id1), file1, contentType, publishable = true))
 
       val uri = new File(filePath).toURI
-
-      println(s"URI new: $uri")
 
       await(
         notifySuccess(

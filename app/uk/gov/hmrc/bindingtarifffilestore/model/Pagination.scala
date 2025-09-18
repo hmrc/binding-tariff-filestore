@@ -27,7 +27,7 @@ object Pagination {
   val defaultPageStart = 1
   val defaultPageSize  = 100
 
-  val max: Pagination = Pagination(1, Integer.MAX_VALUE)
+  val max: Pagination = Pagination(1, 10000)
 
   private val pageKey     = "page"
   private val pageSizeKey = "page_size"

@@ -36,7 +36,7 @@ class ObjectStoreConnector @Inject() (client: PlayObjectStoreClient, config: App
 ) extends Logging {
 
   private val directory: Path.Directory =
-    Path.Directory("binding-tariff-filestore")
+    Path.Directory("digital-tariffs-local")
 
   def getAll(path: Path.Directory)(implicit hc: HeaderCarrier): Future[List[ObjectSummary]] =
     client
@@ -52,7 +52,6 @@ class ObjectStoreConnector @Inject() (client: PlayObjectStoreClient, config: App
         )
     ) match {
       case Success(_)            =>
-        println(fileMetaData)
         fileMetaData.copy(url = Some(s"${config.filestoreUrl}/${fileMetaData.id}"))
       case Failure(e: Throwable) =>
         log.error("Failed to upload to the object store.", e)
@@ -83,7 +82,7 @@ class ObjectStoreConnector @Inject() (client: PlayObjectStoreClient, config: App
     if (fileMetaData.url.isDefined) {
       client
         .presignedDownloadUrl(
-          path = directory.file(fileMetaData.id)
+          path = directory.file(fileMetaData.fileName.get)
         )
         .transformWith {
           case scala.util.Failure(exception)            =>
