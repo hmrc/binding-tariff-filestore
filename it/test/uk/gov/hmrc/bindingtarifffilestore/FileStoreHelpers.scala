@@ -63,10 +63,10 @@ trait FileStoreHelpers extends WiremockFeatureTestServer {
   def deleteFiles()(implicit hc: HeaderCarrier): Future[HttpResponse] =
     httpClientV2.delete(url"$serviceUrl/file").execute[HttpResponse]
 
-  def deleteFile(id: String)(implicit hc: HeaderCarrier): Future[HttpResponse] =
+  def deleteFile(id: String)(implicit hc: HeaderCarrier): Future[HttpResponse] = {
     stubObjectStoreDeleteOne(id)
-
     httpClientV2.delete(url"$serviceUrl/file?id=$id").execute[HttpResponse]
+  }
 
   def getFiles(queryParams: Seq[(String, String)])(implicit hc: HeaderCarrier): Future[HttpResponse] = {
     val queryParamsFinal =
@@ -195,7 +195,7 @@ trait FileStoreHelpers extends WiremockFeatureTestServer {
 
   def stubObjectStoreListAll(): StubMapping =
     stubFor(
-      get("/object-store/list/binding-tariff-filestore/digital-tariffs-local")
+      get("/digital-tariffs-local/?encoding-type=url")
         .willReturn(
           aResponse()
             .withStatus(Status.OK)
@@ -205,7 +205,7 @@ trait FileStoreHelpers extends WiremockFeatureTestServer {
 
   def stubObjectStoreDeleteAll(): StubMapping =
     stubFor(
-      post(s"/digital-tariffs-local/.*")
+      post(s"/digital-tariffs-local/?delete")
         .willReturn(
           aResponse()
             .withStatus(Status.OK)

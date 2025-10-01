@@ -36,6 +36,8 @@ class AppConfig @Inject() (
     minFileSize = config.get[Int]("upscan.minFileSize")
   )
 
+  lazy val s3bucket: String = config.get[String]("s3.bucket")
+
   lazy val filestoreUrl: String  = config.get[String]("filestore.url")
   lazy val filestoreSSL: Boolean = config.get[Boolean]("filestore.ssl")
 

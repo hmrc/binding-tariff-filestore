@@ -52,6 +52,10 @@ class AppConfigSpec extends UnitSpec with WithFakeApplication with BeforeAndAfte
 
   "Config" should {
 
+    "return AWS S3 bucket" in {
+      configWith("s3.bucket" -> "bucket").s3bucket shouldBe "bucket"
+    }
+
     "return application Host" in {
       configWith("filestore.url" -> "url").filestoreUrl shouldBe "url"
     }

@@ -36,7 +36,7 @@ class ObjectStoreConnector @Inject() (client: PlayObjectStoreClient, config: App
 ) extends Logging {
 
   private val directory: Path.Directory =
-    Path.Directory("digital-tariffs-local")
+    Path.Directory(config.s3bucket)
 
   def getAll(path: Path.Directory)(implicit hc: HeaderCarrier): Future[List[ObjectSummary]] =
     client
@@ -48,7 +48,7 @@ class ObjectStoreConnector @Inject() (client: PlayObjectStoreClient, config: App
       client
         .uploadFromUrl(
           from = new URI(fileMetaData.url.getOrElse(throw new IllegalArgumentException("Missing URL"))).toURL,
-          to = directory.file(fileMetaData.fileName.get)
+          to = directory.file(fileMetaData.fileName.getOrElse(""))
         )
     ) match {
       case Success(_)            =>
