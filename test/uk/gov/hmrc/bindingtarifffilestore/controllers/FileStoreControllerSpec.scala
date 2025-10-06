@@ -19,44 +19,42 @@ package uk.gov.hmrc.bindingtarifffilestore.controllers
 import com.mongodb.{MongoWriteException, ServerAddress, WriteError}
 import org.apache.pekko.stream.Materializer
 import org.mockito.ArgumentCaptor
-import org.mockito.ArgumentMatchers.{any, eq as eqTo, refEq}
-import org.mockito.Mockito.*
+import org.mockito.ArgumentMatchers.{any, refEq}
+import org.mockito.Mockito._
 import org.mongodb.scala.bson.BsonDocument
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.matchers.should.Matchers
-import play.api.http.Status.*
+import play.api.http.Status._
 import play.api.libs.Files.{SingletonTemporaryFileCreator, TemporaryFile}
 import play.api.libs.json.{JsValue, Json, Writes}
-import play.api.mvc.*
 import play.api.mvc.MultipartFormData.FilePart
+import play.api.mvc._
 import play.api.test.FakeRequest
 import uk.gov.hmrc.bindingtarifffilestore.config.AppConfig
-import uk.gov.hmrc.bindingtarifffilestore.model.*
 import uk.gov.hmrc.bindingtarifffilestore.model.FileMetadataREST.format
+import uk.gov.hmrc.bindingtarifffilestore.model._
 import uk.gov.hmrc.bindingtarifffilestore.model.upscan.v2.{FileStoreInitiateRequest, FileStoreInitiateResponse, UpscanFormTemplate}
 import uk.gov.hmrc.bindingtarifffilestore.model.upscan.{ScanResult, SuccessfulScanResult, UploadDetails}
 import uk.gov.hmrc.bindingtarifffilestore.service.FileStoreService
-import uk.gov.hmrc.bindingtarifffilestore.util.*
+import uk.gov.hmrc.bindingtarifffilestore.util._
 import uk.gov.hmrc.http.HeaderCarrier
 
 import java.time.Instant
 import java.util.Collections
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
-import scala.concurrent.Future.successful
+import scala.concurrent.Future.{failed, successful}
 
 class FileStoreControllerSpec extends UnitSpec with Matchers with WithFakeApplication with BeforeAndAfterEach {
 
-  implicit lazy val mat: Materializer               = mock(classOf[Materializer])
-  implicit lazy val hc: HeaderCarrier               = mock(classOf[HeaderCarrier])
+  private implicit val mat: Materializer = fakeApplication.materializer
+
   private val appConfig: AppConfig                  = mock(classOf[AppConfig])
   private val service: FileStoreService             = mock(classOf[FileStoreService])
-  private lazy val playBodyParsers: PlayBodyParsers = mock(classOf[PlayBodyParsers])
+  private lazy val playBodyParsers: PlayBodyParsers = fakeApplication.injector.instanceOf[PlayBodyParsers]
   lazy val cc: MessagesControllerComponents         = fakeApplication.injector.instanceOf[MessagesControllerComponents]
   private val controller: FileStoreController       = new FileStoreController(appConfig, service, playBodyParsers, cc)
 
-  private val fakeRequest: FakeRequest[AnyContentAsEmpty.type] =
-    FakeRequest()
+  private val fakeRequest: FakeRequest[AnyContentAsEmpty.type] = FakeRequest()
 
   private def jsonRequest[T](body: T)(implicit writes: Writes[T]): Request[AnyContent] =
     fakeRequest
@@ -66,67 +64,6 @@ class FileStoreControllerSpec extends UnitSpec with Matchers with WithFakeApplic
   override protected def afterEach(): Unit = {
     super.afterEach()
     reset(service)
-  }
-
-  "Get By ID" should {
-    "return 200 when found" in {
-      val id         = "id"
-      val attachment = FileMetadata(id = id, fileName = Some("file"), mimeType = Some("type"))
-
-      when(appConfig.isTestMode).thenReturn(true)
-      when(service.find(eqTo(id))(any[HeaderCarrier])).thenReturn(Future.successful(Some(attachment)))
-
-      val result = await(controller.get(id)(fakeRequest))
-
-      status(result)    shouldBe OK
-      bodyOf(result) shouldEqual Json.toJson(attachment).toString()
-    }
-
-    "return 404 when not found" in {
-      when(service.find(eqTo("id"))(any[HeaderCarrier])).thenReturn(successful(None))
-
-      val result = await(controller.get("id")(fakeRequest))
-
-      status(result) shouldBe NOT_FOUND
-    }
-  }
-
-  "Get By Search" should {
-    "return 200 with empty array" in {
-      when(service.find(eqTo(Search(ids = Some(Set.empty))), eqTo(Pagination.max))(any[HeaderCarrier]))
-        .thenReturn(successful(Paged.empty[FileMetadata]))
-
-      val result = await(controller.getAll(Search(ids = Some(Set.empty)), None)(fakeRequest))
-
-      status(result)    shouldBe OK
-      bodyOf(result) shouldEqual Json.toJson(Seq.empty).toString()
-    }
-
-    "return 200 with non empty array" in {
-      val attachment1 = FileMetadata(id = "id1", fileName = Some("file1"), mimeType = Some("type1"))
-      val attachment2 = FileMetadata(id = "id2", fileName = Some("file2"), mimeType = Some("type2"))
-
-      when(service.find(eqTo(Search(ids = Some(Set("id1", "id2")))), eqTo(Pagination.max))(any[HeaderCarrier]))
-        .thenReturn(successful(Paged(Seq(attachment1, attachment2))))
-
-      val result = await(controller.getAll(Search(ids = Some(Set("id1", "id2"))), None)(fakeRequest))
-
-      status(result)    shouldBe OK
-      bodyOf(result) shouldEqual Json.toJson(Seq(attachment1, attachment2)).toString()
-    }
-
-    "return 200 with pagination and non empty pager" in {
-      val attachment1 = FileMetadata(id = "id1", fileName = Some("file1"), mimeType = Some("type1"))
-      val attachment2 = FileMetadata(id = "id2", fileName = Some("file2"), mimeType = Some("type2"))
-
-      when(service.find(eqTo(Search(ids = Some(Set("id1", "id2")))), eqTo(Pagination()))(any[HeaderCarrier]))
-        .thenReturn(successful(Paged(Seq(attachment1, attachment2))))
-
-      val result = await(controller.getAll(Search(ids = Some(Set("id1", "id2"))), Some(Pagination()))(fakeRequest))
-
-      status(result)    shouldBe OK
-      bodyOf(result) shouldEqual Json.toJson(Paged(Seq(attachment1, attachment2))).toString()
-    }
   }
 
   "Delete All" should {
@@ -145,11 +82,8 @@ class FileStoreControllerSpec extends UnitSpec with Matchers with WithFakeApplic
     }
 
     "return 204 if the test mode is enabled" in {
-      val attachment = FileMetadata(id = "id", fileName = Some("file"), mimeType = Some("type"))
-
       when(appConfig.isTestMode).thenReturn(true)
-      when(service.deleteAll()(any[HeaderCarrier])).thenReturn(successful(()))
-      when(service.find(eqTo("id"))(any[HeaderCarrier])).thenReturn(successful(Some(attachment)))
+      when(service.deleteAll()).thenReturn(successful(()))
 
       val result = await(controller.deleteAll()(req))
 
@@ -160,7 +94,7 @@ class FileStoreControllerSpec extends UnitSpec with Matchers with WithFakeApplic
       val error = new RuntimeException
 
       when(appConfig.isTestMode).thenReturn(true)
-      when(service.deleteAll()(any[HeaderCarrier])).thenReturn(Future.failed(error))
+      when(service.deleteAll()).thenReturn(failed(error))
 
       val result = await(controller.deleteAll()(req))
 
@@ -172,15 +106,14 @@ class FileStoreControllerSpec extends UnitSpec with Matchers with WithFakeApplic
 
   "Delete By ID" should {
 
-    val attachment = FileMetadata(id = "id", fileName = Some("file"), mimeType = Some("type"))
-    val req        = FakeRequest(method = "DELETE", path = s"/file/${attachment.id}")
+    val id  = "ABC-123_000"
+    val req = FakeRequest(method = "DELETE", path = s"/file/$id")
 
     "return 204" in {
       when(appConfig.isTestMode).thenReturn(true)
-      when(service.delete(eqTo(attachment.id), eqTo(attachment.fileName.get))(any[HeaderCarrier]))
-        .thenReturn(Future.successful((): Unit))
+      when(service.delete(id)).thenReturn(successful((): Unit))
 
-      val result = await(controller.delete(attachment.id, attachment.fileName.get)(req))
+      val result = await(controller.delete(id)(req))
 
       status(result) shouldBe NO_CONTENT
     }
@@ -189,15 +122,72 @@ class FileStoreControllerSpec extends UnitSpec with Matchers with WithFakeApplic
       val error = new RuntimeException
 
       when(appConfig.isTestMode).thenReturn(true)
-      when(service.delete(eqTo(attachment.id), eqTo(attachment.fileName.get))(any[HeaderCarrier]))
-        .thenReturn(Future.failed(error))
+      when(service.delete(id)).thenReturn(failed(error))
 
-      val result = await(controller.delete(attachment.id, attachment.fileName.get)(req))
+      val result = await(controller.delete(id)(req))
 
       status(result)                shouldEqual INTERNAL_SERVER_ERROR
       jsonBodyOf(result).toString() shouldEqual """{"code":"UNKNOWN_ERROR","message":"An unexpected error occurred"}"""
     }
 
+  }
+
+  "Get By ID" should {
+    "return 200 when found" in {
+      val attachment = FileMetadata(id = "id", fileName = Some("file"), mimeType = Some("type"))
+      when(service.find(id = "id")).thenReturn(successful(Some(attachment)))
+
+      val result = await(controller.get("id")(fakeRequest))
+
+      status(result)    shouldBe OK
+      bodyOf(result) shouldEqual Json.toJson(attachment).toString()
+    }
+
+    "return 404 when not found" in {
+      when(service.find(id = "id")).thenReturn(successful(None))
+
+      val result = await(controller.get("id")(fakeRequest))
+
+      status(result) shouldBe NOT_FOUND
+    }
+  }
+
+  "Get By Search" should {
+    "return 200 with empty array" in {
+      when(service.find(Search(ids = Some(Set.empty)), Pagination.max))
+        .thenReturn(successful(Paged.empty[FileMetadata]))
+
+      val result = await(controller.getAll(Search(ids = Some(Set.empty)), None)(fakeRequest))
+
+      status(result)    shouldBe OK
+      bodyOf(result) shouldEqual Json.toJson(Seq.empty).toString()
+    }
+
+    "return 200 with non empty array" in {
+      val attachment1 = FileMetadata(id = "id1", fileName = Some("file1"), mimeType = Some("type1"))
+      val attachment2 = FileMetadata(id = "id2", fileName = Some("file2"), mimeType = Some("type2"))
+
+      when(service.find(Search(ids = Some(Set("id1", "id2"))), Pagination.max))
+        .thenReturn(successful(Paged(Seq(attachment1, attachment2))))
+
+      val result = await(controller.getAll(Search(ids = Some(Set("id1", "id2"))), None)(fakeRequest))
+
+      status(result)    shouldBe OK
+      bodyOf(result) shouldEqual Json.toJson(Seq(attachment1, attachment2)).toString()
+    }
+
+    "return 200 with pagination and non empty pager" in {
+      val attachment1 = FileMetadata(id = "id1", fileName = Some("file1"), mimeType = Some("type1"))
+      val attachment2 = FileMetadata(id = "id2", fileName = Some("file2"), mimeType = Some("type2"))
+
+      when(service.find(Search(ids = Some(Set("id1", "id2"))), Pagination()))
+        .thenReturn(successful(Paged(Seq(attachment1, attachment2))))
+
+      val result = await(controller.getAll(Search(ids = Some(Set("id1", "id2"))), Some(Pagination()))(fakeRequest))
+
+      status(result)    shouldBe OK
+      bodyOf(result) shouldEqual Json.toJson(Paged(Seq(attachment1, attachment2))).toString()
+    }
   }
 
   "Notify" should {
@@ -210,7 +200,7 @@ class FileStoreControllerSpec extends UnitSpec with Matchers with WithFakeApplic
       val attachment        = FileMetadata(id = "id", fileName = Some("file"), mimeType = Some("type"))
       val attachmentUpdated =
         FileMetadata(id = "id", fileName = Some("file"), mimeType = Some("type"), url = Some("url"))
-      when(service.find(eqTo("id"))(any[HeaderCarrier])).thenReturn(successful(Some(attachment)))
+      when(service.find(id = "id")).thenReturn(successful(Some(attachment)))
       when(service.notify(refEq(attachment), refEq(scanResult))(any[HeaderCarrier]))
         .thenReturn(successful(Some(attachmentUpdated)))
 
@@ -227,7 +217,7 @@ class FileStoreControllerSpec extends UnitSpec with Matchers with WithFakeApplic
         downloadUrl = "url",
         uploadDetails = UploadDetails("file", "type", Instant.now(), "checksum")
       )
-      when(service.find(eqTo("id"))(any[HeaderCarrier])).thenReturn(successful(None))
+      when(service.find("id")).thenReturn(successful(None))
 
       val request: FakeRequest[JsValue] = fakeRequest.withBody(Json.toJson[ScanResult](scanResult))
       val result: Result                = await(controller.notification(id = "id")(request))
@@ -245,7 +235,7 @@ class FileStoreControllerSpec extends UnitSpec with Matchers with WithFakeApplic
         )
 
       val attachment: FileMetadata = FileMetadata(id = "id", fileName = Some("file"), mimeType = Some("type"))
-      when(service.find(eqTo("id"))(any[HeaderCarrier])).thenReturn(successful(Some(attachment)))
+      when(service.find(id = "id")).thenReturn(successful(Some(attachment)))
       when(service.notify(refEq(attachment), refEq(scanResult))(any[HeaderCarrier]))
         .thenThrow(
           new MongoWriteException(
@@ -288,7 +278,7 @@ class FileStoreControllerSpec extends UnitSpec with Matchers with WithFakeApplic
         scanStatus = Some(ScanStatus.READY),
         url = Some("url")
       )
-      when(service.find(eqTo("id"))(any[HeaderCarrier])).thenReturn(successful(Some(attachmentExisting)))
+      when(service.find(id = "id")).thenReturn(successful(Some(attachmentExisting)))
       when(service.publish(refEq(attachmentExisting))(any[HeaderCarrier]))
         .thenReturn(successful(Some(attachmentUpdated)))
 
@@ -299,7 +289,7 @@ class FileStoreControllerSpec extends UnitSpec with Matchers with WithFakeApplic
     }
 
     "return 404 when not found" in {
-      when(service.find(eqTo("id"))(any[HeaderCarrier])).thenReturn(successful(None))
+      when(service.find(id = "id")).thenReturn(successful(None))
 
       val result: Result = await(controller.publish(id = "id")(fakeRequest))
 
@@ -309,9 +299,8 @@ class FileStoreControllerSpec extends UnitSpec with Matchers with WithFakeApplic
     "return 404 when publish returns not found" in {
       val attachmentExisting =
         FileMetadata(id = "id", fileName = Some("file"), mimeType = Some("type"), scanStatus = Some(ScanStatus.READY))
-
-      when(service.find(eqTo("id"))(any[HeaderCarrier])).thenReturn(successful(Some(attachmentExisting)))
-      when(service.publish(refEq(attachmentExisting))(any[HeaderCarrier])).thenReturn(Future.successful(None))
+      when(service.find(id = "id")).thenReturn(successful(Some(attachmentExisting)))
+      when(service.publish(refEq(attachmentExisting))(any[HeaderCarrier])).thenReturn(successful(None))
 
       val result: Result = await(controller.publish(id = "id")(fakeRequest))
 

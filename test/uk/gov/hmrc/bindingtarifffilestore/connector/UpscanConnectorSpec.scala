@@ -41,7 +41,7 @@ class UpscanConnectorSpec
   private val config: AppConfig = mock(classOf[AppConfig])
   val httpClient: HttpClientV2  = fakeApplication.injector.instanceOf[HttpClientV2]
 
-  implicit lazy val headers: HeaderCarrier = HeaderCarrier()
+  private implicit val headers: HeaderCarrier = HeaderCarrier()
 
   private val connector: UpscanConnector = new UpscanConnector(config, httpClient)
 
@@ -134,7 +134,7 @@ class UpscanConnectorSpec
         (None, Some("text/plain")),
         (Some("file.txt"), None),
         (None, None)
-      ).foreach(args => test.tupled(args))
+      ).foreach(args => (test _).tupled(args))
     }
 
     "Upload with error handling if 502 BAD_GATEWAY is returned" in {

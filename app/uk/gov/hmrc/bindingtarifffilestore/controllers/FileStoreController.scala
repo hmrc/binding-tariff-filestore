@@ -18,12 +18,10 @@ package uk.gov.hmrc.bindingtarifffilestore.controllers
 
 import play.api.Logging
 import play.api.libs.Files.TemporaryFile
-import play.api.libs.json.Format.GenericFormat
-import play.api.libs.json.OFormat.oFormatFromReadsAndOWrites
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc._
 import uk.gov.hmrc.bindingtarifffilestore.config.AppConfig
-import uk.gov.hmrc.bindingtarifffilestore.model.FileMetadataREST.format
+import uk.gov.hmrc.bindingtarifffilestore.model.FileMetadataREST._
 import uk.gov.hmrc.bindingtarifffilestore.model._
 import uk.gov.hmrc.bindingtarifffilestore.model.upscan.ScanResult
 import uk.gov.hmrc.bindingtarifffilestore.model.upscan.v2._
@@ -54,13 +52,11 @@ class FileStoreController @Inject() (
   def encodeInBase64(text: String): String =
     Base64.getEncoder.encodeToString(text.getBytes(StandardCharsets.UTF_8))
 
-  private def withFileMetadata(id: String)(f: FileMetadata => Future[Result])(implicit
-    hc: HeaderCarrier
-  ): Future[Result] =
+  private def withFileMetadata(id: String)(f: FileMetadata => Future[Result]): Future[Result] =
     service.find(id).flatMap {
       case Some(meta) =>
         logger.info(
-          s"[FileStoreController][withFileMetadata] Attachment File: $id, Scan succeeded with details fileMetadata: ${encodeInBase64(meta.toString)}"
+          s"[FileStoreController][withFileMetadata] Attachement File: $id, Scan succeeded with details fileMetadata: ${encodeInBase64(meta.toString)}"
         )
         f(meta)
       case None       =>
@@ -71,8 +67,6 @@ class FileStoreController @Inject() (
   lazy private val testModeFilter = TestMode.actionFilter(appConfig, parse.default)
 
   def deleteAll(): Action[AnyContent] = withErrorHandling {
-    implicit val hc: HeaderCarrier = HeaderCarrier()
-
     testModeFilter.async {
       service
         .deleteAll()
@@ -80,11 +74,9 @@ class FileStoreController @Inject() (
     }
   }
 
-  def delete(id: String, filename: String): Action[AnyContent] = withErrorHandling { _ =>
-    implicit val hc: HeaderCarrier = HeaderCarrier()
-
+  def delete(id: String): Action[AnyContent] = withErrorHandling { _ =>
     service
-      .delete(id, filename)
+      .delete(id)
       .map(_ => NoContent)
   }
 
@@ -114,10 +106,8 @@ class FileStoreController @Inject() (
     }
   }
 
-  def get(id: String): Action[AnyContent] = Action.async { implicit request =>
-    withFileMetadata(id) { meta =>
-      Future.successful(Ok(Json.toJson(meta)))
-    }
+  def get(id: String): Action[AnyContent] = Action.async {
+    withFileMetadata(id)(meta => Future.successful(Ok(Json.toJson(meta))))
   }
 
   def notification(id: String): Action[JsValue] = withErrorHandling {
@@ -144,8 +134,6 @@ class FileStoreController @Inject() (
   }
 
   def getAll(search: Search, pagination: Option[Pagination]): Action[AnyContent] = withErrorHandling { _ =>
-    implicit val hc: HeaderCarrier = HeaderCarrier()
-
     service.find(search, pagination.getOrElse(Pagination.max)).map { pagedResults =>
       if (pagination.isDefined) {
         Ok(Json.toJson(pagedResults))
