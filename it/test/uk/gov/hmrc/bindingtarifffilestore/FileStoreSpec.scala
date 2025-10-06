@@ -16,17 +16,17 @@
 
 package uk.gov.hmrc.bindingtarifffilestore
 
+import org.scalatest.concurrent.Eventually
 import play.api.Application
 import play.api.http.Status
 import play.api.inject.bind
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.*
-import uk.gov.hmrc.bindingtarifffilestore.model.ScanStatus.{FAILED, READY}
 import uk.gov.hmrc.bindingtarifffilestore.model.*
+import uk.gov.hmrc.bindingtarifffilestore.model.ScanStatus.{FAILED, READY}
 import uk.gov.hmrc.bindingtarifffilestore.model.upscan.v2.{FileStoreInitiateResponse, UpscanFormTemplate}
 import uk.gov.hmrc.bindingtarifffilestore.repository.FileMetadataMongoRepository
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
-import org.scalatest.concurrent.Eventually
 
 import java.io.File
 import java.net.URI
@@ -44,7 +44,7 @@ class FileStoreSpec extends FileStoreHelpers with Eventually {
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder()
       .configure(
-        "s3.endpoint"                                -> s"http://localhost:$wirePort",
+        "microservice.services.object-store.port"    -> s"$wirePort",
         "microservice.services.upscan-initiate.port" -> s"$wirePort"
       )
       .overrides(bind[FileMetadataMongoRepository].toInstance(repository))
@@ -73,7 +73,8 @@ class FileStoreSpec extends FileStoreHelpers with Eventually {
       dbFileStoreSize.shouldBe(1)
 
       When("I request the file details")
-      val deleteResult = Await.result(deleteFile(id1), 7.seconds)
+
+      val deleteResult = Await.result(deleteFile(file1), 7.seconds)
 
       Then("The response code should be Ok")
 
@@ -97,8 +98,8 @@ class FileStoreSpec extends FileStoreHelpers with Eventually {
       await(upload(Some(id2), file2, contentType, publishable = true))
 
       dbFileStoreSize shouldBe 2
-      stubS3ListAll()
-      stubS3DeleteAll()
+      stubObjectStoreListAll()
+      stubObjectStoreDeleteAll()
 
       When("I delete all documents")
       val deleteResult = await(deleteFiles())
@@ -242,8 +243,7 @@ class FileStoreSpec extends FileStoreHelpers with Eventually {
       await(upload(Some(id2), file2, contentType, publishable = false))
 
       dbFileStoreSize shouldBe 2
-      stubS3ListAll()
-      stubS3DeleteAll()
+      stubObjectStoreListAll()
 
       When("I request the file details")
 
@@ -333,12 +333,12 @@ class FileStoreSpec extends FileStoreHelpers with Eventually {
 
       Given("A File has been uploaded")
 
-      stubS3Upload(id1)
+      stubObjectStoreSign(id1)
       await(upload(Some(id1), file1, contentType, publishable = true))
 
       dbFileStoreSize shouldBe 1
-      stubS3ListAll()
-      stubS3DeleteAll()
+      stubObjectStoreListAll()
+      stubObjectStoreDeleteAll()
 
       When("Notify is Called")
 
@@ -412,9 +412,6 @@ class FileStoreSpec extends FileStoreHelpers with Eventually {
       And("The response shows the file published")
 
       (result.json \\ "url").map(_.as[String]).headOption.getOrElse("") should include(s"$id1")
-      (result.json \\ "url").map(_.as[String]).headOption.getOrElse("") should include(
-        "X-Amz-Algorithm=AWS4-HMAC-SHA256"
-      )
     }
 
     Scenario("Should mark an un-safe file as publishable, but not persist") {

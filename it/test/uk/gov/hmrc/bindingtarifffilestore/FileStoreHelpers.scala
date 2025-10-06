@@ -16,16 +16,16 @@
 
 package uk.gov.hmrc.bindingtarifffilestore
 
-import com.github.tomakehurst.wiremock.client.WireMock._
+import com.github.tomakehurst.wiremock.client.WireMock.*
 import com.github.tomakehurst.wiremock.stubbing.StubMapping
 import play.api.http.Status
 import play.api.libs.Files.SingletonTemporaryFileCreator
 import play.api.libs.json.Json
 import uk.gov.hmrc.bindingtarifffilestore.model.FileMetadataREST.format
-import uk.gov.hmrc.bindingtarifffilestore.model._
-import uk.gov.hmrc.bindingtarifffilestore.model.upscan._
+import uk.gov.hmrc.bindingtarifffilestore.model.*
+import uk.gov.hmrc.bindingtarifffilestore.model.upscan.*
 import uk.gov.hmrc.bindingtarifffilestore.model.upscan.v2.FileStoreInitiateRequest
-import uk.gov.hmrc.http.HttpReads.Implicits._
+import uk.gov.hmrc.http.HttpReads.Implicits.*
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, StringContextOps}
 
 import java.io.File
@@ -34,9 +34,9 @@ import java.nio.file.Files
 import java.time.Instant
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 import scala.io.Source
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 
 import org.mongodb.scala.SingleObservableFuture
 import play.api.libs.ws.JsonBodyWritables.writeableOf_JsValue
@@ -64,9 +64,8 @@ trait FileStoreHelpers extends WiremockFeatureTestServer {
     httpClientV2.delete(url"$serviceUrl/file").execute[HttpResponse]
 
   def deleteFile(id: String)(implicit hc: HeaderCarrier): Future[HttpResponse] = {
-    stubS3DeleteOne(id)
-
-    httpClientV2.delete(url"$serviceUrl/file/$id").execute[HttpResponse]
+    stubObjectStoreDeleteOne(id)
+    httpClientV2.delete(url"$serviceUrl/file?id=$id").execute[HttpResponse]
   }
 
   def getFiles(queryParams: Seq[(String, String)])(implicit hc: HeaderCarrier): Future[HttpResponse] = {
@@ -78,7 +77,7 @@ trait FileStoreHelpers extends WiremockFeatureTestServer {
   }
 
   def publishSafeFile(id: String)(implicit hc: HeaderCarrier): Future[HttpResponse] = {
-    stubS3Upload(id)
+    stubObjectStoreSign(id)
 
     httpClientV2
       .post(url"$serviceUrl/file/$id/publish")
@@ -86,7 +85,7 @@ trait FileStoreHelpers extends WiremockFeatureTestServer {
       .execute[HttpResponse]
   }
 
-  // Should NOT call S3 Upload
+  // Should NOT call Object Store Upload
   def publishUnsafeFile(id: String)(implicit hc: HeaderCarrier): Future[HttpResponse] =
     httpClientV2
       .post(url"$serviceUrl/file/$id/publish")
@@ -126,6 +125,8 @@ trait FileStoreHelpers extends WiremockFeatureTestServer {
   ): Future[HttpResponse] = {
     stubUpscanInitiate
     stubUpscanUpload
+    stubObjectStoreUpload(id.get)
+    stubObjectStoreSign(id.get)
 
     val tempFile = SingletonTemporaryFileCreator.create(filename)
     Files.write(tempFile.path, List("foo").asJava)
@@ -174,16 +175,25 @@ trait FileStoreHelpers extends WiremockFeatureTestServer {
         )
     )
 
-  def stubS3Upload(id: String): StubMapping =
+  def stubObjectStoreUpload(id: String): StubMapping =
     stubFor(
-      put(s"/digital-tariffs-local/$id")
+      post("/object-store/ops/upload-from-url")
         .willReturn(
           aResponse()
             .withStatus(Status.OK)
         )
     )
 
-  def stubS3ListAll(): StubMapping =
+  def stubObjectStoreSign(id: String): StubMapping =
+    stubFor(
+      post("/object-store/ops/presigned-url")
+        .willReturn(
+          aResponse()
+            .withStatus(Status.OK)
+        )
+    )
+
+  def stubObjectStoreListAll(): StubMapping =
     stubFor(
       get("/digital-tariffs-local/?encoding-type=url")
         .willReturn(
@@ -193,19 +203,18 @@ trait FileStoreHelpers extends WiremockFeatureTestServer {
         )
     )
 
-  def stubS3DeleteAll(): StubMapping =
+  def stubObjectStoreDeleteAll(): StubMapping =
     stubFor(
       post(s"/digital-tariffs-local/?delete")
         .willReturn(
           aResponse()
             .withStatus(Status.OK)
-            .withBody(fromFile("aws/delete-objects_response.xml"))
         )
     )
 
-  def stubS3DeleteOne(id: String): StubMapping =
+  def stubObjectStoreDeleteOne(id: String): StubMapping =
     stubFor(
-      delete(s"/digital-tariffs-local/$id")
+      delete(s"/digital-tariffs-local/file?id=$id")
         .willReturn(
           aResponse()
             .withStatus(Status.OK)
