@@ -42,6 +42,16 @@ class AppConfigSpec extends UnitSpec with WithFakeApplication with BeforeAndAfte
     new AppConfig(Configuration.from(config), serviceConfig).fileStoreSizeConfiguration
   }
 
+  private def s3ConfigWith(pairs: (String, String)*): S3Configuration = {
+    var config = Map(
+      "s3.region"   -> "",
+      "s3.bucket"   -> "",
+      "s3.endpoint" -> ""
+    )
+    pairs.foreach(e => config = config + e)
+    new AppConfig(Configuration.from(config), serviceConfig).s3Configuration
+  }
+
   private def upscanConfigWith(host: String, port: String, pairs: (String, String)*): AppConfig = {
     when(serviceConfig.baseUrl(refEq("upscan-initiate"))).thenReturn(s"http://$host:$port")
     new AppConfig(Configuration.from(pairs.map(e => e._1 -> e._2).toMap), serviceConfig)
@@ -52,8 +62,30 @@ class AppConfigSpec extends UnitSpec with WithFakeApplication with BeforeAndAfte
 
   "Config" should {
 
+    "return AWS S3 region" in {
+      s3ConfigWith("s3.region" -> "region").region shouldBe "region"
+    }
+
     "return AWS S3 bucket" in {
-      configWith("s3.bucket" -> "bucket").s3bucket shouldBe "bucket"
+      s3ConfigWith("s3.bucket" -> "bucket").bucket shouldBe "bucket"
+    }
+
+    "return AWS S3 endpoint" in {
+      s3ConfigWith("s3.endpoint" -> "endpoint").endpoint shouldBe Some("endpoint")
+    }
+
+    "return AWS S3 blank endpoint as None" in {
+      s3ConfigWith("s3.endpoint" -> "").endpoint shouldBe None
+    }
+
+    "return AWS S3 base URL" in {
+      s3ConfigWith("s3.endpoint" -> "endpoint").baseUrl shouldBe "endpoint"
+    }
+
+    "return AWS S3 default base URL" in {
+      s3ConfigWith(
+        "s3.region" -> "region"
+      ).baseUrl shouldBe "https://s3-region.amazonaws.com"
     }
 
     "return application Host" in {
