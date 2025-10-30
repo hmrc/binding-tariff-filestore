@@ -92,7 +92,6 @@ class ObjectStoreConnector @Inject() (client: PlayObjectStoreClient, config: App
             exception.printStackTrace()
             Future.successful(fileMetaData)
           case scala.util.Success(presignedDownloadUrl) =>
-            println("Successful Upload")
             val updatedMetaData = fileMetaData.copy(url = Some(presignedDownloadUrl.downloadUrl.toString))
             Future.successful(updatedMetaData)
         }
