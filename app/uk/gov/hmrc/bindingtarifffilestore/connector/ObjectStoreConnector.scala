@@ -18,13 +18,14 @@ package uk.gov.hmrc.bindingtarifffilestore.connector
 
 import uk.gov.hmrc.objectstore.client.play.PlayObjectStoreClient
 import com.google.inject.Inject
+import org.apache.pekko.actor.ActorSystem
 
 import javax.inject.Singleton
 import uk.gov.hmrc.bindingtarifffilestore.config.AppConfig
 import uk.gov.hmrc.bindingtarifffilestore.model.FileMetadata
 import uk.gov.hmrc.bindingtarifffilestore.util.Logging
 import uk.gov.hmrc.http.HeaderCarrier
-import uk.gov.hmrc.objectstore.client.{ObjectSummary, Path}
+import uk.gov.hmrc.objectstore.client.{ObjectSummary, Path, Sha256Checksum}
 
 import java.net.URI
 import scala.concurrent.{ExecutionContext, Future}
@@ -48,11 +49,12 @@ class ObjectStoreConnector @Inject() (client: PlayObjectStoreClient, config: App
       client
         .uploadFromUrl(
           from = new URI(fileMetaData.url.getOrElse(throw new IllegalArgumentException("Missing URL"))).toURL,
-          to = directory.file(fileMetaData.fileName.getOrElse(""))
+          to = directory.file(fileMetaData.fileName.getOrElse("")),
+          contentSha256 = Some(Sha256Checksum.fromHex(fileMetaData.fileName.get))
         )
     ) match {
       case Success(_)            =>
-        fileMetaData.copy(url = Some(s"${config.filestoreUrl}/${fileMetaData.id}"))
+        fileMetaData.copy(url = Some(s"${config.objectStoreUrl}/${fileMetaData.fileName.get}"))
       case Failure(e: Throwable) =>
         log.error("Failed to upload to the object store.", e)
         throw e
@@ -90,6 +92,7 @@ class ObjectStoreConnector @Inject() (client: PlayObjectStoreClient, config: App
             exception.printStackTrace()
             Future.successful(fileMetaData)
           case scala.util.Success(presignedDownloadUrl) =>
+            println("Successful Upload")
             val updatedMetaData = fileMetaData.copy(url = Some(presignedDownloadUrl.downloadUrl.toString))
             Future.successful(updatedMetaData)
         }
