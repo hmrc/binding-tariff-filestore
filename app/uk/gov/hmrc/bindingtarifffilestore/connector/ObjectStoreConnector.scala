@@ -48,12 +48,11 @@ class ObjectStoreConnector @Inject() (client: PlayObjectStoreClient, config: App
       client
         .uploadFromUrl(
           from = new URI(fileMetaData.url.getOrElse(throw new IllegalArgumentException("Missing URL"))).toURL,
-          to = directory.file(fileMetaData.fileName.getOrElse("")),
-          contentSha256 = Some(Sha256Checksum.fromHex(fileMetaData.fileName.get))
+          to = directory.file(fileMetaData.fileName.getOrElse(""))
         )
     ) match {
       case Success(_)            =>
-        fileMetaData.copy(url = Some(s"${config.objectStoreUrl}/${fileMetaData.fileName.get}"))
+        fileMetaData.copy(url = Some(s"${config.filestoreUrl}/${fileMetaData.id}"))
       case Failure(e: Throwable) =>
         log.error("Failed to upload to the object store.", e)
         throw e
