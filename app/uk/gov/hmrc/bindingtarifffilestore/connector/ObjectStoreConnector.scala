@@ -18,7 +18,6 @@ package uk.gov.hmrc.bindingtarifffilestore.connector
 
 import uk.gov.hmrc.objectstore.client.play.PlayObjectStoreClient
 import com.google.inject.Inject
-import org.apache.pekko.actor.ActorSystem
 
 import javax.inject.Singleton
 import uk.gov.hmrc.bindingtarifffilestore.config.AppConfig
