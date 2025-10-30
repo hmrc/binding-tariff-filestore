@@ -18,36 +18,35 @@ package uk.gov.hmrc.bindingtarifffilestore.service
 
 import org.mockito.ArgumentCaptor
 import org.mockito.ArgumentMatchers.any
-import org.mockito.Mockito._
+import org.mockito.Mockito.*
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.concurrent.Eventually
 import play.api.libs.Files.TemporaryFile
 import uk.gov.hmrc.bindingtarifffilestore.audit.AuditService
 import uk.gov.hmrc.bindingtarifffilestore.config.{AppConfig, FileStoreSizeConfiguration}
-import uk.gov.hmrc.bindingtarifffilestore.connector.{AmazonS3Connector, UpscanConnector}
-import uk.gov.hmrc.bindingtarifffilestore.model._
-import uk.gov.hmrc.bindingtarifffilestore.model.upscan._
+import uk.gov.hmrc.bindingtarifffilestore.connector.{ObjectStoreConnector, UpscanConnector}
+import uk.gov.hmrc.bindingtarifffilestore.model.*
+import uk.gov.hmrc.bindingtarifffilestore.model.upscan.*
 import uk.gov.hmrc.bindingtarifffilestore.repository.FileMetadataMongoRepository
 import uk.gov.hmrc.bindingtarifffilestore.util.UnitSpec
 import uk.gov.hmrc.http.HeaderCarrier
 
 import java.time.Instant
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future.{failed, successful}
 
 class FileStoreServiceSpec extends UnitSpec with BeforeAndAfterEach with Eventually {
 
-  private val config: AppConfig                       = mock(classOf[AppConfig])
-  private val s3Connector: AmazonS3Connector          = mock(classOf[AmazonS3Connector])
-  private val repository: FileMetadataMongoRepository = mock(classOf[FileMetadataMongoRepository])
-  private val upscanConnector: UpscanConnector        = mock(classOf[UpscanConnector])
-  private val auditService: AuditService              = mock(classOf[AuditService])
-
-  private implicit val hc: HeaderCarrier = HeaderCarrier()
+  private val config: AppConfig                          = mock(classOf[AppConfig])
+  private val objectStoreConnector: ObjectStoreConnector = mock(classOf[ObjectStoreConnector])
+  private val repository: FileMetadataMongoRepository    = mock(classOf[FileMetadataMongoRepository])
+  private val upscanConnector: UpscanConnector           = mock(classOf[UpscanConnector])
+  private val auditService: AuditService                 = mock(classOf[AuditService])
+  private implicit lazy val hc: HeaderCarrier            = mock(classOf[HeaderCarrier])
 
   private val service: FileStoreService =
-    new FileStoreService(config, s3Connector, repository, upscanConnector, auditService)
+    new FileStoreService(config, objectStoreConnector, repository, upscanConnector, auditService)
 
   private final val emulatedFailure: RuntimeException = new RuntimeException("Emulated failure.")
 
@@ -56,7 +55,7 @@ class FileStoreServiceSpec extends UnitSpec with BeforeAndAfterEach with Eventua
   override protected def afterEach(): Unit = {
     super.afterEach()
     reset(config)
-    reset(s3Connector)
+    reset(objectStoreConnector)
     reset(repository)
     reset(upscanConnector)
     reset(auditService)
@@ -70,7 +69,7 @@ class FileStoreServiceSpec extends UnitSpec with BeforeAndAfterEach with Eventua
       await(service.deleteAll()) shouldBe ((): Unit)
 
       verify(repository).deleteAll()
-      verify(s3Connector).deleteAll()
+      verify(objectStoreConnector).deleteAll()
     }
 
     "Propagate any error" in {
@@ -88,10 +87,10 @@ class FileStoreServiceSpec extends UnitSpec with BeforeAndAfterEach with Eventua
     "Clear the Database & File Store" in {
       when(repository.delete("id")).thenReturn(successful(()))
 
-      await(service.delete("id")) shouldBe ((): Unit)
+      await(service.delete("id", "fileName")) shouldBe ((): Unit)
 
       verify(repository).delete("id")
-      verify(s3Connector).delete("id")
+      verify(objectStoreConnector).delete("fileName")
     }
 
     "Propagate any error" in {
@@ -112,7 +111,7 @@ class FileStoreServiceSpec extends UnitSpec with BeforeAndAfterEach with Eventua
 
       when(attachment.published).thenReturn(true)
       when(repository.get("id")).thenReturn(successful(Some(attachment)))
-      when(s3Connector.sign(attachment)).thenReturn(attachmentSigned)
+      when(objectStoreConnector.sign(attachment)).thenReturn(Future.successful(attachmentSigned))
 
       await(service.find("id")) shouldBe Some(attachmentSigned)
     }
@@ -123,7 +122,7 @@ class FileStoreServiceSpec extends UnitSpec with BeforeAndAfterEach with Eventua
 
       await(service.find("id")) shouldBe Some(attachment)
 
-      verify(s3Connector, never).sign(any[FileMetadata])
+      verify(objectStoreConnector, never).sign(any[FileMetadata])(any[HeaderCarrier])
     }
   }
 
@@ -142,7 +141,7 @@ class FileStoreServiceSpec extends UnitSpec with BeforeAndAfterEach with Eventua
       val attachment2 = mock(classOf[FileMetadata], "attachment2")
 
       when(attachment1.published).thenReturn(true)
-      when(s3Connector.sign(attachment1)).thenReturn(attSigned1)
+      when(objectStoreConnector.sign(attachment1)).thenReturn(successful(attSigned1))
 
       when(attachment2.published).thenReturn(false)
 
@@ -332,9 +331,9 @@ class FileStoreServiceSpec extends UnitSpec with BeforeAndAfterEach with Eventua
       when(attachmentUploadedUpdated.isLive).thenReturn(true)
 
       when(repository.update(attachmentUpdating)).thenReturn(successful(Some(attachmentUpdated)))
-      when(s3Connector.upload(attachmentUpdated)).thenReturn(attachmentUploaded)
+      when(objectStoreConnector.upload(attachmentUpdated)).thenReturn(attachmentUploaded)
       when(repository.update(attachmentUploadedUpdating)).thenReturn(successful(Some(attachmentUploadedUpdated)))
-      when(s3Connector.sign(attachmentUploadedUpdated)).thenReturn(attachmentSigned)
+      when(objectStoreConnector.sign(attachmentUploadedUpdated)).thenReturn(successful(attachmentSigned))
 
       val test = await(service.notify(attachment, scanResult))
       test shouldBe Some(attachmentSigned)
@@ -369,8 +368,8 @@ class FileStoreServiceSpec extends UnitSpec with BeforeAndAfterEach with Eventua
 
         await(service.notify(attachment, scanResult)) shouldBe None
 
-        verify(s3Connector, never).upload(any[FileMetadata])
-        verify(s3Connector, never).sign(any[FileMetadata])
+        verify(objectStoreConnector, never()).upload(any[FileMetadata]())(any[HeaderCarrier]())
+        verify(objectStoreConnector, never()).sign(any[FileMetadata]())(any[HeaderCarrier]())
         verify(auditService, times(1))
           .auditFileScanned(fileId = "id", fileName = Some("file"), upScanRef = "ref", upScanStatus = "READY")
         verify(auditService, never).auditFilePublished(fileId = "id", fileName = "file")
@@ -415,9 +414,9 @@ class FileStoreServiceSpec extends UnitSpec with BeforeAndAfterEach with Eventua
 
       when(fileUpdated.published).thenReturn(true)
 
-      when(s3Connector.upload(fileUploading)).thenReturn(fileUploaded)
+      when(objectStoreConnector.upload(fileUploading)).thenReturn(fileUploaded)
       when(repository.update(any[FileMetadata])).thenReturn(successful(Some(fileUpdated)))
-      when(s3Connector.sign(fileUpdated)).thenReturn(fileSigned)
+      when(objectStoreConnector.sign(fileUpdated)).thenReturn(Future.successful(fileSigned))
 
       await(service.publish(fileUploading)) shouldBe Some(fileSigned)
 
@@ -438,7 +437,7 @@ class FileStoreServiceSpec extends UnitSpec with BeforeAndAfterEach with Eventua
       await(service.publish(fileUploading)) shouldBe None
 
       verify(repository).delete("id")
-      verifyNoInteractions(auditService, s3Connector)
+      verifyNoInteractions(auditService, objectStoreConnector)
     }
 
     "Not delegate to the File Store if pre published" in {
@@ -449,7 +448,7 @@ class FileStoreServiceSpec extends UnitSpec with BeforeAndAfterEach with Eventua
 
       await(service.publish(fileUploading)) shouldBe Some(fileUploading)
 
-      verifyNoInteractions(auditService, s3Connector, repository)
+      verifyNoInteractions(auditService, objectStoreConnector, repository)
     }
 
     "Not delegate to the File Store if Scanned UnSafe" in {
@@ -464,7 +463,7 @@ class FileStoreServiceSpec extends UnitSpec with BeforeAndAfterEach with Eventua
 
       await(service.publish(fileUploading)) shouldBe Some(fileUpdated)
 
-      verifyNoInteractions(auditService, s3Connector)
+      verifyNoInteractions(auditService, objectStoreConnector)
     }
 
     "Not delegate to the File Store if Unscanned" in {
@@ -479,7 +478,7 @@ class FileStoreServiceSpec extends UnitSpec with BeforeAndAfterEach with Eventua
 
       await(service.publish(fileUploading)) shouldBe Some(fileUpdated)
 
-      verifyNoInteractions(auditService, s3Connector)
+      verifyNoInteractions(auditService, objectStoreConnector)
     }
   }
 

@@ -10,4 +10,4 @@ POST       /file/:id/publish        @uk.gov.hmrc.bindingtarifffilestore.controll
 
 # admin/test endpoints
 DELETE     /file                    @uk.gov.hmrc.bindingtarifffilestore.controllers.FileStoreController.deleteAll()
-DELETE     /file/:id                @uk.gov.hmrc.bindingtarifffilestore.controllers.FileStoreController.delete(id: String)
+DELETE     /file/:id                @uk.gov.hmrc.bindingtarifffilestore.controllers.FileStoreController.delete(id: String, filename: String)

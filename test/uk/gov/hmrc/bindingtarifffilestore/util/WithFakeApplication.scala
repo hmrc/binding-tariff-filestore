@@ -17,6 +17,7 @@
 package uk.gov.hmrc.bindingtarifffilestore.util
 
 import org.scalatest.{BeforeAndAfterAll, Suite}
+import org.apache.pekko.stream.Materializer
 import play.api.inject.guice.{GuiceApplicationBuilder, GuiceableModule}
 import play.api.test.Helpers._
 import play.api.{Application, Play}
@@ -28,7 +29,11 @@ import play.api.{Application, Play}
 trait WithFakeApplication extends BeforeAndAfterAll {
   this: Suite =>
 
-  lazy val fakeApplication: Application = new GuiceApplicationBuilder().bindings(bindModules*).build()
+  final implicit val materializer: Materializer = fakeApplication.materializer
+
+  lazy val fakeApplication: Application = new GuiceApplicationBuilder()
+    .bindings(bindModules*)
+    .build()
 
   def bindModules: Seq[GuiceableModule] = Seq()
 
