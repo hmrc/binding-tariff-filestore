@@ -16,22 +16,24 @@
 
 package uk.gov.hmrc.bindingtarifffilestore.connector
 
-import uk.gov.hmrc.objectstore.client.play.PlayObjectStoreClient
 import com.google.inject.Inject
-
-import javax.inject.Singleton
 import uk.gov.hmrc.bindingtarifffilestore.config.AppConfig
 import uk.gov.hmrc.bindingtarifffilestore.model.FileMetadata
 import uk.gov.hmrc.bindingtarifffilestore.util.Logging
 import uk.gov.hmrc.http.HeaderCarrier
-import uk.gov.hmrc.objectstore.client.{ObjectSummary, Path, Sha256Checksum}
+import uk.gov.hmrc.objectstore.client.play.PlayObjectStoreClient
+import uk.gov.hmrc.objectstore.client.{ObjectSummary, Path}
 
 import java.net.URI
+import javax.inject.Singleton
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success, Try}
 
 @Singleton
-class ObjectStoreConnector @Inject() (client: PlayObjectStoreClient, config: AppConfig)(implicit
+class ObjectStoreConnector @Inject() (
+  client: PlayObjectStoreClient,
+  config: AppConfig
+)(implicit
   val ec: ExecutionContext
 ) extends Logging {
 

@@ -26,7 +26,7 @@ class AppConfig @Inject() (
   servicesConfig: ServicesConfig
 ) {
 
-  lazy val authorization: String = config.get[String]("internal-auth.token")
+  lazy val authorization: String = config.get[String]("auth.api-token")
 
   lazy val appName: String = config.get[String]("appName")
 
@@ -41,9 +41,9 @@ class AppConfig @Inject() (
   lazy val filestoreUrl: String  = config.get[String]("filestore.url")
   lazy val filestoreSSL: Boolean = config.get[Boolean]("filestore.ssl")
 
-  private lazy val objectStoreHost: String = config.get[String]("microservice.services.object-store.host")
-  private lazy val objectStorePort: String = config.get[String]("microservice.services.object-store.port")
-  lazy val objectStoreUrl: String          = s"http://$objectStoreHost:$objectStorePort"
+//  private lazy val objectStoreHost: String = config.get[String]("microservice.services.object-store.host")
+//  private lazy val objectStorePort: String = config.get[String]("microservice.services.object-store.port")
+//  lazy val objectStoreUrl: String          = s"http://$objectStoreHost:$objectStorePort"
 
   lazy val isTestMode: Boolean = config.getOptional[Boolean]("testMode").getOrElse(false)
 }
