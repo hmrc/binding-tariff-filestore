@@ -54,7 +54,8 @@ class ObjectStoreConnector @Inject() (
         )
     ) match {
       case Success(_)            =>
-        fileMetaData.copy(url = Some(s"${config.filestoreUrl}/${fileMetaData.id}"))
+        log.info("File uploaded to Object Store")
+        fileMetaData
       case Failure(e: Throwable) =>
         log.error("Failed to upload to the object store.", e)
         throw e
