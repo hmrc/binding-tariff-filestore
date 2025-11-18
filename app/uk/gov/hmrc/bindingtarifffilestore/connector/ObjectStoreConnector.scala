@@ -50,11 +50,11 @@ class ObjectStoreConnector @Inject() (
       client
         .uploadFromUrl(
           from = new URI(fileMetaData.url.getOrElse(throw new IllegalArgumentException("Missing URL"))).toURL,
-          to = directory.file(fileMetaData.fileName.getOrElse(""))
+          to = directory.file(s"${fileMetaData.fileName.getOrElse(fileMetaData.id)}" )
         )
     ) match {
       case Success(_)            =>
-        log.info("File uploaded to Object Store")
+        log.info(s"File uploaded to Object Store: ${fileMetaData.fileName.getOrElse(fileMetaData.id)}")
         fileMetaData
       case Failure(e: Throwable) =>
         log.error("Failed to upload to the object store.", e)
@@ -85,11 +85,11 @@ class ObjectStoreConnector @Inject() (
     if (fileMetaData.url.isDefined) {
       client
         .presignedDownloadUrl(
-          path = directory.file(fileMetaData.fileName.get)
+          path = directory.file(fileMetaData.fileName.getOrElse(fileMetaData.id))
         )
         .transformWith {
           case scala.util.Failure(exception)            =>
-            log.error(s"Failure to get pre-signed URL to ${directory.file(fileMetaData.id)} because of $exception")
+            log.error(s"Failure to get pre-signed URL to ${directory.file(fileMetaData.fileName.getOrElse(fileMetaData.id))} because of $exception")
             exception.printStackTrace()
             Future.successful(fileMetaData)
           case scala.util.Success(presignedDownloadUrl) =>
