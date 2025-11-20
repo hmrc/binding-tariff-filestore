@@ -36,6 +36,10 @@ class AppConfig @Inject() (
     minFileSize = config.get[Int]("upscan.minFileSize")
   )
 
+  private lazy val objectStoreHost: String = config.get[String]("microservice.services.object-store.host")
+  private lazy val objectStorePort: String = config.get[String]("microservice.services.object-store.port")
+  lazy val objectStoreUrl: String          = s"http://$objectStoreHost:$objectStorePort"
+
   lazy val s3bucket: String = config.get[String]("s3.bucket")
 
   lazy val filestoreUrl: String  = config.get[String]("filestore.url")

@@ -50,12 +50,12 @@ class ObjectStoreConnector @Inject() (
       client
         .uploadFromUrl(
           from = new URI(fileMetaData.url.getOrElse(throw new IllegalArgumentException("Missing URL"))).toURL,
-          to = directory.file(s"${fileMetaData.fileName.getOrElse(fileMetaData.id)}" )
+          to = directory.file(s"${fileMetaData.fileName.getOrElse(fileMetaData.id)}")
         )
     ) match {
       case Success(_)            =>
         log.info(s"File uploaded to Object Store: ${fileMetaData.fileName.getOrElse(fileMetaData.id)}")
-        fileMetaData
+        fileMetaData.copy(url = Some(s"${config.objectStoreUrl}/${config.s3bucket}/${fileMetaData.id}"))
       case Failure(e: Throwable) =>
         log.error("Failed to upload to the object store.", e)
         throw e
@@ -89,11 +89,14 @@ class ObjectStoreConnector @Inject() (
         )
         .transformWith {
           case scala.util.Failure(exception)            =>
-            log.error(s"Failure to get pre-signed URL to ${directory.file(fileMetaData.fileName.getOrElse(fileMetaData.id))} because of $exception")
+            log.error(
+              s"Failure to get pre-signed URL to ${directory.file(fileMetaData.fileName.getOrElse(fileMetaData.id))} because of $exception"
+            )
             exception.printStackTrace()
             Future.successful(fileMetaData)
           case scala.util.Success(presignedDownloadUrl) =>
-            val updatedMetaData = fileMetaData.copy(url = Some(presignedDownloadUrl.downloadUrl.toString))
+            val updatedMetaData =
+              fileMetaData.copy(url = Some(s"${presignedDownloadUrl.downloadUrl.toString}/${fileMetaData.id}"))
             Future.successful(updatedMetaData)
         }
     } else {
