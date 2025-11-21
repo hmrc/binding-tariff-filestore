@@ -401,6 +401,8 @@ class FileStoreSpec extends FileStoreHelpers with Eventually {
       Then("The response code should be Accepted")
       result.status shouldBe Status.ACCEPTED
 
+      println(s"Result info: ${result.json \\ "url"}")
+
       And("The response body contains the file details")
 
       (result.json \\ "fileName").map(_.as[String]).toSeq     shouldBe Seq(file1)
@@ -411,7 +413,7 @@ class FileStoreSpec extends FileStoreHelpers with Eventually {
 
       And("The response shows the file published")
 
-      (result.json \\ "url").map(_.as[String]).headOption.getOrElse("") should include(s"$id1")
+      (result.json \\ "url").map(_.as[String]).headOption.getOrElse("") should include(s".txt")
     }
 
     Scenario("Should mark an un-safe file as publishable, but not persist") {

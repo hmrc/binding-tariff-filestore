@@ -55,7 +55,7 @@ class ObjectStoreConnector @Inject() (
     ) match {
       case Success(_)            =>
         log.info(s"File uploaded to Object Store: ${fileMetaData.fileName.getOrElse(fileMetaData.id)}")
-        fileMetaData.copy(url = Some(s"${config.objectStoreUrl}/${config.s3bucket}/${fileMetaData.id}"))
+        fileMetaData
       case Failure(e: Throwable) =>
         log.error("Failed to upload to the object store.", e)
         throw e
@@ -95,8 +95,7 @@ class ObjectStoreConnector @Inject() (
             exception.printStackTrace()
             Future.successful(fileMetaData)
           case scala.util.Success(presignedDownloadUrl) =>
-            val updatedMetaData =
-              fileMetaData.copy(url = Some(s"${presignedDownloadUrl.downloadUrl.toString}/${fileMetaData.id}"))
+            val updatedMetaData = fileMetaData.copy(url = Some(s"${presignedDownloadUrl.downloadUrl.toString}"))
             Future.successful(updatedMetaData)
         }
     } else {
