@@ -177,10 +177,10 @@ class FileStoreControllerSpec extends UnitSpec with Matchers with WithFakeApplic
 
     "return 204" in {
       when(appConfig.isTestMode).thenReturn(true)
-      when(service.delete(eqTo(attachment.id), eqTo(attachment.fileName.get))(any[HeaderCarrier]))
+      when(service.delete(eqTo(attachment.id))(any[HeaderCarrier]))
         .thenReturn(Future.successful((): Unit))
 
-      val result = await(controller.delete(attachment.id, attachment.fileName.get)(req))
+      val result = await(controller.delete(attachment.id)(req))
 
       status(result) shouldBe NO_CONTENT
     }
@@ -189,10 +189,10 @@ class FileStoreControllerSpec extends UnitSpec with Matchers with WithFakeApplic
       val error = new RuntimeException
 
       when(appConfig.isTestMode).thenReturn(true)
-      when(service.delete(eqTo(attachment.id), eqTo(attachment.fileName.get))(any[HeaderCarrier]))
+      when(service.delete(eqTo(attachment.id))(any[HeaderCarrier]))
         .thenReturn(Future.failed(error))
 
-      val result = await(controller.delete(attachment.id, attachment.fileName.get)(req))
+      val result = await(controller.delete(attachment.id)(req))
 
       status(result)                shouldEqual INTERNAL_SERVER_ERROR
       jsonBodyOf(result).toString() shouldEqual """{"code":"UNKNOWN_ERROR","message":"An unexpected error occurred"}"""

@@ -49,7 +49,7 @@ class ObjectStoreConnector @Inject() (
     Try(
       client
         .uploadFromUrl(
-          from = new URI(fileMetaData.url.getOrElse(throw new IllegalArgumentException("Missing URL"))).toURL,
+          from = new URI(fileMetaData.url.getOrElse(throw new IllegalArgumentException(s"Missing URL"))).toURL,
           to = directory.file(s"${fileMetaData.fileName.getOrElse(fileMetaData.id)}")
         )
     ) match {
@@ -61,9 +61,9 @@ class ObjectStoreConnector @Inject() (
         throw e
     }
 
-  def delete(fileName: String)(implicit hc: HeaderCarrier): Future[Unit] =
+  def delete(id: String)(implicit hc: HeaderCarrier): Future[Unit] =
     client.deleteObject(
-      path = directory.file(fileName)
+      path = directory.file(id)
     )
 
   def deleteAll()(implicit hc: HeaderCarrier): Future[Unit] =

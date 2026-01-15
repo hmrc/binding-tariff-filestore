@@ -87,10 +87,10 @@ class FileStoreServiceSpec extends UnitSpec with BeforeAndAfterEach with Eventua
     "Clear the Database & File Store" in {
       when(repository.delete("id")).thenReturn(successful(()))
 
-      await(service.delete("id", "fileName")) shouldBe ((): Unit)
+      await(service.delete("id")) shouldBe ((): Unit)
 
       verify(repository).delete("id")
-      verify(objectStoreConnector).delete("fileName")
+      verify(objectStoreConnector).delete("id")
     }
 
     "Propagate any error" in {
