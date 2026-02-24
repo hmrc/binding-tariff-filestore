@@ -105,15 +105,6 @@ class ObjectStoreConnectorSpec
       file.length        shouldBe 1
       file.head.location shouldBe File(Directory("binding-tariff-filestore/digital-tariffs-local"), "file1.txt")
     }
-
-    "Throw Exception on missing URL" in {
-      val fileUploading = FileMetadata("id", Some("file.txt"), Some("text/plain"))
-      val exception     = intercept[IllegalArgumentException] {
-        connector.upload(fileUploading)
-      }
-
-      exception.getMessage shouldBe "Missing URL"
-    }
   }
 
   "Sign" should {

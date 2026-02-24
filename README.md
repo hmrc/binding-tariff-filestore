@@ -29,6 +29,18 @@ The easiest way to run MongoDB and Localstack for local development is to use [D
 > awslocal s3 mb s3://digital-tariffs-local
 > exit
 ```
+
+#### Starting the application:
+
+Launch services using `sm2 --start DIGITAL_TARIFFS`
+
+If you want to run it locally:
+
+- `sm2 --stop BINDING_TARIFF_FILESTORE`
+- `sbt run`
+
+This application runs on port 9583.
+
 ##### To validate the internal-auth token locally, run this curl command in terminal
 
 ```
@@ -42,17 +54,6 @@ curl -i -X POST -H 'Content-Type: application/json'  -d '{
   }]
 }' 'http://localhost:8470/test-only/token'
 ```
-
-#### Starting the application:
-
-Launch services using `sm2 --start DIGITAL_TARIFFS`
-
-If you want to run it locally:
-
-- `sm2 --stop BINDING_TARIFF_FILESTORE`
-- `sbt run`
-
-This application runs on port 9583.
 
 ### Testing
 

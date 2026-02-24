@@ -22,9 +22,10 @@ import uk.gov.hmrc.bindingtarifffilestore.model.FileMetadata
 import uk.gov.hmrc.bindingtarifffilestore.util.Logging
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.objectstore.client.play.PlayObjectStoreClient
-import uk.gov.hmrc.objectstore.client.{ObjectSummary, Path}
+import uk.gov.hmrc.objectstore.client.{ObjectSummary, ObjectSummaryWithMd5, Path}
+import uk.gov.hmrc.objectstore.client.play.Implicits.stringWrite
+import uk.gov.hmrc.objectstore.client.play.Implicits.futureMonad
 
-import java.net.URI
 import javax.inject.Singleton
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success, Try}
@@ -47,11 +48,10 @@ class ObjectStoreConnector @Inject() (
 
   def upload(fileMetaData: FileMetadata)(implicit hc: HeaderCarrier): FileMetadata =
     Try(
-      client
-        .uploadFromUrl(
-          from = new URI(fileMetaData.url.getOrElse(throw new IllegalArgumentException(s"Missing URL"))).toURL,
-          to = directory.file(s"${fileMetaData.fileName.getOrElse(fileMetaData.id)}")
-        )
+      client.putObject(
+        path = directory.file(fileMetaData.fileName.getOrElse("Name")),
+        content = fileMetaData.mimeType.get
+      )
     ) match {
       case Success(_)            =>
         log.info(s"File uploaded to Object Store: ${fileMetaData.fileName.getOrElse(fileMetaData.id)}")
@@ -95,6 +95,7 @@ class ObjectStoreConnector @Inject() (
             exception.printStackTrace()
             Future.successful(fileMetaData)
           case scala.util.Success(presignedDownloadUrl) =>
+            log.info(s"Files signed in object store")
             val updatedMetaData = fileMetaData.copy(url = Some(s"${presignedDownloadUrl.downloadUrl.toString}"))
             Future.successful(updatedMetaData)
         }
