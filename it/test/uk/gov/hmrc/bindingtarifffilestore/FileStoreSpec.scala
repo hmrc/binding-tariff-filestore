@@ -401,8 +401,6 @@ class FileStoreSpec extends FileStoreHelpers with Eventually {
       Then("The response code should be Accepted")
       result.status shouldBe Status.ACCEPTED
 
-      println(s"Result info: ${result.json \\ "url"}")
-
       And("The response body contains the file details")
 
       (result.json \\ "fileName").map(_.as[String]).toSeq     shouldBe Seq(file1)

@@ -96,8 +96,7 @@ class ObjectStoreConnector @Inject() (
             Future.successful(fileMetaData)
           case scala.util.Success(presignedDownloadUrl) =>
             log.info(s"Files signed in object store")
-            val updatedMetaData = fileMetaData.copy(url = Some(s"${presignedDownloadUrl.downloadUrl.toString}"))
-            Future.successful(updatedMetaData)
+            Future.successful(fileMetaData)
         }
     } else {
       Future.successful(fileMetaData)

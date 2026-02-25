@@ -125,8 +125,8 @@ trait FileStoreHelpers extends WiremockFeatureTestServer {
   ): Future[HttpResponse] = {
     stubUpscanInitiate
     stubUpscanUpload
-    stubObjectStoreUpload(id.get)
-    stubObjectStoreSign(id.get)
+    stubObjectStoreUpload(filename)
+    stubObjectStoreSign(filename)
 
     val tempFile = SingletonTemporaryFileCreator.create(filename)
     Files.write(tempFile.path, List("foo").asJava)
@@ -177,7 +177,7 @@ trait FileStoreHelpers extends WiremockFeatureTestServer {
 
   def stubObjectStoreUpload(id: String): StubMapping =
     stubFor(
-      post("/object-store/ops/upload-from-url")
+      put(s"/object-store/object/binding-tariff-filestore/digital-tariffs-local/$id")
         .willReturn(
           aResponse()
             .withStatus(Status.OK)
@@ -195,7 +195,7 @@ trait FileStoreHelpers extends WiremockFeatureTestServer {
 
   def stubObjectStoreListAll(): StubMapping =
     stubFor(
-      get("/digital-tariffs-local/?encoding-type=url")
+      get("/object-store/list")
         .willReturn(
           aResponse()
             .withStatus(Status.OK)
