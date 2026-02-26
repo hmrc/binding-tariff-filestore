@@ -15,6 +15,12 @@ The backend filestore service which manages attachment metadata and S3 bucket ac
 
 The easiest way to run MongoDB and Localstack for local development is to use [Docker](https://docs.docker.com/get-docker/).
 
+##### To run Mongo
+
+```
+> docker run --restart unless-stopped -d -p 27017-27019:27017-27019 --name mongodb mongo:7.0
+```
+
 ##### To run Localstack and create the S3 bucket
 
 ```
@@ -34,6 +40,20 @@ If you want to run it locally:
 - `sbt run`
 
 This application runs on port 9583.
+
+##### To validate the internal-auth token locally, run this curl command in terminal
+
+```
+curl -i -X POST -H 'Content-Type: application/json'  -d '{
+  "token": "1234",
+  "principal": "binding-tariff-filestore",
+  "permissions": [{
+    "resourceType": "object-store",            
+    "resourceLocation": "*",                    
+    "actions": ["READ", "WRITE"]
+  }]
+}' 'http://localhost:8470/test-only/token'
+```
 
 ### Testing
 

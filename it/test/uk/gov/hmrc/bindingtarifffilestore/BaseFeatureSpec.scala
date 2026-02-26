@@ -17,7 +17,7 @@
 package uk.gov.hmrc.bindingtarifffilestore
 
 import com.google.common.io.BaseEncoding
-import org.scalatest._
+import org.scalatest.*
 import org.scalatest.featurespec.AnyFeatureSpec
 import org.scalatest.matchers.should.Matchers
 import org.scalatestplus.play.guice.GuiceOneServerPerSuite
@@ -31,9 +31,8 @@ import org.mongodb.scala.SingleObservableFuture
 
 import java.security.MessageDigest
 import scala.concurrent.{Await, Future}
-import scala.concurrent.Await.result
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 
 abstract class BaseFeatureSpec
     extends AnyFeatureSpec
