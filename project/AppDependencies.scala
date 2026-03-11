@@ -2,8 +2,8 @@ import sbt.*
 
 object AppDependencies {
 
-  private lazy val bootstrapPlayVersion = "10.1.0"
-  private lazy val hmrcMongoVersion     = "2.6.0"
+  private lazy val bootstrapPlayVersion = "10.7.0"
+  private lazy val hmrcMongoVersion     = "2.12.0"
 
   val compile: Seq[ModuleID] = Seq(
     "com.amazonaws"                 % "aws-java-sdk-s3"           % "1.12.788",
