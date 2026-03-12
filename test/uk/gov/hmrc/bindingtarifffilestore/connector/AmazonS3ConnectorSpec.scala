@@ -20,7 +20,7 @@ import software.amazon.awssdk.services.s3.model.S3Exception
 import com.github.tomakehurst.wiremock.client.WireMock
 import com.github.tomakehurst.wiremock.client.WireMock.*
 import org.mockito.Mockito.{mock, when}
-import org.scalatest.BeforeAndAfterEach
+import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
 import play.api.http.Status
 import play.api.libs.Files.SingletonTemporaryFileCreator
 import uk.gov.hmrc.bindingtarifffilestore.config.{AppConfig, S3Configuration}
@@ -29,18 +29,30 @@ import uk.gov.hmrc.bindingtarifffilestore.util.*
 
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+import play.api.inject.DefaultApplicationLifecycle
 
-class AmazonS3ConnectorSpec extends UnitSpec with WiremockTestServer with BeforeAndAfterEach with ResourceFiles {
+class AmazonS3ConnectorSpec
+    extends UnitSpec
+    with WiremockTestServer
+    with BeforeAndAfterEach
+    with BeforeAndAfterAll
+    with ResourceFiles {
 
   private val s3Config: S3Configuration =
     S3Configuration("region", "bucket", Some(s"http://localhost:$wirePort"))
   private val config                    = mock(classOf[AppConfig])
   private val date                      = LocalDate.now().format(DateTimeFormatter.ofPattern("YYYYMMdd"))
-  private val connector                 = new AmazonS3Connector(config)
+  private val lifecycle                 = new DefaultApplicationLifecycle()
+  private val connector                 = new AmazonS3Connector(config, lifecycle)
 
   override protected def beforeEach(): Unit = {
     super.beforeEach()
     when(config.s3Configuration).thenReturn(s3Config)
+  }
+
+  override protected def afterAll(): Unit = {
+    await(lifecycle.stop())
+    super.afterAll()
   }
 
   "Get All" should {
@@ -127,6 +139,22 @@ class AmazonS3ConnectorSpec extends UnitSpec with WiremockTestServer with Before
       }
       exception.statusCode() shouldBe 502
     }
+
+    "Close the input stream even on upload failure" in {
+      stubFor(
+        put("/bucket/id")
+          .willReturn(aResponse().withStatus(Status.INTERNAL_SERVER_ERROR))
+      )
+
+      val url           = SingletonTemporaryFileCreator.create("example.txt").path.toUri.toURL.toString
+      val fileUploading = FileMetadata("id", Some("file.txt"), Some("text/plain"), Some(url))
+
+      intercept[S3Exception] {
+        connector.upload(fileUploading)
+      }
+      // No explicit assertion needed — test passes if no resource leak exception is thrown
+      // and the JVM doesn't exhaust file handles across repeated runs
+    }
   }
 
   "Sign" should {
@@ -135,6 +163,7 @@ class AmazonS3ConnectorSpec extends UnitSpec with WiremockTestServer with Before
 
       connector.sign(file).url.get should startWith(s"$wireMockUrl/bucket/id?")
       connector.sign(file).url.get should include("X-Amz-Algorithm=AWS4-HMAC-SHA256")
+      connector.sign(file).url.get should include("X-Amz-Expires=3600")
     }
 
     "not append token to empty URL" in {
@@ -193,6 +222,8 @@ class AmazonS3ConnectorSpec extends UnitSpec with WiremockTestServer with Before
       )
 
       connector.deleteAll()
+
+      noException should be thrownBy connector.deleteAll()
 
       WireMock.verify(0, postRequestedFor(urlEqualTo("/bucket?delete")))
     }

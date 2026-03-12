@@ -43,9 +43,12 @@ import java.net.URI
 
 import scala.jdk.CollectionConverters._
 import scala.util.{Failure, Success, Try}
+import scala.util.Using
+import play.api.inject.ApplicationLifecycle
+import scala.concurrent.Future
 
 @Singleton
-class AmazonS3Connector @Inject() (config: AppConfig) extends Logging {
+class AmazonS3Connector @Inject() (config: AppConfig, lifecycle: ApplicationLifecycle) extends Logging {
 
   private lazy val s3Config = config.s3Configuration
 
@@ -54,7 +57,7 @@ class AmazonS3Connector @Inject() (config: AppConfig) extends Logging {
     val builder = S3Client
       .builder()
       .region(Region.of(s3Config.region))
-      .credentialsProvider(LocalDevelopmentCredentialsProvider())
+      .credentialsProvider(new LocalDevelopmentCredentialsProvider())
       .serviceConfiguration(
         AwsS3Configuration.builder().pathStyleAccessEnabled(true).build()
       )
@@ -70,7 +73,7 @@ class AmazonS3Connector @Inject() (config: AppConfig) extends Logging {
     val builder = S3Presigner
       .builder()
       .region(Region.of(s3Config.region))
-      .credentialsProvider(LocalDevelopmentCredentialsProvider())
+      .credentialsProvider(new LocalDevelopmentCredentialsProvider())
       .serviceConfiguration(
         AwsS3Configuration.builder().pathStyleAccessEnabled(true).build()
       )
@@ -80,6 +83,14 @@ class AmazonS3Connector @Inject() (config: AppConfig) extends Logging {
       case _              => ()
     }
     builder.build()
+  }
+
+  lifecycle.addStopHook { () =>
+    Future.successful {
+      log.info("Closing S3 clients")
+      s3client.close()
+      presigner.close()
+    }
   }
 
   def getAll: Seq[String] =
@@ -95,19 +106,20 @@ class AmazonS3Connector @Inject() (config: AppConfig) extends Logging {
   def upload(fileMetaData: FileMetadata): FileMetadata = {
     val url: URL = new URL(fileMetaData.url.getOrElse(throw new IllegalArgumentException("Missing URL")))
 
+    val contentLength = contentLengthOf(url)
+
     val request = PutObjectRequest
       .builder()
       .bucket(s3Config.bucket)
       .key(fileMetaData.id)
       .contentType(fileMetaData.mimeType.get)
-      .contentLength(contentLengthOf(url))
+      .contentLength(contentLength)
       .build()
 
     Try(
-      s3client.putObject(
-        request,
-        RequestBody.fromInputStream(new BufferedInputStream(url.openStream()), contentLengthOf(url))
-      )
+      Using.resource(new BufferedInputStream(url.openStream())) { stream =>
+        s3client.putObject(request, RequestBody.fromInputStream(stream, contentLength))
+      }
     ) match {
       case Success(_)            =>
         fileMetaData.copy(url = Some(s"${s3Config.baseUrl}/${s3Config.bucket}/${fileMetaData.id}"))
@@ -115,6 +127,14 @@ class AmazonS3Connector @Inject() (config: AppConfig) extends Logging {
         log.error("Failed to upload to the S3 bucket.", e)
         throw e
     }
+  }
+
+  private def contentLengthOf(url: URL): Long = {
+    val conn = url.openConnection()
+    try
+      conn.getContentLengthLong
+    finally
+      conn.getInputStream.close()
   }
 
   def delete(id: String): Unit =
@@ -154,9 +174,6 @@ class AmazonS3Connector @Inject() (config: AppConfig) extends Logging {
     } else {
       fileMetaData
     }
-
-  private def contentLengthOf(url: URL): Long =
-    url.openConnection.getContentLengthLong
 
 }
 
