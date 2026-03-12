@@ -1,0 +1,75 @@
+Subject: [PATCH] Fix delete tests
+---
+Index: app/uk/gov/hmrc/bindingtarifffilestore/connector/ObjectStoreConnector.scala
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/app/uk/gov/hmrc/bindingtarifffilestore/connector/ObjectStoreConnector.scala b/app/uk/gov/hmrc/bindingtarifffilestore/connector/ObjectStoreConnector.scala
+--- a/app/uk/gov/hmrc/bindingtarifffilestore/connector/ObjectStoreConnector.scala	(revision d4d5e8b7262641c73d3b1356eb57cfdbc327d9e4)
++++ b/app/uk/gov/hmrc/bindingtarifffilestore/connector/ObjectStoreConnector.scala	(date 1757435816172)
+@@ -58,20 +58,26 @@
+         throw e
+     }
+ 
+-  def delete(fileName: String)(implicit hc: HeaderCarrier): Future[Unit] =
++  def delete(fileName: String)(implicit hc: HeaderCarrier): Future[Unit] = {
++    println("deleteObject --------------------- " + directory.file(fileName))
++
+     client.deleteObject(
+       path = directory.file(fileName)
+     )
++  }
+ 
+-  def deleteAll()(implicit hc: HeaderCarrier): Unit =
++  def deleteAll()(implicit hc: HeaderCarrier): Future[Unit] =
+     getAll(directory).map(files =>
+       if (files.nonEmpty) {
+         log.info(s"Removing [${files.length}] files from object store")
+-        Future.traverse(files)(filename =>
++        Future.traverse(files) { filename =>
++          println("deleteAll------------------- " + directory.file(filename.location.fileName))
++
+           client.deleteObject(
+             path = directory.file(filename.location.fileName)
+           )
+-        )
++        }
++
+       } else {
+         log.info(s"No files to remove from object store")
+       }
+Index: test/uk/gov/hmrc/bindingtarifffilestore/connector/ObjectStoreConnectorSpec.scala
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/test/uk/gov/hmrc/bindingtarifffilestore/connector/ObjectStoreConnectorSpec.scala b/test/uk/gov/hmrc/bindingtarifffilestore/connector/ObjectStoreConnectorSpec.scala
+--- a/test/uk/gov/hmrc/bindingtarifffilestore/connector/ObjectStoreConnectorSpec.scala	(revision d4d5e8b7262641c73d3b1356eb57cfdbc327d9e4)
++++ b/test/uk/gov/hmrc/bindingtarifffilestore/connector/ObjectStoreConnectorSpec.scala	(date 1757491681621)
+@@ -48,14 +48,14 @@
+   implicit lazy val hc: HeaderCarrier    = mock(classOf[HeaderCarrier])
+   private implicit val mat: Materializer = mock(classOf[Materializer])
+   private val directory: Path.Directory  =
+-    Path.Directory("test")
++    Path.Directory("digital-tariffs-local")
+ 
+   private val file1 = FileMetadata("id1", Some("file1.txt"), Some("text/plain"), Some("http://foo.bar/test-123.txt"))
+   private val file2 = FileMetadata("id2", Some("file2.txt"), Some("text/plain"), Some("http://foo.bar/test-456.txt"))
+ 
+   lazy val objectStoreClientStub: StubPlayObjectStoreClient = {
+     val baseUrl = s"baseUrl-${randomUUID().toString}"
+-    val owner   = "digital-tariffs-local"
++    val owner   = "binding-tariff-filestore"
+     val token   = s"token-${randomUUID().toString}"
+     val config  = ObjectStoreClientConfig(baseUrl, owner, token, RetentionPeriod.OneWeek)
+ 
+@@ -103,7 +103,7 @@
+       val file = await(connector.getAll(directory))
+ 
+       file.length        shouldBe 1
+-      file.head.location shouldBe File(Directory("digital-tariffs-local/test"), "file1.txt")
++      file.head.location shouldBe File(Directory("binding-tariff-filestore/digital-tariffs-local"), "file1.txt")
+     }
+ 
+     "Throw Exception on missing URL" in {
