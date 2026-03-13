@@ -40,15 +40,17 @@ class AmazonS3ConnectorSpec
 
   private val s3Config: S3Configuration =
     S3Configuration("region", "bucket", Some(s"http://localhost:$wirePort"))
-  private val config                    = mock(classOf[AppConfig])
-  private val date                      = LocalDate.now().format(DateTimeFormatter.ofPattern("YYYYMMdd"))
+  private val config                    = {
+    val m = mock(classOf[AppConfig])
+    when(m.s3Configuration).thenReturn(s3Config)
+    m
+  }
+  private val date                      = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"))
   private val lifecycle                 = new DefaultApplicationLifecycle()
   private val connector                 = new AmazonS3Connector(config, lifecycle)
 
-  override protected def beforeEach(): Unit = {
+  override protected def beforeEach(): Unit =
     super.beforeEach()
-    when(config.s3Configuration).thenReturn(s3Config)
-  }
 
   override protected def afterAll(): Unit = {
     await(lifecycle.stop())
@@ -146,14 +148,27 @@ class AmazonS3ConnectorSpec
           .willReturn(aResponse().withStatus(Status.INTERNAL_SERVER_ERROR))
       )
 
-      val url           = SingletonTemporaryFileCreator.create("example.txt").path.toUri.toURL.toString
+      val tempFile      = SingletonTemporaryFileCreator.create("example.txt")
+      val url           = tempFile.path.toUri.toURL.toString
       val fileUploading = FileMetadata("id", Some("file.txt"), Some("text/plain"), Some(url))
 
-      intercept[S3Exception] {
-        connector.upload(fileUploading)
+      var streamClosed = false
+
+      val trackingConnector = new AmazonS3Connector(config, lifecycle) {
+        override protected def openStream(url: java.net.URL): java.io.BufferedInputStream =
+          new java.io.BufferedInputStream(url.openStream()) {
+            override def close(): Unit = {
+              streamClosed = true
+              super.close()
+            }
+          }
       }
-      // No explicit assertion needed — test passes if no resource leak exception is thrown
-      // and the JVM doesn't exhaust file handles across repeated runs
+
+      intercept[S3Exception] {
+        trackingConnector.upload(fileUploading)
+      }
+
+      streamClosed shouldBe true
     }
   }
 
@@ -220,8 +235,6 @@ class AmazonS3ConnectorSpec
               .withBody(fromFile("aws/empty-list-objects_response.xml"))
           )
       )
-
-      connector.deleteAll()
 
       noException should be thrownBy connector.deleteAll()
 

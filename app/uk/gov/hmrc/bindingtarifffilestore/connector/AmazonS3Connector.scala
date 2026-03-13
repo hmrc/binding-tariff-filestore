@@ -41,6 +41,7 @@ import software.amazon.awssdk.services.s3.{S3Configuration => AwsS3Configuration
 import java.time.Duration
 import java.net.URI
 
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.jdk.CollectionConverters._
 import scala.util.{Failure, Success, Try}
 import scala.util.Using
@@ -52,7 +53,10 @@ class AmazonS3Connector @Inject() (config: AppConfig, lifecycle: ApplicationLife
 
   private lazy val s3Config = config.s3Configuration
 
-  private lazy val s3client: S3Client = {
+  protected def openStream(url: URL): BufferedInputStream =
+    new BufferedInputStream(url.openStream())
+
+  private val s3client: S3Client = {
     log.info(s"${s3Config.bucket}:${s3Config.region}")
     val builder = S3Client
       .builder()
@@ -69,7 +73,7 @@ class AmazonS3Connector @Inject() (config: AppConfig, lifecycle: ApplicationLife
     builder.build()
   }
 
-  private lazy val presigner: S3Presigner = {
+  private val presigner: S3Presigner = {
     val builder = S3Presigner
       .builder()
       .region(Region.of(s3Config.region))
@@ -86,8 +90,7 @@ class AmazonS3Connector @Inject() (config: AppConfig, lifecycle: ApplicationLife
   }
 
   lifecycle.addStopHook { () =>
-    Future.successful {
-      log.info("Closing S3 clients")
+    Future {
       s3client.close()
       presigner.close()
     }
@@ -117,7 +120,7 @@ class AmazonS3Connector @Inject() (config: AppConfig, lifecycle: ApplicationLife
       .build()
 
     Try(
-      Using.resource(new BufferedInputStream(url.openStream())) { stream =>
+      Using.resource(openStream(url)) { stream =>
         s3client.putObject(request, RequestBody.fromInputStream(stream, contentLength))
       }
     ) match {
@@ -130,11 +133,10 @@ class AmazonS3Connector @Inject() (config: AppConfig, lifecycle: ApplicationLife
   }
 
   private def contentLengthOf(url: URL): Long = {
-    val conn = url.openConnection()
-    try
-      conn.getContentLengthLong
-    finally
-      conn.getInputStream.close()
+    val conn   = url.openConnection()
+    val length = conn.getContentLengthLong
+    if (length >= 0) length
+    else Using.resource(conn.getInputStream)(_.transferTo(java.io.OutputStream.nullOutputStream()))
   }
 
   def delete(id: String): Unit =
@@ -178,7 +180,9 @@ class AmazonS3Connector @Inject() (config: AppConfig, lifecycle: ApplicationLife
 }
 
 class LocalDevelopmentCredentialsProvider extends AwsCredentialsProvider {
+  private val delegate = DefaultCredentialsProvider.builder().build()
+
   override def resolveCredentials(): AwsCredentials =
-    Try(DefaultCredentialsProvider.builder().build().resolveCredentials())
+    Try(delegate.resolveCredentials())
       .getOrElse(AwsBasicCredentials.create("dummy-access-key", "dummy-secret-key"))
 }
