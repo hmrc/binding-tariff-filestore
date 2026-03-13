@@ -24,7 +24,6 @@ import javax.inject.Singleton
 import uk.gov.hmrc.bindingtarifffilestore.config.AppConfig
 import uk.gov.hmrc.bindingtarifffilestore.model.FileMetadata
 import uk.gov.hmrc.bindingtarifffilestore.util.Logging
-
 import software.amazon.awssdk.services.s3.S3Client
 import software.amazon.awssdk.regions.Region
 import software.amazon.awssdk.services.s3.model.ListObjectsRequest
@@ -36,16 +35,16 @@ import software.amazon.awssdk.services.s3.presigner.S3Presigner
 import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest
 import software.amazon.awssdk.services.s3.model.GetObjectRequest
 import software.amazon.awssdk.auth.credentials.*
-import software.amazon.awssdk.services.s3.{S3Configuration => AwsS3Configuration}
+import software.amazon.awssdk.services.s3.S3Configuration as AwsS3Configuration
 
 import java.time.Duration
 import java.net.URI
-
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 import scala.util.{Failure, Success, Try}
 import scala.util.Using
 import play.api.inject.ApplicationLifecycle
+
+import java.util
 import scala.concurrent.Future
 
 @Singleton
@@ -90,9 +89,10 @@ class AmazonS3Connector @Inject() (config: AppConfig, lifecycle: ApplicationLife
   }
 
   lifecycle.addStopHook { () =>
-    Future {
+    Future.successful {
       s3client.close()
       presigner.close()
+      ()
     }
   }
 
@@ -132,12 +132,8 @@ class AmazonS3Connector @Inject() (config: AppConfig, lifecycle: ApplicationLife
     }
   }
 
-  private def contentLengthOf(url: URL): Long = {
-    val conn   = url.openConnection()
-    val length = conn.getContentLengthLong
-    if (length >= 0) length
-    else Using.resource(conn.getInputStream)(_.transferTo(java.io.OutputStream.nullOutputStream()))
-  }
+  private def contentLengthOf(url: URL): Long =
+    url.openConnection.getContentLengthLong
 
   def delete(id: String): Unit =
     s3client.deleteObject(
@@ -145,7 +141,7 @@ class AmazonS3Connector @Inject() (config: AppConfig, lifecycle: ApplicationLife
     )
 
   def deleteAll(): Unit = {
-    val identifiers = getAll.map(key => ObjectIdentifier.builder().key(key).build()).asJava
+    val identifiers: util.List[ObjectIdentifier] = getAll.map(key => ObjectIdentifier.builder().key(key).build()).asJava
 
     if (!identifiers.isEmpty) {
       val request = DeleteObjectsRequest
