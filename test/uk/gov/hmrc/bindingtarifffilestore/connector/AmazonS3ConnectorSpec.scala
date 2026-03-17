@@ -16,11 +16,11 @@
 
 package uk.gov.hmrc.bindingtarifffilestore.connector
 
-import com.amazonaws.services.s3.model.AmazonS3Exception
+import software.amazon.awssdk.services.s3.model.S3Exception
 import com.github.tomakehurst.wiremock.client.WireMock
 import com.github.tomakehurst.wiremock.client.WireMock.*
 import org.mockito.Mockito.{mock, when}
-import org.scalatest.BeforeAndAfterEach
+import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
 import play.api.http.Status
 import play.api.libs.Files.SingletonTemporaryFileCreator
 import uk.gov.hmrc.bindingtarifffilestore.config.{AppConfig, S3Configuration}
@@ -29,25 +29,39 @@ import uk.gov.hmrc.bindingtarifffilestore.util.*
 
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+import play.api.inject.DefaultApplicationLifecycle
 
-class AmazonS3ConnectorSpec extends UnitSpec with WiremockTestServer with BeforeAndAfterEach with ResourceFiles {
+class AmazonS3ConnectorSpec
+    extends UnitSpec
+    with WiremockTestServer
+    with BeforeAndAfterEach
+    with BeforeAndAfterAll
+    with ResourceFiles {
 
   private val s3Config: S3Configuration =
     S3Configuration("region", "bucket", Some(s"http://localhost:$wirePort"))
-  private val config                    = mock(classOf[AppConfig])
-  private val date                      = LocalDate.now().format(DateTimeFormatter.ofPattern("YYYYMMdd"))
-  private val connector                 = new AmazonS3Connector(config)
+  private val config                    = {
+    val m = mock(classOf[AppConfig])
+    when(m.s3Configuration).thenReturn(s3Config)
+    m
+  }
+  private val date                      = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"))
+  private val lifecycle                 = new DefaultApplicationLifecycle()
+  private val connector                 = new AmazonS3Connector(config, lifecycle)
 
-  override protected def beforeEach(): Unit = {
+  override protected def beforeEach(): Unit =
     super.beforeEach()
-    when(config.s3Configuration).thenReturn(s3Config)
+
+  override protected def afterAll(): Unit = {
+    await(lifecycle.stop())
+    super.afterAll()
   }
 
   "Get All" should {
 
     "Delegate to S3" in {
       stubFor(
-        get("/bucket/?encoding-type=url")
+        get("/bucket")
           .withHeader(
             "Authorization",
             matching(s"AWS4-HMAC-SHA256 Credential=(.*)/$date/${s3Config.region}/s3/aws4_request, .*")
@@ -122,16 +136,39 @@ class AmazonS3ConnectorSpec extends UnitSpec with WiremockTestServer with Before
       val fileUploading = FileMetadata("id", Some("file.txt"), Some("text/plain"), Some(url))
 
       // Then
-      val exception = intercept[AmazonS3Exception] {
+      val exception = intercept[S3Exception] {
         connector.upload(fileUploading)
       }
-      exception.getMessage shouldBe
-        """Bad Gateway (Service: Amazon S3;
-          | Status Code: 502;
-          | Error Code: 502 Bad Gateway;
-          | Request ID: null;
-          | S3 Extended Request ID: null;
-          | Proxy: null)""".stripMargin.replaceAll("\n", "")
+      exception.statusCode() shouldBe 502
+    }
+
+    "Close the input stream even on upload failure" in {
+      stubFor(
+        put("/bucket/id")
+          .willReturn(aResponse().withStatus(Status.INTERNAL_SERVER_ERROR))
+      )
+
+      val tempFile      = SingletonTemporaryFileCreator.create("example.txt")
+      val url           = tempFile.path.toUri.toURL.toString
+      val fileUploading = FileMetadata("id", Some("file.txt"), Some("text/plain"), Some(url))
+
+      var streamClosed = false
+
+      val trackingConnector = new AmazonS3Connector(config, lifecycle) {
+        override protected def openStream(url: java.net.URL): java.io.BufferedInputStream =
+          new java.io.BufferedInputStream(url.openStream()) {
+            override def close(): Unit = {
+              streamClosed = true
+              super.close()
+            }
+          }
+      }
+
+      intercept[S3Exception] {
+        trackingConnector.upload(fileUploading)
+      }
+
+      streamClosed shouldBe true
     }
   }
 
@@ -141,6 +178,7 @@ class AmazonS3ConnectorSpec extends UnitSpec with WiremockTestServer with Before
 
       connector.sign(file).url.get should startWith(s"$wireMockUrl/bucket/id?")
       connector.sign(file).url.get should include("X-Amz-Algorithm=AWS4-HMAC-SHA256")
+      connector.sign(file).url.get should include("X-Amz-Expires=3600")
     }
 
     "not append token to empty URL" in {
@@ -153,7 +191,7 @@ class AmazonS3ConnectorSpec extends UnitSpec with WiremockTestServer with Before
   "Delete All" should {
     "Delegate to S3" in {
       stubFor(
-        get("/bucket/?encoding-type=url")
+        get("/bucket")
           .withHeader(
             "Authorization",
             matching(s"AWS4-HMAC-SHA256 Credential=(.*)/$date/${s3Config.region}/s3/aws4_request, .*")
@@ -165,7 +203,7 @@ class AmazonS3ConnectorSpec extends UnitSpec with WiremockTestServer with Before
           )
       )
       stubFor(
-        post("/bucket/?delete")
+        post("/bucket?delete")
           .withHeader(
             "Authorization",
             matching(s"AWS4-HMAC-SHA256 Credential=(.*)/$date/${s3Config.region}/s3/aws4_request, .*")
@@ -180,13 +218,13 @@ class AmazonS3ConnectorSpec extends UnitSpec with WiremockTestServer with Before
       connector.deleteAll()
 
       WireMock.verify(
-        postRequestedFor(urlEqualTo("/bucket/?delete"))
+        postRequestedFor(urlEqualTo("/bucket?delete"))
       )
     }
 
     "Do nothing for no files" in {
       stubFor(
-        get("/bucket/?encoding-type=url")
+        get("/bucket")
           .withHeader(
             "Authorization",
             matching(s"AWS4-HMAC-SHA256 Credential=(.*)/$date/${s3Config.region}/s3/aws4_request, .*")
@@ -198,9 +236,9 @@ class AmazonS3ConnectorSpec extends UnitSpec with WiremockTestServer with Before
           )
       )
 
-      connector.deleteAll()
+      noException should be thrownBy connector.deleteAll()
 
-      WireMock.verify(0, postRequestedFor(urlEqualTo("/bucket/?delete")))
+      WireMock.verify(0, postRequestedFor(urlEqualTo("/bucket?delete")))
     }
   }
 

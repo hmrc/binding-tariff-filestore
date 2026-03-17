@@ -392,7 +392,7 @@ class FileStoreSpec extends FileStoreHelpers with Eventually {
 
       await(upload(Some(id1), file1, contentType, publishable = true))
 
-      notifySuccess(id1, file1)
+      await(notifySuccess(id1, file1))
 
       When("It is Published")
 

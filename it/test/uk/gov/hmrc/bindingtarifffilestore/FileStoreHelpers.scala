@@ -185,7 +185,7 @@ trait FileStoreHelpers extends WiremockFeatureTestServer {
 
   def stubS3ListAll(): StubMapping =
     stubFor(
-      get("/digital-tariffs-local/?encoding-type=url")
+      get(urlPathEqualTo("/digital-tariffs-local"))
         .willReturn(
           aResponse()
             .withStatus(Status.OK)
@@ -195,7 +195,7 @@ trait FileStoreHelpers extends WiremockFeatureTestServer {
 
   def stubS3DeleteAll(): StubMapping =
     stubFor(
-      post(s"/digital-tariffs-local/?delete")
+      post(s"/digital-tariffs-local?delete")
         .willReturn(
           aResponse()
             .withStatus(Status.OK)
