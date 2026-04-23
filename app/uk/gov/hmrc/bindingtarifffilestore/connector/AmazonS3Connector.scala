@@ -55,22 +55,30 @@ class AmazonS3Connector @Inject() (config: AppConfig, lifecycle: ApplicationLife
   protected def openStream(url: URL): BufferedInputStream =
     new BufferedInputStream(url.openStream())
 
-  private val s3client: S3Client = {
-    log.info(s"${s3Config.bucket}:${s3Config.region}")
-    val builder = S3Client
-      .builder()
-      .region(Region.of(s3Config.region))
-      .credentialsProvider(new LocalDevelopmentCredentialsProvider())
-      .serviceConfiguration(
-        AwsS3Configuration.builder().pathStyleAccessEnabled(true).build()
-      )
+  private val s3client: S3Client =
+    Try {
+      log.info(s"Initializing S3 client for bucket: ${s3Config.bucket}, region: ${s3Config.region}")
+      val builder = S3Client
+        .builder()
+        .region(Region.of(s3Config.region))
+        .credentialsProvider(new LocalDevelopmentCredentialsProvider())
+        .serviceConfiguration(
+          AwsS3Configuration.builder().pathStyleAccessEnabled(true).build()
+        )
 
-    s3Config.endpoint match {
-      case Some(endpoint) => builder.endpointOverride(URI.create(endpoint))
-      case _              => ()
+      s3Config.endpoint match {
+        case Some(endpoint) =>
+          log.info(s"Using S3 endpoint override: $endpoint")
+          builder.endpointOverride(URI.create(endpoint))
+        case _              => ()
+      }
+      builder.build()
+    } match {
+      case Success(client) => client
+      case Failure(e)      =>
+        log.error(s"Failed to initialize S3 client for bucket ${s3Config.bucket}", e)
+        throw e
     }
-    builder.build()
-  }
 
   private val presigner: S3Presigner = {
     val builder = S3Presigner
@@ -97,14 +105,23 @@ class AmazonS3Connector @Inject() (config: AppConfig, lifecycle: ApplicationLife
   }
 
   def getAll: Seq[String] =
-    s3client
-      .listObjects(
-        ListObjectsRequest.builder().bucket(s3Config.bucket).build()
-      )
-      .contents()
-      .asScala
-      .toSeq
-      .map(_.key())
+    Try {
+      s3client
+        .listObjects(
+          ListObjectsRequest.builder().bucket(s3Config.bucket).build()
+        )
+        .contents()
+        .asScala
+        .toSeq
+        .map(_.key())
+    } match {
+      case Success(keys) =>
+        log.debug(s"Listed ${keys.size} objects from bucket: ${s3Config.bucket}")
+        keys
+      case Failure(e)    =>
+        log.error(s"Failed to list objects from bucket: ${s3Config.bucket}", e)
+        throw e
+    }
 
   def upload(fileMetaData: FileMetadata): FileMetadata = {
     val url: URL = new URL(fileMetaData.url.getOrElse(throw new IllegalArgumentException("Missing URL")))
@@ -136,49 +153,80 @@ class AmazonS3Connector @Inject() (config: AppConfig, lifecycle: ApplicationLife
     url.openConnection.getContentLengthLong
 
   def delete(id: String): Unit =
-    s3client.deleteObject(
-      DeleteObjectRequest.builder().bucket(s3Config.bucket).key(id).build()
-    )
-
-  def deleteAll(): Unit = {
-    val identifiers: util.List[ObjectIdentifier] = getAll.map(key => ObjectIdentifier.builder().key(key).build()).asJava
-
-    if (!identifiers.isEmpty) {
-      val request = DeleteObjectsRequest
-        .builder()
-        .bucket(s3Config.bucket)
-        .delete(Delete.builder().objects(identifiers).quiet(false).build())
-        .build()
-      s3client.deleteObjects(request)
-    } else {
-      log.info(s"No files to remove from S3")
+    Try {
+      s3client.deleteObject(
+        DeleteObjectRequest.builder().bucket(s3Config.bucket).key(id).build()
+      )
+      log.info(s"Successfully deleted object: $id from bucket: ${s3Config.bucket}")
+    } match {
+      case Success(_) => ()
+      case Failure(e) =>
+        log.error(s"Failed to delete object: $id from bucket: ${s3Config.bucket}", e)
+        throw e
     }
-  }
+
+  def deleteAll(): Unit =
+    Try {
+      val identifiers: util.List[ObjectIdentifier] =
+        getAll.map(key => ObjectIdentifier.builder().key(key).build()).asJava
+
+      if (!identifiers.isEmpty) {
+        log.info(s"Removing [${identifiers.size()}] files from S3 bucket: ${s3Config.bucket}")
+        val request = DeleteObjectsRequest
+          .builder()
+          .bucket(s3Config.bucket)
+          .delete(Delete.builder().objects(identifiers).quiet(false).build())
+          .build()
+        s3client.deleteObjects(request)
+        log.info(s"Successfully deleted all ${identifiers.size()} files")
+      } else {
+        log.info(s"No files to remove from S3")
+      }
+    } match {
+      case Success(_) => ()
+      case Failure(e) =>
+        log.error(s"Failed to delete all objects from bucket: ${s3Config.bucket}", e)
+        throw e
+    }
 
   def sign(fileMetaData: FileMetadata): FileMetadata =
     if (fileMetaData.url.isDefined) {
-      val presignedUrl = presigner
-        .presignGetObject(
-          GetObjectPresignRequest
-            .builder()
-            .signatureDuration(Duration.ofHours(1))
-            .getObjectRequest(
-              GetObjectRequest.builder().bucket(s3Config.bucket).key(fileMetaData.id).build()
-            )
-            .build()
-        )
-        .url()
-      fileMetaData.copy(url = Some(presignedUrl.toString))
+      Try {
+        val presignedUrl = presigner
+          .presignGetObject(
+            GetObjectPresignRequest
+              .builder()
+              .signatureDuration(Duration.ofHours(1))
+              .getObjectRequest(
+                GetObjectRequest.builder().bucket(s3Config.bucket).key(fileMetaData.id).build()
+              )
+              .build()
+          )
+          .url()
+        fileMetaData.copy(url = Some(presignedUrl.toString))
+      } match {
+        case Success(metadata) => metadata
+        case Failure(e)        =>
+          log.error(s"Failed to generate presigned URL for file: ${fileMetaData.id}", e)
+          throw e
+      }
     } else {
       fileMetaData
     }
 
 }
 
-class LocalDevelopmentCredentialsProvider extends AwsCredentialsProvider {
+class LocalDevelopmentCredentialsProvider extends AwsCredentialsProvider with Logging {
   private val delegate = DefaultCredentialsProvider.builder().build()
 
   override def resolveCredentials(): AwsCredentials =
-    Try(delegate.resolveCredentials())
-      .getOrElse(AwsBasicCredentials.create("dummy-access-key", "dummy-secret-key"))
+    Try(delegate.resolveCredentials()) match {
+      case Success(creds) => creds
+      case Failure(e)     =>
+        log.warn(
+          "Failed to resolve AWS credentials from default provider chain, falling back to dummy credentials for local development",
+          e
+        )
+        AwsBasicCredentials.create("dummy-access-key", "dummy-secret-key")
+    }
 }
