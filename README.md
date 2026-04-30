@@ -7,22 +7,103 @@ The backend filestore service which manages attachment metadata and S3 bucket ac
 
 ##### To run this Service you will need:
 
-1) [Service Manager 2](https://github.com/hmrc/sm2) installed
-2) [SBT](https://www.scala-sbt.org) Version `>=1.x` installed
-3) [MongoDB](https://www.mongodb.com/) version `>=7.0` installed and running on port 27017
-4) [Localstack](https://github.com/localstack/localstack) installed and running on port 4572
-5) Create an S3 bucket in localstack by using `awslocal s3 mb s3://digital-tariffs-local` within the localstack container
+1. **Service Manager 2** installed
+2. **SBT Version >=1.x** installed
+3. **MongoDB version >=3.6** installed and running on **port: 27017**
+4. **Localstack** installed and running on **port: 4566**
 
-The easiest way to run MongoDB and Localstack for local development is to use [Docker](https://docs.docker.com/get-docker/).
+---
 
-##### To run Localstack and create the S3 bucket
+## Local Dependencies (Docker)
+
+### MongoDB
+
+```bash
+docker run --restart unless-stopped -d \
+  -p 27017:27017 \
+  --name mongodb \
+  mongo:5.0
+```
+
+---
+
+### Localstack (S3)
+
+LocalStack uses a single edge port: **4566**
+
+Start LocalStack:
+
+```bash
+
+docker run -d \
+  --restart unless-stopped \
+  --name localstack \
+  -e SERVICES=s3 \
+  -e DEFAULT_REGION=eu-west-2 \
+  -p 4566:4566 \
+  localstack/localstack:4.4.0
+```
+---
+### Verify LocalStack is running
+
+```bash
+docker ps
+```
+
+You should see:
 
 ```
-> docker run -d --restart unless-stopped --name localstack -e SERVICES=s3 -p4572:4566 -p8080:8080 localstack/localstack
-> docker exec -it localstack bash
-> awslocal s3 mb s3://digital-tariffs-local
-> exit
+localstack   Up ...   0.0.0.0:4566->4566/tcp
 ```
+---
+
+## Configure AWS credentials (for LocalStack)
+
+LocalStack accepts any credentials, but they must exist.
+
+Run:
+
+```bash
+aws configure
+```
+
+Use:
+
+```
+AWS Access Key ID: test
+AWS Secret Access Key: test
+Default region name: eu-west-2
+Default output format:
+```
+
+---
+## Create S3 bucket
+
+Run from your machine (not inside the container):
+
+```bash
+aws --endpoint-url=http://localhost:4566 \
+  s3 mb s3://digital-tariffs-local
+```
+
+Verify:
+
+```bash
+aws --endpoint-url=http://localhost:4566 s3 ls
+```
+
+---
+### Reset LocalStack completely
+
+```bash
+docker rm -f localstack
+docker volume prune -f
+```
+
+Then start it again.
+
+---
+
 
 #### Starting the application:
 
