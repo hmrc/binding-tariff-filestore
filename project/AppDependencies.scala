@@ -4,7 +4,7 @@ object AppDependencies {
 
   private lazy val bootstrapPlayVersion = "10.7.0"
   private lazy val hmrcMongoVersion     = "2.12.0"
-  private lazy val amazonAWSSDKVersion  = "2.42.12"
+  private lazy val amazonAWSSDKVersion  = "2.44.6"
 
   val compile: Seq[ModuleID] = Seq(
     "software.amazon.awssdk"        % "s3"                        % amazonAWSSDKVersion,
