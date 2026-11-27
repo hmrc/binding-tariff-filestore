@@ -10,7 +10,7 @@ The backend filestore service which manages attachment metadata and S3 bucket ac
 1. **Service Manager 2** installed
 2. **SBT Version >=1.x** installed
 3. **MongoDB version >=3.6** installed and running on **port: 27017**
-4. **Localstack** installed and running on **port: 4566**
+4. **Moto (MotoServer)** running on **port: 4566**
 
 ---
 
@@ -27,24 +27,21 @@ docker run --restart unless-stopped -d \
 
 ---
 
-### Localstack (S3)
+### Moto (S3)
 
-LocalStack uses a single edge port: **4566**
+[Moto](https://github.com/getmoto/moto) (MotoServer) replaces LocalStack. It listens on port 5000 inside the container, mapped to **4566** locally.
 
-Start LocalStack:
+Start Moto:
 
 ```bash
-
 docker run -d \
   --restart unless-stopped \
-  --name localstack \
-  -e SERVICES=s3 \
-  -e DEFAULT_REGION=eu-west-2 \
-  -p 4566:4566 \
-  localstack/localstack:4.4.0
+  --name moto \
+  -p 4566:5000 \
+  motoserver/moto:5.1.18
 ```
 ---
-### Verify LocalStack is running
+### Verify Moto is running
 
 ```bash
 docker ps
@@ -53,13 +50,13 @@ docker ps
 You should see:
 
 ```
-localstack   Up ...   0.0.0.0:4566->4566/tcp
+moto   Up ...   0.0.0.0:4566->5000/tcp
 ```
 ---
 
-## Configure AWS credentials (for LocalStack)
+## Configure AWS credentials (for Moto)
 
-LocalStack accepts any credentials, but they must exist.
+Moto accepts any credentials, but they must exist.
 
 Run:
 
@@ -79,7 +76,7 @@ Default output format:
 ---
 ## Create S3 bucket
 
-Run from your machine (not inside the container):
+Run from your machine:
 
 ```bash
 aws --endpoint-url=http://localhost:4566 \
@@ -93,14 +90,13 @@ aws --endpoint-url=http://localhost:4566 s3 ls
 ```
 
 ---
-### Reset LocalStack completely
+### Reset Moto completely
 
 ```bash
-docker rm -f localstack
-docker volume prune -f
+docker rm -f moto
 ```
 
-Then start it again.
+Then start it again and recreate the bucket.
 
 ---
 
