@@ -2,7 +2,7 @@ import sbt.*
 
 object AppDependencies {
 
-  private lazy val bootstrapPlayVersion = "10.8.0"
+  private lazy val bootstrapPlayVersion = "10.9.0"
   private lazy val hmrcMongoVersion     = "2.14.0"
   private lazy val amazonAWSSDKVersion  = "2.55.12"
 
